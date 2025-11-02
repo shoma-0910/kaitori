@@ -1,71 +1,72 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { EventCalendar, CalendarEvent } from "@/components/EventCalendar";
 import { ScheduleTable, ScheduleItem } from "@/components/ScheduleTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+
+interface Event {
+  id: string;
+  storeId: string;
+  manager: string;
+  startDate: string;
+  endDate: string;
+  status: "予定" | "実施中" | "終了" | "キャンセル";
+  estimatedCost: number;
+  actualProfit?: number;
+}
+
+interface Store {
+  id: string;
+  name: string;
+}
 
 export default function CalendarSchedule() {
-  //todo: remove mock functionality - replace with real data
-  const [events] = useState<CalendarEvent[]>([
-    {
-      id: "1",
-      title: "関西スーパー淀川店",
-      start: new Date(2024, 10, 15),
-      end: new Date(2024, 10, 17),
-      status: "終了",
-    },
-    {
-      id: "2",
-      title: "ライフ豊中店",
-      start: new Date(2024, 10, 20),
-      end: new Date(2024, 10, 22),
-      status: "実施中",
-    },
-    {
-      id: "3",
-      title: "イオン千里店",
-      start: new Date(2024, 11, 5),
-      end: new Date(2024, 11, 7),
-      status: "予定",
-    },
-  ]);
+  const { toast } = useToast();
 
-  const [schedules] = useState<ScheduleItem[]>([
-    {
-      id: "1",
-      storeName: "関西スーパー淀川店",
-      manager: "田中太郎",
-      startDate: "2024-11-15",
-      endDate: "2024-11-17",
-      status: "終了",
-      estimatedCost: 1500000,
-      actualProfit: 5200000,
+  const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
+    queryKey: ["/api/events"],
+  });
+
+  const { data: stores = [], isLoading: storesLoading } = useQuery<Store[]>({
+    queryKey: ["/api/stores"],
+  });
+
+  const updateProfitMutation = useMutation({
+    mutationFn: async ({ id, profit }: { id: string; profit: number }) => {
+      const res = await apiRequest("PATCH", `/api/events/${id}`, {
+        actualProfit: profit,
+      });
+      return await res.json();
     },
-    {
-      id: "2",
-      storeName: "ライフ豊中店",
-      manager: "佐藤花子",
-      startDate: "2024-11-20",
-      endDate: "2024-11-22",
-      status: "実施中",
-      estimatedCost: 1300000,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "成功",
+        description: "実績粗利を更新しました",
+      });
     },
-    {
-      id: "3",
-      storeName: "イオン千里店",
-      manager: "鈴木一郎",
-      startDate: "2024-12-05",
-      endDate: "2024-12-07",
-      status: "予定",
-      estimatedCost: 1800000,
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "更新に失敗しました",
+        variant: "destructive",
+      });
     },
-  ]);
+  });
 
   const handleUpdateProfit = (id: string, profit: number) => {
-    console.log("Update profit:", id, profit);
+    updateProfitMutation.mutate({ id, profit });
   };
 
   const handleEdit = (schedule: ScheduleItem) => {
-    console.log("Edit schedule:", schedule);
+    toast({
+      title: "編集",
+      description: `${schedule.storeName}のスケジュールを編集します`,
+    });
   };
 
   const handleEventClick = (event: CalendarEvent) => {
@@ -75,6 +76,38 @@ export default function CalendarSchedule() {
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
     console.log("Slot selected:", slotInfo);
   };
+
+  const getStoreName = (storeId: string) => {
+    const store = stores.find((s) => s.id === storeId);
+    return store?.name || "不明な店舗";
+  };
+
+  const calendarEvents: CalendarEvent[] = events.map((event) => ({
+    id: event.id,
+    title: getStoreName(event.storeId),
+    start: new Date(event.startDate),
+    end: new Date(event.endDate),
+    status: event.status,
+  }));
+
+  const schedules: ScheduleItem[] = events.map((event) => ({
+    id: event.id,
+    storeName: getStoreName(event.storeId),
+    manager: event.manager,
+    startDate: format(new Date(event.startDate), "yyyy-MM-dd"),
+    endDate: format(new Date(event.endDate), "yyyy-MM-dd"),
+    status: event.status,
+    estimatedCost: event.estimatedCost,
+    actualProfit: event.actualProfit,
+  }));
+
+  if (eventsLoading || storesLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,7 +130,7 @@ export default function CalendarSchedule() {
 
         <TabsContent value="calendar" className="mt-6">
           <EventCalendar
-            events={events}
+            events={calendarEvents}
             onEventClick={handleEventClick}
             onSelectSlot={handleSelectSlot}
           />

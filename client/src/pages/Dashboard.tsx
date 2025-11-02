@@ -1,51 +1,76 @@
-import { Store, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Store, Calendar, DollarSign, TrendingUp, Loader2 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { StoreAnalysisChart } from "@/components/StoreAnalysisChart";
 
-export default function Dashboard() {
-  //todo: remove mock functionality - replace with real data
-  const kpiData = [
-    { title: "対象店舗数", value: 24, icon: Store, trend: { value: 12, isPositive: true } },
-    { title: "予定催事件数", value: 8, icon: Calendar, trend: { value: 33, isPositive: true } },
-    { title: "総実績粗利", value: "¥45.2M", icon: DollarSign },
-    { title: "総過去粗利", value: "¥38.4M", icon: TrendingUp },
-  ];
+interface Event {
+  id: string;
+  storeId: string;
+  status: string;
+  estimatedCost: number;
+  actualProfit?: number;
+}
 
-  const chartData = [
+interface StoreData {
+  id: string;
+  name: string;
+  potentialScore: number;
+}
+
+interface Cost {
+  amount: number;
+}
+
+export default function Dashboard() {
+  const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
+    queryKey: ["/api/events"],
+  });
+
+  const { data: stores = [], isLoading: storesLoading } = useQuery<StoreData[]>({
+    queryKey: ["/api/stores"],
+  });
+
+  const totalStores = stores.length;
+  const scheduledEvents = events.filter((e) => e.status === "予定").length;
+  const totalActualProfit = events.reduce((sum, e) => sum + (e.actualProfit || 0), 0);
+  const totalEstimatedCost = events.reduce((sum, e) => sum + e.estimatedCost, 0);
+
+  const chartData = stores.slice(0, 5).map((store) => {
+    const storeEvents = events.filter((e) => e.storeId === store.id);
+    const pastProfit = storeEvents
+      .filter((e) => e.status === "終了" && e.actualProfit)
+      .reduce((sum, e) => sum + (e.actualProfit || 0), 0);
+    const cost = storeEvents.reduce((sum, e) => sum + e.estimatedCost, 0);
+
+    return {
+      storeName: store.name,
+      pastProfit: Math.round(pastProfit / 10000),
+      actualProfit: Math.round(pastProfit / 10000),
+      cost: Math.round(cost / 10000),
+      potentialScore: store.potentialScore,
+    };
+  });
+
+  if (eventsLoading || storesLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const kpiData = [
+    { title: "対象店舗数", value: totalStores, icon: Store },
+    { title: "予定催事件数", value: scheduledEvents, icon: Calendar },
     {
-      storeName: "関西スーパー淀川店",
-      pastProfit: 450,
-      actualProfit: 520,
-      cost: 180,
-      potentialScore: 92,
+      title: "総実績粗利",
+      value: `¥${(totalActualProfit / 10000).toFixed(1)}M`,
+      icon: DollarSign,
     },
     {
-      storeName: "ライフ豊中店",
-      pastProfit: 380,
-      actualProfit: 410,
-      cost: 150,
-      potentialScore: 85,
-    },
-    {
-      storeName: "イオン千里店",
-      pastProfit: 520,
-      actualProfit: 580,
-      cost: 200,
-      potentialScore: 88,
-    },
-    {
-      storeName: "マルヤス吹田店",
-      pastProfit: 320,
-      actualProfit: 350,
-      cost: 130,
-      potentialScore: 78,
-    },
-    {
-      storeName: "コーヨー高槻店",
-      pastProfit: 410,
-      actualProfit: 460,
-      cost: 165,
-      potentialScore: 82,
+      title: "総概算コスト",
+      value: `¥${(totalEstimatedCost / 10000).toFixed(1)}M`,
+      icon: TrendingUp,
     },
   ];
 
@@ -64,7 +89,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <StoreAnalysisChart data={chartData} />
+      {chartData.length > 0 && <StoreAnalysisChart data={chartData} />}
     </div>
   );
 }
