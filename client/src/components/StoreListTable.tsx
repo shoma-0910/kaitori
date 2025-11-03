@@ -18,7 +18,7 @@ export interface StoreListItem {
   potentialScore: number;
   population: number;
   averageAge: number;
-  competition: string;
+  competition?: string;
 }
 
 interface StoreListTableProps {
@@ -42,6 +42,7 @@ export function StoreListTable({ stores, onStoreClick }: StoreListTableProps) {
   const sortedStores = [...stores].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
+    if (aValue === undefined || bValue === undefined) return 0;
     const modifier = sortDirection === "asc" ? 1 : -1;
     return aValue > bValue ? modifier : -modifier;
   });
@@ -110,7 +111,7 @@ export function StoreListTable({ stores, onStoreClick }: StoreListTableProps) {
               </TableCell>
               <TableCell className="font-mono">{store.averageAge}歳</TableCell>
               <TableCell>
-                <Badge variant="outline">{store.competition}</Badge>
+                {store.competition && <Badge variant="outline">{store.competition}</Badge>}
               </TableCell>
               <TableCell>
                 <Button size="sm" data-testid={`button-view-${store.id}`}>
