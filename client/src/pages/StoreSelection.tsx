@@ -227,16 +227,23 @@ export default function StoreSelection() {
         </CardContent>
       </Card>
 
-      <StoreMapView
-        stores={storesWithPositions}
-        onStoreSelect={(store) => {
-          const existingStore = stores.find((s) => s.id === store.id);
-          if (existingStore) {
-            handleStoreClick(existingStore);
-          }
-        }}
-        selectedStore={selectedStore}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>店舗検索</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StoreMapView
+            stores={storesWithPositions}
+            onStoreSelect={(store) => {
+              const existingStore = stores.find((s) => s.id === store.id);
+              if (existingStore) {
+                handleStoreClick(existingStore);
+              }
+            }}
+            selectedStore={selectedStore}
+          />
+        </CardContent>
+      </Card>
 
       <StoreDetailModal
         store={selectedStore}
