@@ -142,7 +142,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/events/:id", async (req, res) => {
     try {
-      const event = await storage.updateEvent(req.params.id, req.body);
+      const updateData = { ...req.body };
+      
+      // Convert date strings to Date objects if present
+      if (updateData.startDate) {
+        updateData.startDate = new Date(updateData.startDate);
+      }
+      if (updateData.endDate) {
+        updateData.endDate = new Date(updateData.endDate);
+      }
+      
+      const event = await storage.updateEvent(req.params.id, updateData);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
@@ -157,10 +167,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const event = await storage.getEvent(req.params.id);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
-      }
-
-      if (event.googleCalendarEventId) {
-        return res.status(400).json({ error: "Event already added to Google Calendar" });
       }
 
       let storeName = "店舗";
@@ -193,11 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to add to Google Calendar" });
       }
 
-      const updatedEvent = await storage.updateEvent(req.params.id, {
-        googleCalendarEventId,
-      });
-
-      res.json(updatedEvent);
+      res.json({ success: true, googleCalendarEventId });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

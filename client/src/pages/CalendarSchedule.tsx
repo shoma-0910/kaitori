@@ -89,12 +89,34 @@ export default function CalendarSchedule() {
         title: "成功",
         description: "Googleカレンダーに追加しました",
       });
-      setEventDetailModalOpen(false);
     },
     onError: () => {
       toast({
         title: "エラー",
         description: "Googleカレンダーへの追加に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/events/${id}`, data);
+      return await res.json();
+    },
+    onSuccess: (updatedEvent) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      // Update selectedEvent to reflect the changes in the modal
+      setSelectedEvent(updatedEvent);
+      toast({
+        title: "成功",
+        description: "催事情報を更新しました",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "更新に失敗しました",
         variant: "destructive",
       });
     },
@@ -142,6 +164,10 @@ export default function CalendarSchedule() {
     if (selectedEvent) {
       addToCalendarMutation.mutate(selectedEvent.id);
     }
+  };
+
+  const handleSaveEvent = (eventId: string, data: any) => {
+    updateEventMutation.mutate({ id: eventId, data });
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
@@ -230,6 +256,8 @@ export default function CalendarSchedule() {
         store={selectedStore}
         onAddToGoogleCalendar={handleAddToGoogleCalendar}
         isAddingToCalendar={addToCalendarMutation.isPending}
+        onSave={handleSaveEvent}
+        isSaving={updateEventMutation.isPending}
       />
     </div>
   );
