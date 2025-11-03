@@ -84,6 +84,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     id: "google-map-script",
     googleMapsApiKey: apiKey || "",
     libraries,
+    language: "ja",
+    region: "JP",
   });
 
   const searchNearbySupermarkets = useCallback((location: google.maps.LatLng, map: google.maps.Map, searchId: string) => {
@@ -154,7 +156,11 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     const geocoder = new google.maps.Geocoder();
 
     try {
-      const result = await geocoder.geocode({ address: searchQuery });
+      const result = await geocoder.geocode({ 
+        address: searchQuery,
+        language: "ja",
+        region: "JP"
+      });
       if (result.results[0]) {
         const location = result.results[0].geometry.location;
         const newCenter = {
@@ -215,6 +221,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
         {
           placeId: placeId,
           fields: ["name", "formatted_address", "formatted_phone_number", "geometry"],
+          language: "ja",
         },
         (result, status) => {
           setLoadingDetails(false);
