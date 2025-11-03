@@ -43,6 +43,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const [mapZoom, setMapZoom] = useState(11);
   const [searchingNearby, setSearchingNearby] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<Store | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
@@ -65,6 +66,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
           lng: location.lng(),
         });
         setMapZoom(14);
+        setShowMap(true);
       }
     } catch (error) {
       console.error("Geocoding error:", error);
@@ -137,18 +139,19 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-0">
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={mapCenter}
-            zoom={mapZoom}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false,
-            }}
-          >
+      {showMap && (
+        <Card>
+          <CardContent className="p-0">
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={mapCenter}
+              zoom={mapZoom}
+              options={{
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+              }}
+            >
             {stores.map((store) => (
               <Marker
                 key={store.id}
@@ -188,9 +191,10 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                 </div>
               </InfoWindow>
             )}
-          </GoogleMap>
-        </CardContent>
-      </Card>
+            </GoogleMap>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
