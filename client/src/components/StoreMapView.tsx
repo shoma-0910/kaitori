@@ -648,30 +648,6 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                     </div>
                   </div>
                 )}
-
-                {selectedPlaceDetails.website && (
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground mb-1">ウェブサイト</p>
-                      <p className="text-sm font-medium" data-testid="detail-website">
-                        <a 
-                          href={selectedPlaceDetails.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          公式サイトを見る
-                        </a>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        駐車場情報など詳細は公式サイトをご確認ください
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {selectedPlaceDetails && (

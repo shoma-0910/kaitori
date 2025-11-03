@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Globe, Clock } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -130,20 +130,6 @@ export default function RegisteredStores() {
                       data-testid={`link-store-phone-${store.id}`}
                     >
                       {store.phoneNumber}
-                    </a>
-                  </div>
-                )}
-                {store.website && (
-                  <div className="flex items-start gap-2">
-                    <Globe className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <a 
-                      href={store.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                      data-testid={`link-store-website-${store.id}`}
-                    >
-                      公式サイト
                     </a>
                   </div>
                 )}
