@@ -4,9 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const libraries: ("places")[] = ["places"];
 
@@ -32,6 +39,7 @@ interface NearbyPlace {
     lng: number;
   };
   type: "supermarket";
+  phoneNumber?: string;
 }
 
 interface StoreMapViewProps {
@@ -61,6 +69,9 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const currentSearchRef = useRef<string>("");
   const pendingSearchRef = useRef<{ location: google.maps.LatLng; searchId: string } | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedPlaceDetails, setSelectedPlaceDetails] = useState<NearbyPlace | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const { toast } = useToast();
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -192,6 +203,56 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     setMapZoom(16);
     setSelectedMarker(place);
   };
+
+  const fetchPlaceDetails = useCallback(async (placeId: string) => {
+    if (!mapInstance) return null;
+
+    setLoadingDetails(true);
+    const service = new google.maps.places.PlacesService(mapInstance);
+
+    return new Promise<google.maps.places.PlaceResult | null>((resolve) => {
+      service.getDetails(
+        {
+          placeId: placeId,
+          fields: ["name", "formatted_address", "formatted_phone_number", "geometry"],
+        },
+        (result, status) => {
+          setLoadingDetails(false);
+          if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+            resolve(result);
+          } else {
+            console.error("Place details error:", status);
+            resolve(null);
+          }
+        }
+      );
+    });
+  }, [mapInstance]);
+
+  const handlePlaceClick = useCallback(async (place: NearbyPlace) => {
+    // ダイアログを先に開いてローディング状態を表示
+    setSelectedPlaceDetails(place);
+    setDetailsDialogOpen(true);
+    
+    // 詳細情報を取得
+    const details = await fetchPlaceDetails(place.placeId);
+    
+    if (details) {
+      const detailedPlace: NearbyPlace = {
+        ...place,
+        name: details.name || place.name,
+        address: details.formatted_address || place.address,
+        phoneNumber: details.formatted_phone_number,
+      };
+      setSelectedPlaceDetails(detailedPlace);
+    } else {
+      toast({
+        title: "詳細情報の取得に失敗しました",
+        description: "一部の情報が表示されない可能性があります。",
+        variant: "destructive",
+      });
+    }
+  }, [fetchPlaceDetails, toast]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map);
@@ -326,7 +387,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                   <Marker
                     key={place.placeId}
                     position={place.position}
-                    onClick={() => handleMarkerClick(place)}
+                    onClick={() => handlePlaceClick(place)}
                     icon={{
                       path: google.maps.SymbolPath.CIRCLE,
                       scale: 8,
@@ -378,28 +439,24 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                       className="w-full text-left bg-card border rounded-md p-3 hover-elevate active-elevate-2 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleFocusPlace(place);
-                        // Keep focus on this button to prevent map from hijacking keyboard
+                        handlePlaceClick(place);
                         e.currentTarget.focus();
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleFocusPlace(place);
-                          // Keep focus on this button
+                          handlePlaceClick(place);
                           e.currentTarget.focus();
                         }
                       }}
                       onKeyUp={(e) => {
-                        // Stop keyup events from bubbling to the map iframe
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           e.stopPropagation();
                         }
                       }}
                       onKeyPress={(e) => {
-                        // Stop keypress events from bubbling to the map iframe
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           e.stopPropagation();
@@ -434,6 +491,74 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
           )}
         </>
       )}
+
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent data-testid="dialog-place-details">
+          <DialogHeader>
+            <DialogTitle className="text-xl" data-testid="dialog-title">
+              スーパー詳細情報
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              選択されたスーパーマーケットの詳細情報を表示します
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingDetails ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : selectedPlaceDetails ? (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <MapPinned className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-1">店舗名</p>
+                    <p className="font-medium" data-testid="detail-name">
+                      {selectedPlaceDetails.name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-1">住所</p>
+                    <p className="text-sm" data-testid="detail-address">
+                      {selectedPlaceDetails.address}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedPlaceDetails.phoneNumber ? (
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">電話番号</p>
+                      <p className="text-sm font-medium" data-testid="detail-phone">
+                        <a 
+                          href={`tel:${selectedPlaceDetails.phoneNumber}`}
+                          className="text-primary hover:underline"
+                        >
+                          {selectedPlaceDetails.phoneNumber}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">電話番号</p>
+                      <p className="text-sm text-muted-foreground">情報なし</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
