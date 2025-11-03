@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema } from "@shared/schema";
+import { createCalendarEvent } from "./google-calendar";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -84,7 +85,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/events", async (req, res) => {
     try {
-      const data = insertEventSchema.parse(req.body);
+      const { addToGoogleCalendar, ...eventData } = req.body;
+      const data = insertEventSchema.parse(eventData);
+      
+      let googleCalendarEventId = null;
+      
+      if (addToGoogleCalendar) {
+        try {
+          const store = await storage.getStore(data.storeId);
+          const storeName = store?.name || "店舗";
+          const location = store?.address;
+          
+          const summary = `${storeName} - 買取催事`;
+          const description = `担当者: ${data.manager}\n予定コスト: ¥${data.estimatedCost.toLocaleString()}\n${data.notes ? `\n備考: ${data.notes}` : ''}`;
+          
+          googleCalendarEventId = await createCalendarEvent(
+            summary,
+            description,
+            new Date(data.startDate),
+            new Date(data.endDate),
+            location
+          );
+          
+          if (googleCalendarEventId) {
+            data.googleCalendarEventId = googleCalendarEventId;
+          }
+        } catch (calendarError: any) {
+          console.error('Failed to add to Google Calendar:', calendarError.message);
+        }
+      }
+      
       const event = await storage.createEvent(data);
       res.status(201).json(event);
     } catch (error: any) {
