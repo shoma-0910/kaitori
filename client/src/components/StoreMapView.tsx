@@ -44,6 +44,8 @@ interface NearbyPlace {
   };
   type: "supermarket";
   phoneNumber?: string;
+  website?: string;
+  openingHours?: string[];
 }
 
 interface StoreMapViewProps {
@@ -90,6 +92,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       phoneNumber?: string;
       latitude: number;
       longitude: number;
+      website?: string;
+      openingHours?: string[];
     }) => {
       const res = await apiRequest('POST', '/api/registered-stores', data);
       return await res.json() as RegisteredStore;
@@ -266,7 +270,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       service.getDetails(
         {
           placeId: placeId,
-          fields: ["name", "formatted_address", "formatted_phone_number", "geometry"],
+          fields: ["name", "formatted_address", "formatted_phone_number", "geometry", "website", "opening_hours"],
           language: "ja",
         },
         (result, status) => {
@@ -296,6 +300,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
         name: details.name || place.name,
         address: details.formatted_address || place.address,
         phoneNumber: details.formatted_phone_number,
+        website: details.website,
+        openingHours: details.opening_hours?.weekday_text,
       };
       setSelectedPlaceDetails(detailedPlace);
     } else {
@@ -321,6 +327,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       phoneNumber: selectedPlaceDetails.phoneNumber,
       latitude: selectedPlaceDetails.position.lat,
       longitude: selectedPlaceDetails.position.lng,
+      website: selectedPlaceDetails.website,
+      openingHours: selectedPlaceDetails.openingHours,
     });
   }, [selectedPlaceDetails, registerStoreMutation]);
 
@@ -621,6 +629,46 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                     <div className="flex-1">
                       <p className="text-sm text-muted-foreground mb-1">電話番号</p>
                       <p className="text-sm text-muted-foreground">情報なし</p>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPlaceDetails.openingHours && selectedPlaceDetails.openingHours.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">営業時間</p>
+                      <div className="space-y-1" data-testid="detail-opening-hours">
+                        {selectedPlaceDetails.openingHours.map((hours, index) => (
+                          <p key={index} className="text-sm">{hours}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPlaceDetails.website && (
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">ウェブサイト</p>
+                      <p className="text-sm font-medium" data-testid="detail-website">
+                        <a 
+                          href={selectedPlaceDetails.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          公式サイトを見る
+                        </a>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        駐車場情報など詳細は公式サイトをご確認ください
+                      </p>
                     </div>
                   </div>
                 )}

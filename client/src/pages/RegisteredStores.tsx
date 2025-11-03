@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2 } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Globe, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -131,6 +131,36 @@ export default function RegisteredStores() {
                     >
                       {store.phoneNumber}
                     </a>
+                  </div>
+                )}
+                {store.website && (
+                  <div className="flex items-start gap-2">
+                    <Globe className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <a 
+                      href={store.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                      data-testid={`link-store-website-${store.id}`}
+                    >
+                      公式サイト
+                    </a>
+                  </div>
+                )}
+                {store.openingHours && store.openingHours.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="flex-1" data-testid={`text-store-hours-${store.id}`}>
+                      <p className="text-sm text-muted-foreground mb-1">営業時間</p>
+                      <div className="space-y-0.5">
+                        {store.openingHours.slice(0, 2).map((hours, index) => (
+                          <p key={index} className="text-xs text-muted-foreground">{hours}</p>
+                        ))}
+                        {store.openingHours.length > 2 && (
+                          <p className="text-xs text-muted-foreground">...</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground pt-2 border-t">
