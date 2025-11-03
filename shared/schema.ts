@@ -28,6 +28,7 @@ export const events = pgTable("events", {
   estimatedCost: integer("estimated_cost").notNull(),
   actualProfit: integer("actual_profit"),
   googleCalendarEventId: text("google_calendar_event_id"),
+  notes: text("notes"),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({ id: true });
