@@ -152,6 +152,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/events/:id/add-to-calendar", async (req, res) => {
+    try {
+      const event = await storage.getEvent(req.params.id);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      if (event.googleCalendarEventId) {
+        return res.status(400).json({ error: "Event already added to Google Calendar" });
+      }
+
+      let storeName = "店舗";
+      let location = undefined;
+      
+      const regularStore = await storage.getStore(event.storeId);
+      if (regularStore) {
+        storeName = regularStore.name;
+        location = regularStore.address;
+      } else {
+        const registeredStore = await storage.getRegisteredStore(event.storeId);
+        if (registeredStore) {
+          storeName = registeredStore.name;
+          location = registeredStore.address;
+        }
+      }
+      
+      const summary = `${storeName} - 買取催事`;
+      const description = `担当者: ${event.manager}\n予定コスト: ¥${event.estimatedCost.toLocaleString()}\n${event.notes ? `\n備考: ${event.notes}` : ''}`;
+      
+      const googleCalendarEventId = await createCalendarEvent(
+        summary,
+        description,
+        new Date(event.startDate),
+        new Date(event.endDate),
+        location
+      );
+
+      if (!googleCalendarEventId) {
+        return res.status(500).json({ error: "Failed to add to Google Calendar" });
+      }
+
+      const updatedEvent = await storage.updateEvent(req.params.id, {
+        googleCalendarEventId,
+      });
+
+      res.json(updatedEvent);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.delete("/api/events/:id", async (req, res) => {
     try {
       const success = await storage.deleteEvent(req.params.id);
@@ -291,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: "gemini-2.0-flash-001",
         contents: prompt,
       });
-      const text = result.text;
+      const text = result.text || "";
       
       // Extract JSON from response
       let jsonText = text.trim();

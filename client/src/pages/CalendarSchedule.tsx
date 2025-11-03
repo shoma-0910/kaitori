@@ -7,7 +7,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
+import { EventDetailModal } from "@/components/EventDetailModal";
 
 interface Event {
   id: string;
@@ -18,11 +18,14 @@ interface Event {
   status: "予定" | "実施中" | "終了" | "キャンセル";
   estimatedCost: number;
   actualProfit?: number;
+  notes?: string;
+  googleCalendarEventId?: string;
 }
 
 interface Store {
   id: string;
   name: string;
+  address: string;
 }
 
 interface RegisteredStore {
@@ -36,7 +39,8 @@ interface RegisteredStore {
 
 export default function CalendarSchedule() {
   const { toast } = useToast();
-  const [storeDetailModalOpen, setStoreDetailModalOpen] = useState(false);
+  const [eventDetailModalOpen, setEventDetailModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
@@ -74,6 +78,28 @@ export default function CalendarSchedule() {
     },
   });
 
+  const addToCalendarMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await apiRequest("POST", `/api/events/${eventId}/add-to-calendar`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "成功",
+        description: "Googleカレンダーに追加しました",
+      });
+      setEventDetailModalOpen(false);
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "Googleカレンダーへの追加に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpdateProfit = (id: string, profit: number) => {
     updateProfitMutation.mutate({ id, profit });
   };
@@ -85,22 +111,36 @@ export default function CalendarSchedule() {
     });
   };
 
-  const handleStoreClick = (storeId: string) => {
-    const registeredStore = registeredStores.find((s) => s.id === storeId);
+  const handleStoreClick = (eventId: string) => {
+    const eventData = events.find((e) => e.id === eventId);
+    if (!eventData) return;
+
+    const registeredStore = registeredStores.find((s) => s.id === eventData.storeId);
+    const regularStore = stores.find((s) => s.id === eventData.storeId);
+    
     if (registeredStore) {
+      setSelectedEvent(eventData);
       setSelectedStore(registeredStore);
-      setStoreDetailModalOpen(true);
+      setEventDetailModalOpen(true);
+    } else if (regularStore) {
+      setSelectedEvent(eventData);
+      setSelectedStore({
+        id: regularStore.id,
+        name: regularStore.name,
+        address: regularStore.address,
+        registeredAt: new Date().toISOString(),
+      });
+      setEventDetailModalOpen(true);
     }
   };
 
   const handleEventClick = (event: CalendarEvent) => {
-    const eventData = events.find((e) => e.id === event.id);
-    if (!eventData) return;
+    handleStoreClick(event.id);
+  };
 
-    const registeredStore = registeredStores.find((s) => s.id === eventData.storeId);
-    if (registeredStore) {
-      setSelectedStore(registeredStore);
-      setStoreDetailModalOpen(true);
+  const handleAddToGoogleCalendar = () => {
+    if (selectedEvent) {
+      addToCalendarMutation.mutate(selectedEvent.id);
     }
   };
 
@@ -183,10 +223,13 @@ export default function CalendarSchedule() {
         </TabsContent>
       </Tabs>
 
-      <RegisteredStoreDetailModal
-        open={storeDetailModalOpen}
-        onOpenChange={setStoreDetailModalOpen}
+      <EventDetailModal
+        open={eventDetailModalOpen}
+        onOpenChange={setEventDetailModalOpen}
+        event={selectedEvent}
         store={selectedStore}
+        onAddToGoogleCalendar={handleAddToGoogleCalendar}
+        isAddingToCalendar={addToCalendarMutation.isPending}
       />
     </div>
   );

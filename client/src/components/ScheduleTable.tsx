@@ -28,7 +28,7 @@ interface ScheduleTableProps {
   schedules: ScheduleItem[];
   onUpdateProfit: (id: string, profit: number) => void;
   onEdit: (schedule: ScheduleItem) => void;
-  onStoreClick?: (storeId: string) => void;
+  onStoreClick?: (eventId: string) => void;
 }
 
 export function ScheduleTable({
@@ -106,8 +106,8 @@ export function ScheduleTable({
                   </Badge>
                 </TableCell>
                 <TableCell 
-                  className={`font-medium ${schedule.storeId && onStoreClick ? 'cursor-pointer text-primary hover:underline' : ''}`}
-                  onClick={() => schedule.storeId && onStoreClick?.(schedule.storeId)}
+                  className={`font-medium ${onStoreClick ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                  onClick={() => onStoreClick?.(schedule.id)}
                   data-testid={`cell-store-name-${schedule.id}`}
                 >
                   {schedule.storeName}
