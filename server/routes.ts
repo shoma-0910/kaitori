@@ -208,9 +208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Region name is required" });
       }
 
-      const { default: genAI } = await import("@google/genai");
-      const client = new genAI.GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-      const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
       const prompt = `日本の${region}について、以下の統計情報をJSON形式で提供してください。最新の公開データに基づいて回答してください。
 
@@ -240,9 +239,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 注意: JSON以外のテキストは一切含めず、JSONのみを返してください。`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: prompt,
+      });
+      const text = result.text;
       
       // Extract JSON from response
       let jsonText = text.trim();
