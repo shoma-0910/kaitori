@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, Calendar, DollarSign, Database, Bot } from "lucide-react";
+import { LayoutDashboard, Store, BookmarkCheck, Calendar, DollarSign, Database, Bot } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -21,6 +21,11 @@ const menuItems = [
     title: "店舗選定・予約",
     url: "/stores",
     icon: Store,
+  },
+  {
+    title: "登録店舗",
+    url: "/registered-stores",
+    icon: BookmarkCheck,
   },
   {
     title: "カレンダー・スケジュール",

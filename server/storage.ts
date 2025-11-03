@@ -5,9 +5,12 @@ import {
   type InsertEvent,
   type Cost,
   type InsertCost,
+  type RegisteredStore,
+  type InsertRegisteredStore,
   stores,
   events,
   costs,
+  registeredStores,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -32,6 +35,13 @@ export interface IStorage {
   getCostsByEvent(eventId: string): Promise<Cost[]>;
   createCost(cost: InsertCost): Promise<Cost>;
   deleteCost(id: string): Promise<boolean>;
+
+  // Registered Stores
+  getAllRegisteredStores(): Promise<RegisteredStore[]>;
+  getRegisteredStore(id: string): Promise<RegisteredStore | undefined>;
+  getRegisteredStoreByPlaceId(placeId: string): Promise<RegisteredStore | undefined>;
+  createRegisteredStore(store: InsertRegisteredStore): Promise<RegisteredStore>;
+  deleteRegisteredStore(id: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -101,6 +111,31 @@ export class DbStorage implements IStorage {
 
   async deleteCost(id: string): Promise<boolean> {
     const result = await db.delete(costs).where(eq(costs.id, id));
+    return result.rowCount! > 0;
+  }
+
+  // Registered Stores
+  async getAllRegisteredStores(): Promise<RegisteredStore[]> {
+    return await db.select().from(registeredStores).orderBy(desc(registeredStores.registeredAt));
+  }
+
+  async getRegisteredStore(id: string): Promise<RegisteredStore | undefined> {
+    const result = await db.select().from(registeredStores).where(eq(registeredStores.id, id));
+    return result[0];
+  }
+
+  async getRegisteredStoreByPlaceId(placeId: string): Promise<RegisteredStore | undefined> {
+    const result = await db.select().from(registeredStores).where(eq(registeredStores.placeId, placeId));
+    return result[0];
+  }
+
+  async createRegisteredStore(store: InsertRegisteredStore): Promise<RegisteredStore> {
+    const result = await db.insert(registeredStores).values(store).returning();
+    return result[0];
+  }
+
+  async deleteRegisteredStore(id: string): Promise<boolean> {
+    const result = await db.delete(registeredStores).where(eq(registeredStores.id, id));
     return result.rowCount! > 0;
   }
 }

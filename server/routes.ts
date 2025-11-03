@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertStoreSchema, insertEventSchema, insertCostSchema } from "@shared/schema";
+import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -141,6 +141,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await storage.deleteCost(req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Cost not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Registered Stores
+  app.get("/api/registered-stores", async (req, res) => {
+    try {
+      const stores = await storage.getAllRegisteredStores();
+      res.json(stores);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/registered-stores/place/:placeId", async (req, res) => {
+    try {
+      const store = await storage.getRegisteredStoreByPlaceId(req.params.placeId);
+      if (!store) {
+        return res.status(404).json({ error: "Registered store not found" });
+      }
+      res.json(store);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/registered-stores", async (req, res) => {
+    try {
+      const data = insertRegisteredStoreSchema.parse(req.body);
+      
+      // Check if store already registered
+      const existing = await storage.getRegisteredStoreByPlaceId(data.placeId);
+      if (existing) {
+        return res.status(409).json({ error: "Store already registered" });
+      }
+      
+      const store = await storage.createRegisteredStore(data);
+      res.status(201).json(store);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/registered-stores/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRegisteredStore(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Registered store not found" });
       }
       res.status(204).send();
     } catch (error: any) {

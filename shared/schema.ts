@@ -45,3 +45,21 @@ export const costs = pgTable("costs", {
 export const insertCostSchema = createInsertSchema(costs).omit({ id: true });
 export type InsertCost = z.infer<typeof insertCostSchema>;
 export type Cost = typeof costs.$inferSelect;
+
+export const registeredStores = pgTable("registered_stores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  placeId: text("place_id").notNull().unique(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  phoneNumber: text("phone_number"),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  registeredAt: timestamp("registered_at").notNull().defaultNow(),
+});
+
+export const insertRegisteredStoreSchema = createInsertSchema(registeredStores).omit({ 
+  id: true, 
+  registeredAt: true 
+});
+export type InsertRegisteredStore = z.infer<typeof insertRegisteredStoreSchema>;
+export type RegisteredStore = typeof registeredStores.$inferSelect;

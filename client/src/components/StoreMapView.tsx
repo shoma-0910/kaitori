@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin, Phone, MapPinned } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -13,7 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import type { RegisteredStore } from "@shared/schema";
 
 const libraries: ("places")[] = ["places"];
 
@@ -73,6 +77,48 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const [selectedPlaceDetails, setSelectedPlaceDetails] = useState<NearbyPlace | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const { toast } = useToast();
+
+  const { data: registeredStores = [] } = useQuery<RegisteredStore[]>({
+    queryKey: ['/api/registered-stores'],
+  });
+
+  const registerStoreMutation = useMutation({
+    mutationFn: async (data: {
+      placeId: string;
+      name: string;
+      address: string;
+      phoneNumber?: string;
+      latitude: number;
+      longitude: number;
+    }) => {
+      const res = await apiRequest('POST', '/api/registered-stores', data);
+      return await res.json() as RegisteredStore;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
+      toast({
+        title: "店舗を登録しました",
+        description: "登録店舗ページで確認できます。",
+      });
+      setDetailsDialogOpen(false);
+    },
+    onError: (error: any) => {
+      // Check for 409 conflict (already registered)
+      if (error.message?.includes("409:") || error.message?.includes("already registered")) {
+        toast({
+          title: "既に登録済みです",
+          description: "この店舗は既に登録されています。",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "登録に失敗しました",
+          description: "もう一度お試しください。",
+          variant: "destructive",
+        });
+      }
+    },
+  });
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -264,6 +310,23 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map);
   }, []);
+
+  const handleRegisterStore = useCallback(() => {
+    if (!selectedPlaceDetails) return;
+
+    registerStoreMutation.mutate({
+      placeId: selectedPlaceDetails.placeId,
+      name: selectedPlaceDetails.name,
+      address: selectedPlaceDetails.address,
+      phoneNumber: selectedPlaceDetails.phoneNumber,
+      latitude: selectedPlaceDetails.position.lat,
+      longitude: selectedPlaceDetails.position.lng,
+    });
+  }, [selectedPlaceDetails, registerStoreMutation]);
+
+  const isStoreRegistered = useCallback((placeId: string) => {
+    return registeredStores.some(store => store.placeId === placeId);
+  }, [registeredStores]);
 
   if (loadError) {
     return (
@@ -562,6 +625,36 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                   </div>
                 )}
               </div>
+
+              {selectedPlaceDetails && (
+                <DialogFooter className="mt-4">
+                  {isStoreRegistered(selectedPlaceDetails.placeId) ? (
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      data-testid="button-already-registered"
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      登録済み
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleRegisterStore}
+                      disabled={registerStoreMutation.isPending}
+                      data-testid="button-register-store"
+                    >
+                      {registerStoreMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          登録中...
+                        </>
+                      ) : (
+                        "登録"
+                      )}
+                    </Button>
+                  )}
+                </DialogFooter>
+              )}
             </div>
           ) : null}
         </DialogContent>
