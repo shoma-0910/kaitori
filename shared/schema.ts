@@ -20,7 +20,7 @@ export type Store = typeof stores.$inferSelect;
 
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  storeId: varchar("store_id").notNull().references(() => stores.id),
+  storeId: varchar("store_id").notNull(),
   manager: text("manager").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),

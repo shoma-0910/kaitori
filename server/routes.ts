@@ -86,15 +86,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events", async (req, res) => {
     try {
       const { addToGoogleCalendar, ...eventData } = req.body;
-      const data = insertEventSchema.parse(eventData);
+      
+      const dataToValidate = {
+        ...eventData,
+        startDate: new Date(eventData.startDate),
+        endDate: new Date(eventData.endDate),
+      };
+      
+      const data = insertEventSchema.parse(dataToValidate);
       
       let googleCalendarEventId = null;
       
       if (addToGoogleCalendar) {
         try {
-          const store = await storage.getStore(data.storeId);
-          const storeName = store?.name || "店舗";
-          const location = store?.address;
+          let storeName = "店舗";
+          let location = undefined;
+          
+          const regularStore = await storage.getStore(data.storeId);
+          if (regularStore) {
+            storeName = regularStore.name;
+            location = regularStore.address;
+          } else {
+            const registeredStore = await storage.getRegisteredStore(data.storeId);
+            if (registeredStore) {
+              storeName = registeredStore.name;
+              location = registeredStore.address;
+            }
+          }
           
           const summary = `${storeName} - 買取催事`;
           const description = `担当者: ${data.manager}\n予定コスト: ¥${data.estimatedCost.toLocaleString()}\n${data.notes ? `\n備考: ${data.notes}` : ''}`;
