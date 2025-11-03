@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,9 +45,15 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const [selectedMarker, setSelectedMarker] = useState<Store | null>(null);
   const [showMap, setShowMap] = useState(false);
 
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    console.log("Google Maps API Key:", apiKey ? "Set" : "Not set");
+  }, [apiKey]);
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: apiKey || "",
     libraries,
   });
 
@@ -85,6 +91,9 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       <Card>
         <CardContent className="p-6">
           <p className="text-destructive">マップの読み込みに失敗しました</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Google Maps APIキーを確認してください
+          </p>
         </CardContent>
       </Card>
     );
@@ -95,6 +104,19 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       <Card>
         <CardContent className="p-6 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!apiKey) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-destructive">Google Maps APIキーが設定されていません</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            環境変数 VITE_GOOGLE_MAPS_API_KEY を設定してください
+          </p>
         </CardContent>
       </Card>
     );
