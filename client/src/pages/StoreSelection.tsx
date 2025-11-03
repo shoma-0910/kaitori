@@ -1,12 +1,10 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { StoreListTable } from "@/components/StoreListTable";
 import { StoreDetailModal, ReservationData } from "@/components/StoreDetailModal";
 import { StoreMapView } from "@/components/StoreMapView";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Store {
   id: string;
@@ -102,33 +100,16 @@ export default function StoreSelection() {
         </p>
       </div>
 
-      <Tabs defaultValue="map" className="w-full">
-        <TabsList>
-          <TabsTrigger value="map" data-testid="tab-map">
-            マップ表示
-          </TabsTrigger>
-          <TabsTrigger value="list" data-testid="tab-list">
-            一覧表示
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="map" className="mt-6">
-          <StoreMapView
-            stores={storesWithPositions}
-            onStoreSelect={(store) => {
-              const existingStore = stores.find((s) => s.id === store.id);
-              if (existingStore) {
-                handleStoreClick(existingStore);
-              }
-            }}
-            selectedStore={selectedStore}
-          />
-        </TabsContent>
-
-        <TabsContent value="list" className="mt-6">
-          <StoreListTable stores={stores} onStoreClick={handleStoreClick} />
-        </TabsContent>
-      </Tabs>
+      <StoreMapView
+        stores={storesWithPositions}
+        onStoreSelect={(store) => {
+          const existingStore = stores.find((s) => s.id === store.id);
+          if (existingStore) {
+            handleStoreClick(existingStore);
+          }
+        }}
+        selectedStore={selectedStore}
+      />
 
       <StoreDetailModal
         store={selectedStore}
