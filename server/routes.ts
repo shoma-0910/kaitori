@@ -199,6 +199,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Region Info
+  app.post("/api/region-info", async (req, res) => {
+    try {
+      const { region } = req.body;
+      
+      if (!region || typeof region !== 'string') {
+        return res.status(400).json({ error: "Region name is required" });
+      }
+
+      const { default: genAI } = await import("@google/genai");
+      const client = new genAI.GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+      const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `日本の${region}について、以下の統計情報をJSON形式で提供してください。最新の公開データに基づいて回答してください。
+
+必要な情報:
+1. 平均年齢（数値のみ）
+2. 年齢分布（0-17歳、18-34歳、35-49歳、50-64歳、65歳以上の割合）
+3. 男女比（男性と女性の割合）
+4. 平均年収（万円単位、数値のみ）
+
+以下のJSON形式で厳密に回答してください:
+{
+  "region": "${region}",
+  "averageAge": 数値,
+  "ageDistribution": [
+    {"range": "0-17歳", "percentage": 数値},
+    {"range": "18-34歳", "percentage": 数値},
+    {"range": "35-49歳", "percentage": 数値},
+    {"range": "50-64歳", "percentage": 数値},
+    {"range": "65歳以上", "percentage": 数値}
+  ],
+  "genderRatio": {
+    "male": 数値,
+    "female": 数値
+  },
+  "averageIncome": 数値
+}
+
+注意: JSON以外のテキストは一切含めず、JSONのみを返してください。`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // Extract JSON from response
+      let jsonText = text.trim();
+      // Remove markdown code blocks if present
+      jsonText = jsonText.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+      jsonText = jsonText.trim();
+      
+      const data = JSON.parse(jsonText);
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error("Region info error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch region information" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
