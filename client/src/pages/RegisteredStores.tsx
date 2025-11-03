@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -16,12 +16,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EventReservationModal, EventReservationData } from "@/components/EventReservationModal";
 import { useState } from "react";
 
 export default function RegisteredStores() {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<RegisteredStore | null>(null);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
 
   const { data: stores = [], isLoading } = useQuery<RegisteredStore[]>({
     queryKey: ['/api/registered-stores'],
@@ -49,6 +52,40 @@ export default function RegisteredStores() {
     },
   });
 
+  const createEventMutation = useMutation({
+    mutationFn: async (data: EventReservationData) => {
+      const res = await apiRequest("POST", "/api/events", {
+        storeId: data.storeId,
+        manager: data.manager,
+        startDate: data.startDate.toISOString(),
+        endDate: data.endDate.toISOString(),
+        status: "予定",
+        estimatedCost: data.estimatedCost,
+        notes: data.notes,
+        addToGoogleCalendar: data.addToGoogleCalendar,
+      });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "予約が完了しました",
+        description: data.googleCalendarEventId 
+          ? "催事の予約が確定し、Googleカレンダーに追加されました" 
+          : "催事の予約が確定しました",
+      });
+      setReservationModalOpen(false);
+      setSelectedStore(null);
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "予約に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteClick = (store: RegisteredStore) => {
     setStoreToDelete(store);
     setDeleteDialogOpen(true);
@@ -58,6 +95,15 @@ export default function RegisteredStores() {
     if (storeToDelete) {
       deleteStoreMutation.mutate(storeToDelete.id);
     }
+  };
+
+  const handleStoreClick = (store: RegisteredStore) => {
+    setSelectedStore(store);
+    setReservationModalOpen(true);
+  };
+
+  const handleReservationSubmit = (data: EventReservationData) => {
+    createEventMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -92,7 +138,12 @@ export default function RegisteredStores() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {stores.map((store) => (
-            <Card key={store.id} data-testid={`card-registered-store-${store.id}`}>
+            <Card 
+              key={store.id} 
+              className="hover-elevate active-elevate-2 cursor-pointer"
+              onClick={() => handleStoreClick(store)}
+              data-testid={`card-registered-store-${store.id}`}
+            >
               <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-3">
                 <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg mb-1" data-testid={`text-store-name-${store.id}`}>
@@ -108,7 +159,10 @@ export default function RegisteredStores() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDeleteClick(store)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteClick(store);
+                  }}
                   data-testid={`button-delete-${store.id}`}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -193,6 +247,14 @@ export default function RegisteredStores() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EventReservationModal
+        open={reservationModalOpen}
+        onOpenChange={setReservationModalOpen}
+        store={selectedStore}
+        onSubmit={handleReservationSubmit}
+        isPending={createEventMutation.isPending}
+      />
     </div>
   );
 }
