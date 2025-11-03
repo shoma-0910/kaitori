@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
@@ -187,6 +187,12 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     }
   };
 
+  const handleFocusPlace = (place: NearbyPlace) => {
+    setMapCenter(place.position);
+    setMapZoom(16);
+    setSelectedMarker(place);
+  };
+
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map);
   }, []);
@@ -278,84 +284,155 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       </Card>
 
       {showMap && (
-        <Card>
-          <CardContent className="p-0">
-            <GoogleMap
-              mapContainerStyle={mapContainerStyle}
-              center={mapCenter}
-              zoom={mapZoom}
-              onLoad={onMapLoad}
-              options={{
-                streetViewControl: false,
-                mapTypeControl: false,
-                fullscreenControl: false,
-              }}
-            >
-              {/* 既存の店舗マーカー（青色） */}
-              {stores.map((store) => (
-                <Marker
-                  key={store.id}
-                  position={store.position}
-                  onClick={() => handleMarkerClick(store)}
-                  icon={{
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 10,
-                    fillColor:
-                      selectedStore?.id === store.id
-                        ? "#3b82f6"
-                        : store.potentialScore && store.potentialScore >= 80
-                        ? "#22c55e"
-                        : "#f59e0b",
-                    fillOpacity: 0.9,
-                    strokeColor: "#ffffff",
-                    strokeWeight: 2,
-                  }}
-                />
-              ))}
+        <>
+          <Card>
+            <CardContent className="p-0">
+              <GoogleMap
+                mapContainerStyle={mapContainerStyle}
+                center={mapCenter}
+                zoom={mapZoom}
+                onLoad={onMapLoad}
+                options={{
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                  keyboardShortcuts: false,
+                }}
+              >
+                {/* 既存の店舗マーカー（青色） */}
+                {stores.map((store) => (
+                  <Marker
+                    key={store.id}
+                    position={store.position}
+                    onClick={() => handleMarkerClick(store)}
+                    icon={{
+                      path: google.maps.SymbolPath.CIRCLE,
+                      scale: 10,
+                      fillColor:
+                        selectedStore?.id === store.id
+                          ? "#3b82f6"
+                          : store.potentialScore && store.potentialScore >= 80
+                          ? "#22c55e"
+                          : "#f59e0b",
+                      fillOpacity: 0.9,
+                      strokeColor: "#ffffff",
+                      strokeWeight: 2,
+                    }}
+                  />
+                ))}
 
-              {/* 周辺のスーパーマーケット（オレンジ色） */}
-              {nearbyPlaces.map((place) => (
-                <Marker
-                  key={place.placeId}
-                  position={place.position}
-                  onClick={() => handleMarkerClick(place)}
-                  icon={{
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 8,
-                    fillColor: "#f97316",
-                    fillOpacity: 0.8,
-                    strokeColor: "#ffffff",
-                    strokeWeight: 2,
-                  }}
-                />
-              ))}
+                {/* 周辺のスーパーマーケット（オレンジ色） */}
+                {nearbyPlaces.map((place) => (
+                  <Marker
+                    key={place.placeId}
+                    position={place.position}
+                    onClick={() => handleMarkerClick(place)}
+                    icon={{
+                      path: google.maps.SymbolPath.CIRCLE,
+                      scale: 8,
+                      fillColor: "#f97316",
+                      fillOpacity: 0.8,
+                      strokeColor: "#ffffff",
+                      strokeWeight: 2,
+                    }}
+                  />
+                ))}
 
-              {selectedMarker && (
-                <InfoWindow
-                  position={selectedMarker.position}
-                  onCloseClick={() => setSelectedMarker(null)}
-                >
-                  <div className="p-2" style={{ color: "#000" }}>
-                    <h3 className="font-semibold text-sm mb-1">
-                      {selectedMarker.name}
-                    </h3>
-                    <p className="text-xs mb-1">{selectedMarker.address}</p>
-                    {isStore(selectedMarker) && selectedMarker.potentialScore && (
-                      <p className="text-xs">
-                        スコア: <strong>{selectedMarker.potentialScore}</strong>
-                      </p>
-                    )}
-                    {!isStore(selectedMarker) && (
-                      <p className="text-xs text-orange-600 font-medium">
-                        周辺スーパー
-                      </p>
-                    )}
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-          </CardContent>
-        </Card>
+                {selectedMarker && (
+                  <InfoWindow
+                    position={selectedMarker.position}
+                    onCloseClick={() => setSelectedMarker(null)}
+                  >
+                    <div className="p-2" style={{ color: "#000" }}>
+                      <h3 className="font-semibold text-sm mb-1">
+                        {selectedMarker.name}
+                      </h3>
+                      <p className="text-xs mb-1">{selectedMarker.address}</p>
+                      {isStore(selectedMarker) && selectedMarker.potentialScore && (
+                        <p className="text-xs">
+                          スコア: <strong>{selectedMarker.potentialScore}</strong>
+                        </p>
+                      )}
+                      {!isStore(selectedMarker) && (
+                        <p className="text-xs text-orange-600 font-medium">
+                          周辺スーパー
+                        </p>
+                      )}
+                    </div>
+                  </InfoWindow>
+                )}
+              </GoogleMap>
+            </CardContent>
+          </Card>
+
+          {nearbyPlaces.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">周辺スーパー一覧</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2" data-testid="list-nearby-supermarkets">
+                  {nearbyPlaces.map((place, index) => (
+                    <button
+                      key={place.placeId}
+                      className="w-full text-left bg-card border rounded-md p-3 hover-elevate active-elevate-2 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFocusPlace(place);
+                        // Keep focus on this button to prevent map from hijacking keyboard
+                        e.currentTarget.focus();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleFocusPlace(place);
+                          // Keep focus on this button
+                          e.currentTarget.focus();
+                        }
+                      }}
+                      onKeyUp={(e) => {
+                        // Stop keyup events from bubbling to the map iframe
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      onKeyPress={(e) => {
+                        // Stop keypress events from bubbling to the map iframe
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      data-testid={`card-nearby-${index}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <MapPin className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm mb-1" data-testid={`text-nearby-name-${index}`}>
+                            {place.name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground" data-testid={`text-nearby-address-${index}`}>
+                            {place.address}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className="flex-shrink-0 bg-orange-500/10 border-orange-500 text-xs"
+                        >
+                          スーパー
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
