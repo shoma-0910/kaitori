@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { StoreListTable } from "@/components/StoreListTable";
 import { StoreDetailModal, ReservationData } from "@/components/StoreDetailModal";
 import { StoreMapView } from "@/components/StoreMapView";
-import { NearbyStoreSearch } from "@/components/NearbyStoreSearch";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
@@ -20,20 +19,9 @@ interface Store {
   averageRent: number;
 }
 
-interface NearbyStore {
-  placeId: string;
-  name: string;
-  address: string;
-  position: {
-    lat: number;
-    lng: number;
-  };
-}
-
 export default function StoreSelection() {
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [nearbyStores, setNearbyStores] = useState<NearbyStore[]>([]);
   const { toast } = useToast();
 
   const { data: stores = [], isLoading } = useQuery<Store[]>({
@@ -90,47 +78,12 @@ export default function StoreSelection() {
     });
   };
 
-  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number }> => {
-    try {
-      const geocoder = new google.maps.Geocoder();
-      const result = await geocoder.geocode({ address });
-      if (result.results[0]) {
-        const location = result.results[0].geometry.location;
-        return { lat: location.lat(), lng: location.lng() };
-      }
-    } catch (error) {
-      console.error("Geocoding error:", error);
-    }
-    return { lat: 34.6937, lng: 135.5023 };
-  };
-
   const storesWithPositions = useMemo(() => {
     return stores.map((store) => ({
       ...store,
       position: { lat: 34.6937 + Math.random() * 0.2 - 0.1, lng: 135.5023 + Math.random() * 0.2 - 0.1 },
     }));
   }, [stores]);
-
-  const allStoresForMap = useMemo(() => {
-    const existingStores = storesWithPositions.map((s) => ({
-      id: s.id,
-      name: s.name,
-      address: s.address,
-      position: s.position,
-      potentialScore: s.potentialScore,
-      population: s.population,
-      averageAge: s.averageAge,
-    }));
-
-    const nearbyWithIds = nearbyStores.map((s) => ({
-      id: s.placeId,
-      name: s.name,
-      address: s.address,
-      position: s.position,
-    }));
-
-    return [...existingStores, ...nearbyWithIds];
-  }, [storesWithPositions, nearbyStores]);
 
   if (isLoading) {
     return (
@@ -159,25 +112,17 @@ export default function StoreSelection() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="map" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <StoreMapView
-                stores={allStoresForMap}
-                onStoreSelect={(store) => {
-                  const existingStore = stores.find((s) => s.id === store.id);
-                  if (existingStore) {
-                    handleStoreClick(existingStore);
-                  }
-                }}
-                selectedStore={selectedStore}
-              />
-            </div>
-
-            <div>
-              <NearbyStoreSearch onStoreFound={setNearbyStores} />
-            </div>
-          </div>
+        <TabsContent value="map" className="mt-6">
+          <StoreMapView
+            stores={storesWithPositions}
+            onStoreSelect={(store) => {
+              const existingStore = stores.find((s) => s.id === store.id);
+              if (existingStore) {
+                handleStoreClick(existingStore);
+              }
+            }}
+            selectedStore={selectedStore}
+          />
         </TabsContent>
 
         <TabsContent value="list" className="mt-6">
