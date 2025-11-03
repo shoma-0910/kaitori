@@ -14,6 +14,7 @@ import { Search, Pencil } from "lucide-react";
 
 export interface ScheduleItem {
   id: string;
+  storeId?: string;
   storeName: string;
   manager: string;
   startDate: string;
@@ -27,12 +28,14 @@ interface ScheduleTableProps {
   schedules: ScheduleItem[];
   onUpdateProfit: (id: string, profit: number) => void;
   onEdit: (schedule: ScheduleItem) => void;
+  onStoreClick?: (storeId: string) => void;
 }
 
 export function ScheduleTable({
   schedules,
   onUpdateProfit,
   onEdit,
+  onStoreClick,
 }: ScheduleTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -102,7 +105,13 @@ export function ScheduleTable({
                     {schedule.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">{schedule.storeName}</TableCell>
+                <TableCell 
+                  className={`font-medium ${schedule.storeId && onStoreClick ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                  onClick={() => schedule.storeId && onStoreClick?.(schedule.storeId)}
+                  data-testid={`cell-store-name-${schedule.id}`}
+                >
+                  {schedule.storeName}
+                </TableCell>
                 <TableCell>{schedule.manager}</TableCell>
                 <TableCell className="text-sm font-mono">
                   {schedule.startDate} - {schedule.endDate}

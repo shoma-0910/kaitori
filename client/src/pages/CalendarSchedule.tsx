@@ -7,6 +7,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
 
 interface Event {
   id: string;
@@ -24,8 +25,19 @@ interface Store {
   name: string;
 }
 
+interface RegisteredStore {
+  id: string;
+  name: string;
+  address: string;
+  phoneNumber?: string;
+  openingHours?: string[];
+  registeredAt: string;
+}
+
 export default function CalendarSchedule() {
   const { toast } = useToast();
+  const [storeDetailModalOpen, setStoreDetailModalOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -33,6 +45,10 @@ export default function CalendarSchedule() {
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
+  });
+
+  const { data: registeredStores = [], isLoading: registeredStoresLoading } = useQuery<RegisteredStore[]>({
+    queryKey: ["/api/registered-stores"],
   });
 
   const updateProfitMutation = useMutation({
@@ -69,8 +85,23 @@ export default function CalendarSchedule() {
     });
   };
 
+  const handleStoreClick = (storeId: string) => {
+    const registeredStore = registeredStores.find((s) => s.id === storeId);
+    if (registeredStore) {
+      setSelectedStore(registeredStore);
+      setStoreDetailModalOpen(true);
+    }
+  };
+
   const handleEventClick = (event: CalendarEvent) => {
-    console.log("Event clicked:", event);
+    const eventData = events.find((e) => e.id === event.id);
+    if (!eventData) return;
+
+    const registeredStore = registeredStores.find((s) => s.id === eventData.storeId);
+    if (registeredStore) {
+      setSelectedStore(registeredStore);
+      setStoreDetailModalOpen(true);
+    }
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
@@ -79,7 +110,12 @@ export default function CalendarSchedule() {
 
   const getStoreName = (storeId: string) => {
     const store = stores.find((s) => s.id === storeId);
-    return store?.name || "不明な店舗";
+    if (store) return store.name;
+    
+    const registeredStore = registeredStores.find((s) => s.id === storeId);
+    if (registeredStore) return registeredStore.name;
+    
+    return "不明な店舗";
   };
 
   const calendarEvents: CalendarEvent[] = events.map((event) => ({
@@ -92,6 +128,7 @@ export default function CalendarSchedule() {
 
   const schedules: ScheduleItem[] = events.map((event) => ({
     id: event.id,
+    storeId: event.storeId,
     storeName: getStoreName(event.storeId),
     manager: event.manager,
     startDate: format(new Date(event.startDate), "yyyy-MM-dd"),
@@ -101,7 +138,7 @@ export default function CalendarSchedule() {
     actualProfit: event.actualProfit,
   }));
 
-  if (eventsLoading || storesLoading) {
+  if (eventsLoading || storesLoading || registeredStoresLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -141,9 +178,16 @@ export default function CalendarSchedule() {
             schedules={schedules}
             onUpdateProfit={handleUpdateProfit}
             onEdit={handleEdit}
+            onStoreClick={handleStoreClick}
           />
         </TabsContent>
       </Tabs>
+
+      <RegisteredStoreDetailModal
+        open={storeDetailModalOpen}
+        onOpenChange={setStoreDetailModalOpen}
+        store={selectedStore}
+      />
     </div>
   );
 }
