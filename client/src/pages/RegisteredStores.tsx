@@ -136,7 +136,7 @@ export default function RegisteredStores() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-3">
           {stores.map((store) => (
             <Card 
               key={store.id} 
@@ -144,71 +144,76 @@ export default function RegisteredStores() {
               onClick={() => handleStoreClick(store)}
               data-testid={`card-registered-store-${store.id}`}
             >
-              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-3">
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg mb-1" data-testid={`text-store-name-${store.id}`}>
-                    {store.name}
-                  </CardTitle>
-                  <Badge 
-                    variant="outline" 
-                    className="bg-orange-500/10 border-orange-500 text-xs"
-                  >
-                    スーパー
-                  </Badge>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteClick(store);
-                  }}
-                  data-testid={`button-delete-${store.id}`}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground" data-testid={`text-store-address-${store.id}`}>
-                    {store.address}
-                  </p>
-                </div>
-                {store.phoneNumber && (
-                  <div className="flex items-start gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <a 
-                      href={`tel:${store.phoneNumber}`}
-                      className="text-sm text-primary hover:underline"
-                      data-testid={`link-store-phone-${store.id}`}
-                    >
-                      {store.phoneNumber}
-                    </a>
-                  </div>
-                )}
-                {store.openingHours && store.openingHours.length > 0 && (
-                  <div className="flex items-start gap-2">
-                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <div className="flex-1" data-testid={`text-store-hours-${store.id}`}>
-                      <p className="text-sm text-muted-foreground mb-1">営業時間</p>
-                      <div className="space-y-0.5">
-                        {store.openingHours.slice(0, 2).map((hours, index) => (
-                          <p key={index} className="text-xs text-muted-foreground">{hours}</p>
-                        ))}
-                        {store.openingHours.length > 2 && (
-                          <p className="text-xs text-muted-foreground">...</p>
-                        )}
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h3 className="text-lg font-semibold" data-testid={`text-store-name-${store.id}`}>
+                        {store.name}
+                      </h3>
+                      <Badge 
+                        variant="outline" 
+                        className="bg-orange-500/10 border-orange-500 text-xs"
+                      >
+                        スーパー
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span data-testid={`text-store-address-${store.id}`}>{store.address}</span>
+                      </div>
+                      
+                      {store.phoneNumber && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 flex-shrink-0" />
+                          <a 
+                            href={`tel:${store.phoneNumber}`}
+                            className="text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`link-store-phone-${store.id}`}
+                          >
+                            {store.phoneNumber}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {store.openingHours && store.openingHours.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 flex-shrink-0" />
+                          <span data-testid={`text-store-hours-${store.id}`}>
+                            {store.openingHours[0]}
+                            {store.openingHours.length > 1 && ' 他'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-xs">
+                          登録: {new Date(store.registeredAt).toLocaleDateString('ja-JP', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                          })}
+                        </span>
                       </div>
                     </div>
                   </div>
-                )}
-                <div className="text-xs text-muted-foreground pt-2 border-t">
-                  登録日時: {new Date(store.registeredAt).toLocaleDateString('ja-JP', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(store);
+                    }}
+                    className="flex-shrink-0"
+                    data-testid={`button-delete-${store.id}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
