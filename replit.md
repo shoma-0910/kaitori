@@ -8,7 +8,6 @@ A comprehensive data-driven event management system for planning, executing, and
 
 **Key Features**:
 - Dashboard with KPI tracking and store performance analytics
-- AI-powered store location discovery and demographic analysis (Gemini API)
 - Store selection with potential scoring and Google Maps integration
 - Calendar-based event scheduling with Google Calendar sync and in-place event editing
 - Editable event details (manager, dates, cost, notes) with instant UI updates

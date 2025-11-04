@@ -12,7 +12,6 @@ import RegisteredStores from "@/pages/RegisteredStores";
 import CalendarSchedule from "@/pages/CalendarSchedule";
 import CostManagementPage from "@/pages/CostManagementPage";
 import StoreDataPage from "@/pages/StoreData";
-import AICrawlingPage from "@/pages/AICrawlingPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,7 +23,6 @@ function Router() {
       <Route path="/calendar" component={CalendarSchedule} />
       <Route path="/costs" component={CostManagementPage} />
       <Route path="/data" component={StoreDataPage} />
-      <Route path="/ai-crawling" component={AICrawlingPage} />
       <Route component={NotFound} />
     </Switch>
   );
