@@ -180,12 +180,13 @@ export default function RegisteredStores() {
                       )}
                       
                       {store.openingHours && store.openingHours.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 flex-shrink-0" />
-                          <span data-testid={`text-store-hours-${store.id}`}>
-                            {store.openingHours[0]}
-                            {store.openingHours.length > 1 && ' 他'}
-                          </span>
+                        <div className="flex items-start gap-2">
+                          <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-0.5" data-testid={`text-store-hours-${store.id}`}>
+                            {store.openingHours.map((hours, index) => (
+                              <div key={index} className="text-sm">{hours}</div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       
