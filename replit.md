@@ -12,7 +12,6 @@ A comprehensive data-driven event management system for planning, executing, and
 - Calendar-based event scheduling with Google Calendar sync and in-place event editing
 - Editable event details (manager, dates, cost, notes) with instant UI updates
 - Repeated Google Calendar additions (no duplicate prevention)
-- Detailed cost management and profit tracking
 - Comprehensive store database with CRUD operations
 
 ## User Preferences

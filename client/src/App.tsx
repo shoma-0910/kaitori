@@ -10,7 +10,6 @@ import Dashboard from "@/pages/Dashboard";
 import StoreSelection from "@/pages/StoreSelection";
 import RegisteredStores from "@/pages/RegisteredStores";
 import CalendarSchedule from "@/pages/CalendarSchedule";
-import CostManagementPage from "@/pages/CostManagementPage";
 import StoreDataPage from "@/pages/StoreData";
 import NotFound from "@/pages/not-found";
 
@@ -21,7 +20,6 @@ function Router() {
       <Route path="/stores" component={StoreSelection} />
       <Route path="/registered-stores" component={RegisteredStores} />
       <Route path="/calendar" component={CalendarSchedule} />
-      <Route path="/costs" component={CostManagementPage} />
       <Route path="/data" component={StoreDataPage} />
       <Route component={NotFound} />
     </Switch>
