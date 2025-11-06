@@ -300,6 +300,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Nearby Search
+  app.post("/api/nearby-search", async (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address || typeof address !== 'string') {
+        return res.status(400).json({ error: "Address is required" });
+      }
+
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      // First, geocode the address to get coordinates
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&language=ja&region=jp`;
+      const geocodeResponse = await fetch(geocodeUrl);
+      const geocodeData = await geocodeResponse.json();
+
+      if (geocodeData.status !== 'OK' || !geocodeData.results || geocodeData.results.length === 0) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+
+      const location = geocodeData.results[0].geometry.location;
+      const lat = location.lat;
+      const lng = location.lng;
+
+      // Search for nearby places (restaurants, cafes, stores, etc.)
+      const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=500&language=ja&key=${apiKey}`;
+      const nearbyResponse = await fetch(nearbyUrl);
+      const nearbyData = await nearbyResponse.json();
+
+      if (nearbyData.status !== 'OK') {
+        return res.status(500).json({ error: "Failed to fetch nearby places" });
+      }
+
+      // Format the results
+      const places = nearbyData.results.slice(0, 20).map((place: any) => ({
+        name: place.name,
+        vicinity: place.vicinity,
+        types: place.types,
+        rating: place.rating,
+        userRatingsTotal: place.user_ratings_total,
+        openNow: place.opening_hours?.open_now,
+      }));
+
+      res.json({ places });
+    } catch (error: any) {
+      console.error("Nearby search error:", error);
+      res.status(500).json({ error: error.message || "Failed to search nearby places" });
+    }
+  });
+
   // Region Info
   app.post("/api/region-info", async (req, res) => {
     try {
