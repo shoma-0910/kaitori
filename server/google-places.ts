@@ -59,6 +59,7 @@ export async function fetchPlaceDetails(
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': fields,
+        'Accept-Language': 'ja',
       },
     });
 
