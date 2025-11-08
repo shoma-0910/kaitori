@@ -393,9 +393,12 @@ export function RegisteredStoreDetailModal({
           <TabsContent value="nearby" className="mt-6 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">
-                  この店舗から半径500m以内の周辺施設を検索します
-                </p>
+                <div>
+                  <h3 className="text-lg font-semibold">周辺施設</h3>
+                  <p className="text-sm text-muted-foreground">
+                    半径500m以内の施設
+                  </p>
+                </div>
                 <Button
                   onClick={handleNearbySearch}
                   disabled={searchingFacilities}
@@ -415,65 +418,65 @@ export function RegisteredStoreDetailModal({
 
               <div
                 id="registered-nearby-map"
-                className="w-full h-64 rounded-md border mb-4"
+                className="w-full h-0 overflow-hidden"
                 data-testid="map-nearby"
               />
 
               {nearbyFacilities.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm">
-                    検索結果: {nearbyFacilities.length}件
-                  </h3>
-                  <div className="grid gap-2 max-h-96 overflow-y-auto">
-                    {nearbyFacilities.map((facility, index) => (
-                      <Card key={index} data-testid={`card-facility-${index}`}>
-                        <CardContent className="p-3">
-                          <div className="space-y-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-medium text-sm">
-                                {facility.name}
-                              </h4>
-                              {facility.rating && (
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                  <span className="text-xs font-medium">
-                                    {facility.rating.toFixed(1)}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {nearbyFacilities.map((facility, index) => (
+                    <Card key={index} data-testid={`card-facility-${index}`}>
+                      <CardContent className="p-3">
+                        <div className="space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-medium text-sm" data-testid={`text-facility-name-${index}`}>
+                              {facility.name}
+                            </h4>
+                            {facility.rating && (
+                              <div className="flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                <span className="text-xs font-medium">{facility.rating.toFixed(1)}</span>
+                                {facility.userRatingsTotal && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({facility.userRatingsTotal})
                                   </span>
-                                  {facility.userRatingsTotal && (
-                                    <span className="text-xs text-muted-foreground">
-                                      ({facility.userRatingsTotal})
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-muted-foreground" data-testid={`text-facility-address-${index}`}>
                               {facility.vicinity}
                             </p>
-                            <div className="flex flex-wrap gap-1">
-                              {facility.types.slice(0, 3).map((type, i) => (
-                                <Badge
-                                  key={i}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {type}
-                                </Badge>
-                              ))}
-                              {facility.openNow !== undefined && (
-                                <Badge
-                                  variant={facility.openNow ? "default" : "secondary"}
-                                  className="text-xs"
-                                >
-                                  {facility.openNow ? "営業中" : "営業時間外"}
-                                </Badge>
-                              )}
-                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          
+                          <div className="flex flex-wrap gap-1">
+                            {facility.openNow !== undefined && (
+                              <Badge variant={facility.openNow ? "default" : "secondary"} className="text-xs">
+                                {facility.openNow ? "営業中" : "営業時間外"}
+                              </Badge>
+                            )}
+                            {facility.types.slice(0, 2).map((type, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {type.replace(/_/g, ' ')}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {!searchingFacilities && nearbyFacilities.length === 0 && (
+                <div className="text-center py-6">
+                  <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    「周辺を検索」ボタンを押して、周辺施設を表示します
+                  </p>
                 </div>
               )}
             </div>
