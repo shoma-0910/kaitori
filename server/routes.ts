@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
+import { fetchPlaceDetails, parkingOptionsToDb, hasAnyParking } from "./google-places";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -350,6 +351,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Nearby search error:", error);
       res.status(500).json({ error: error.message || "Failed to search nearby places" });
+    }
+  });
+
+  // Place Details with Parking Options (New Places API)
+  app.get("/api/place-details/:placeId", async (req, res) => {
+    try {
+      const { placeId } = req.params;
+      
+      if (!placeId) {
+        return res.status(400).json({ error: "Place ID is required" });
+      }
+
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const placeDetails = await fetchPlaceDetails(placeId, apiKey);
+      
+      if (!placeDetails) {
+        return res.status(404).json({ error: "Place details not found" });
+      }
+
+      // Convert parking options to database format and check if parking exists
+      const parkingDb = parkingOptionsToDb(placeDetails.parkingOptions);
+      const hasParkingAvailable = hasAnyParking(placeDetails.parkingOptions);
+
+      res.json({
+        ...placeDetails,
+        parkingDb,
+        hasParking: hasParkingAvailable,
+      });
+    } catch (error: any) {
+      console.error("Place details error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch place details" });
     }
   });
 

@@ -34,6 +34,16 @@ interface Store {
   averageAge?: number;
 }
 
+interface ParkingOptions {
+  freeGarageParking?: boolean;
+  freeParkingLot?: boolean;
+  freeStreetParking?: boolean;
+  paidGarageParking?: boolean;
+  paidParkingLot?: boolean;
+  paidStreetParking?: boolean;
+  valetParking?: boolean;
+}
+
 interface NearbyPlace {
   placeId: string;
   name: string;
@@ -50,6 +60,14 @@ interface NearbyPlace {
   rating?: number;
   userRatingsTotal?: number;
   hasParking?: boolean;
+  parkingOptions?: ParkingOptions;
+  freeGarageParking?: number;
+  freeParkingLot?: number;
+  freeStreetParking?: number;
+  paidGarageParking?: number;
+  paidParkingLot?: number;
+  paidStreetParking?: number;
+  valetParking?: number;
 }
 
 interface StoreMapViewProps {
@@ -101,6 +119,13 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       rating?: number;
       userRatingsTotal?: number;
       hasParking?: number;
+      freeGarageParking?: number;
+      freeParkingLot?: number;
+      freeStreetParking?: number;
+      paidGarageParking?: number;
+      paidParkingLot?: number;
+      paidStreetParking?: number;
+      valetParking?: number;
     }) => {
       const res = await apiRequest('POST', '/api/registered-stores', data);
       return await res.json() as RegisteredStore;
@@ -268,66 +293,57 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   };
 
   const fetchPlaceDetails = useCallback(async (placeId: string) => {
-    if (!mapInstance) return null;
-
     setLoadingDetails(true);
-    const service = new google.maps.places.PlacesService(mapInstance);
-
-    return new Promise<google.maps.places.PlaceResult | null>((resolve) => {
-      service.getDetails(
-        {
-          placeId: placeId,
-          fields: [
-            "name", 
-            "formatted_address", 
-            "formatted_phone_number", 
-            "geometry", 
-            "website", 
-            "opening_hours",
-            "types",
-            "rating",
-            "user_ratings_total"
-          ],
-          language: "ja",
-        },
-        (result, status) => {
-          setLoadingDetails(false);
-          if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-            resolve(result);
-          } else {
-            console.error("Place details error:", status);
-            resolve(null);
-          }
-        }
-      );
-    });
-  }, [mapInstance]);
+    
+    try {
+      const response = await fetch(`/api/place-details/${placeId}`);
+      setLoadingDetails(false);
+      
+      if (!response.ok) {
+        console.error("Place details error:", response.status);
+        return null;
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error fetching place details:", error);
+      setLoadingDetails(false);
+      return null;
+    }
+  }, []);
 
   const handlePlaceClick = useCallback(async (place: NearbyPlace) => {
     // ダイアログを先に開いてローディング状態を表示
     setSelectedPlaceDetails(place);
     setDetailsDialogOpen(true);
     
-    // 詳細情報を取得
+    // 詳細情報を取得（新しいPlaces API v1から）
     const details = await fetchPlaceDetails(place.placeId);
     
     if (details) {
-      // 駐車場情報の判定（typesに"parking"が含まれているか確認）
-      const hasParking = details.types?.some(type => 
-        type.includes('parking') || type === 'parking'
-      ) || false;
-
       const detailedPlace: NearbyPlace = {
         ...place,
         name: details.name || place.name,
-        address: details.formatted_address || place.address,
-        phoneNumber: details.formatted_phone_number,
+        address: details.formattedAddress || place.address,
+        phoneNumber: details.phoneNumber,
         website: details.website,
-        openingHours: details.opening_hours?.weekday_text,
-        types: details.types,
+        openingHours: details.openingHours,
         rating: details.rating,
-        userRatingsTotal: details.user_ratings_total,
-        hasParking,
+        userRatingsTotal: details.userRatingsTotal,
+        hasParking: details.hasParking,
+        parkingOptions: details.parkingOptions,
+        freeGarageParking: details.parkingDb?.freeGarageParking,
+        freeParkingLot: details.parkingDb?.freeParkingLot,
+        freeStreetParking: details.parkingDb?.freeStreetParking,
+        paidGarageParking: details.parkingDb?.paidGarageParking,
+        paidParkingLot: details.parkingDb?.paidParkingLot,
+        paidStreetParking: details.parkingDb?.paidStreetParking,
+        valetParking: details.parkingDb?.valetParking,
+        position: {
+          lat: details.location?.latitude || place.position.lat,
+          lng: details.location?.longitude || place.position.lng,
+        },
       };
       setSelectedPlaceDetails(detailedPlace);
     } else {
@@ -358,6 +374,13 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       rating: selectedPlaceDetails.rating,
       userRatingsTotal: selectedPlaceDetails.userRatingsTotal,
       hasParking: selectedPlaceDetails.hasParking ? 1 : 0,
+      freeGarageParking: selectedPlaceDetails.freeGarageParking,
+      freeParkingLot: selectedPlaceDetails.freeParkingLot,
+      freeStreetParking: selectedPlaceDetails.freeStreetParking,
+      paidGarageParking: selectedPlaceDetails.paidGarageParking,
+      paidParkingLot: selectedPlaceDetails.paidParkingLot,
+      paidStreetParking: selectedPlaceDetails.paidStreetParking,
+      valetParking: selectedPlaceDetails.valetParking,
     });
   }, [selectedPlaceDetails, registerStoreMutation]);
 
@@ -686,10 +709,64 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                   <Car className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-1">駐車場</p>
-                    <div data-testid="detail-parking">
-                      {selectedPlaceDetails.hasParking ? (
-                        <Badge variant="default" className="bg-green-600">駐車場あり</Badge>
-                      ) : (
+                    <div className="flex flex-wrap gap-2" data-testid="detail-parking">
+                      {selectedPlaceDetails.freeParkingLot === 1 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料駐車場
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.freeGarageParking === 1 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料立体駐車場
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.freeStreetParking === 1 && (
+                        <Badge variant="default" className="bg-green-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料路上駐車
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.paidParkingLot === 1 && (
+                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料駐車場
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.paidGarageParking === 1 && (
+                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料立体駐車場
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.paidStreetParking === 1 && (
+                        <Badge variant="outline" className="bg-blue-400/10 border-blue-400 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料路上駐車
+                        </Badge>
+                      )}
+                      {selectedPlaceDetails.valetParking === 1 && (
+                        <Badge variant="outline" className="bg-purple-500/10 border-purple-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          バレーパーキング
+                        </Badge>
+                      )}
+                      {/* Fallback for legacy data with only hasParking flag */}
+                      {selectedPlaceDetails.hasParking && 
+                       !selectedPlaceDetails.freeParkingLot && 
+                       !selectedPlaceDetails.freeGarageParking && 
+                       !selectedPlaceDetails.freeStreetParking && 
+                       !selectedPlaceDetails.paidParkingLot && 
+                       !selectedPlaceDetails.paidGarageParking && 
+                       !selectedPlaceDetails.paidStreetParking && 
+                       !selectedPlaceDetails.valetParking && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          駐車場あり
+                        </Badge>
+                      )}
+                      {!selectedPlaceDetails.hasParking && (
                         <p className="text-sm text-muted-foreground">駐車場情報なし</p>
                       )}
                     </div>

@@ -157,7 +157,60 @@ export default function RegisteredStores() {
                       >
                         スーパー
                       </Badge>
-                      {store.hasParking === 1 && (
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {store.freeParkingLot === 1 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料駐車場
+                        </Badge>
+                      )}
+                      {store.freeGarageParking === 1 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料立体駐車場
+                        </Badge>
+                      )}
+                      {store.freeStreetParking === 1 && (
+                        <Badge variant="default" className="bg-green-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          無料路上駐車
+                        </Badge>
+                      )}
+                      {store.paidParkingLot === 1 && (
+                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料駐車場
+                        </Badge>
+                      )}
+                      {store.paidGarageParking === 1 && (
+                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料立体駐車場
+                        </Badge>
+                      )}
+                      {store.paidStreetParking === 1 && (
+                        <Badge variant="outline" className="bg-blue-400/10 border-blue-400 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          有料路上駐車
+                        </Badge>
+                      )}
+                      {store.valetParking === 1 && (
+                        <Badge variant="outline" className="bg-purple-500/10 border-purple-500 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          バレーパーキング
+                        </Badge>
+                      )}
+                      {/* Fallback for legacy data with only hasParking flag */}
+                      {store.hasParking === 1 && 
+                       !store.freeParkingLot && 
+                       !store.freeGarageParking && 
+                       !store.freeStreetParking && 
+                       !store.paidParkingLot && 
+                       !store.paidGarageParking && 
+                       !store.paidStreetParking && 
+                       !store.valetParking && (
                         <Badge variant="default" className="bg-green-600 text-xs">
                           <Car className="w-3 h-3 mr-1" />
                           駐車場あり
