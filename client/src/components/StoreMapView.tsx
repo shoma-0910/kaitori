@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin, Phone, MapPinned, Check } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -46,6 +46,10 @@ interface NearbyPlace {
   phoneNumber?: string;
   website?: string;
   openingHours?: string[];
+  types?: string[];
+  rating?: number;
+  userRatingsTotal?: number;
+  hasParking?: boolean;
 }
 
 interface StoreMapViewProps {
@@ -270,7 +274,17 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       service.getDetails(
         {
           placeId: placeId,
-          fields: ["name", "formatted_address", "formatted_phone_number", "geometry", "website", "opening_hours"],
+          fields: [
+            "name", 
+            "formatted_address", 
+            "formatted_phone_number", 
+            "geometry", 
+            "website", 
+            "opening_hours",
+            "types",
+            "rating",
+            "user_ratings_total"
+          ],
           language: "ja",
         },
         (result, status) => {
@@ -295,6 +309,11 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     const details = await fetchPlaceDetails(place.placeId);
     
     if (details) {
+      // 駐車場情報の判定（typesに"parking"が含まれているか確認）
+      const hasParking = details.types?.some(type => 
+        type.includes('parking') || type === 'parking'
+      ) || false;
+
       const detailedPlace: NearbyPlace = {
         ...place,
         name: details.name || place.name,
@@ -302,6 +321,10 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
         phoneNumber: details.formatted_phone_number,
         website: details.website,
         openingHours: details.opening_hours?.weekday_text,
+        types: details.types,
+        rating: details.rating,
+        userRatingsTotal: details.user_ratings_total,
+        hasParking,
       };
       setSelectedPlaceDetails(detailedPlace);
     } else {
@@ -632,6 +655,40 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                     </div>
                   </div>
                 )}
+
+                {selectedPlaceDetails.rating !== undefined && (
+                  <div className="flex items-start gap-3">
+                    <Star className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">評価</p>
+                      <div className="flex items-center gap-2" data-testid="detail-rating">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-semibold">{selectedPlaceDetails.rating.toFixed(1)}</span>
+                        </div>
+                        {selectedPlaceDetails.userRatingsTotal && (
+                          <span className="text-sm text-muted-foreground">
+                            ({selectedPlaceDetails.userRatingsTotal}件のレビュー)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <Car className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-1">駐車場</p>
+                    <div data-testid="detail-parking">
+                      {selectedPlaceDetails.hasParking ? (
+                        <Badge variant="default" className="bg-green-600">駐車場あり</Badge>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">駐車場情報なし</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 {selectedPlaceDetails.openingHours && selectedPlaceDetails.openingHours.length > 0 && (
                   <div className="flex items-start gap-3">
