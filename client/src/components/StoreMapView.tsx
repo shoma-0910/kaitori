@@ -52,6 +52,15 @@ interface NearbyPlace {
   hasParking?: boolean;
 }
 
+interface NearbyFacility {
+  name: string;
+  vicinity: string;
+  types: string[];
+  rating?: number;
+  userRatingsTotal?: number;
+  openNow?: boolean;
+}
+
 interface StoreMapViewProps {
   stores: Store[];
   onStoreSelect: (store: Store) => void;
@@ -82,6 +91,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedPlaceDetails, setSelectedPlaceDetails] = useState<NearbyPlace | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [nearbyFacilities, setNearbyFacilities] = useState<NearbyFacility[]>([]);
+  const [searchingFacilities, setSearchingFacilities] = useState(false);
   const { toast } = useToast();
 
   const { data: registeredStores = [] } = useQuery<RegisteredStore[]>({
@@ -304,6 +315,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
     // ダイアログを先に開いてローディング状態を表示
     setSelectedPlaceDetails(place);
     setDetailsDialogOpen(true);
+    setNearbyFacilities([]);
     
     // 詳細情報を取得
     const details = await fetchPlaceDetails(place.placeId);
@@ -335,6 +347,63 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       });
     }
   }, [fetchPlaceDetails, toast]);
+
+  const searchNearbyFacilities = useCallback(() => {
+    if (!selectedPlaceDetails || !mapInstance) return;
+
+    setSearchingFacilities(true);
+    setNearbyFacilities([]);
+    
+    const service = new google.maps.places.PlacesService(mapInstance);
+    
+    const location = new google.maps.LatLng(
+      selectedPlaceDetails.position.lat,
+      selectedPlaceDetails.position.lng
+    );
+
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: location,
+      radius: 500,
+      language: "ja",
+    };
+
+    const timeoutId = setTimeout(() => {
+      setSearchingFacilities(false);
+      toast({
+        title: "検索がタイムアウトしました",
+        description: "周辺施設の検索に時間がかかりすぎています。もう一度お試しください。",
+        variant: "destructive",
+      });
+    }, 10000);
+
+    service.nearbySearch(request, (results, status) => {
+      clearTimeout(timeoutId);
+      setSearchingFacilities(false);
+      
+      if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+        const facilities: NearbyFacility[] = results.slice(0, 20).map((result) => ({
+          name: result.name || "",
+          vicinity: result.vicinity || "",
+          types: result.types || [],
+          rating: result.rating,
+          userRatingsTotal: result.user_ratings_total,
+          openNow: result.opening_hours?.open_now,
+        }));
+        setNearbyFacilities(facilities);
+      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        toast({
+          title: "該当施設なし",
+          description: "この店舗周辺に該当する施設が見つかりませんでした。",
+        });
+      } else {
+        toast({
+          title: "検索に失敗しました",
+          description: "周辺施設の情報を取得できませんでした。",
+          variant: "destructive",
+        });
+      }
+    });
+  }, [selectedPlaceDetails, mapInstance, toast]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map);
@@ -594,7 +663,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       )}
 
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent data-testid="dialog-place-details">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-place-details">
           <DialogHeader>
             <DialogTitle className="text-xl" data-testid="dialog-title">
               スーパー詳細情報
@@ -703,6 +772,90 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                         ))}
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">周辺施設</h3>
+                    <p className="text-sm text-muted-foreground">
+                      半径500m以内の施設
+                    </p>
+                  </div>
+                  <Button
+                    onClick={searchNearbyFacilities}
+                    disabled={searchingFacilities}
+                    size="sm"
+                    data-testid="button-search-nearby-facilities"
+                  >
+                    {searchingFacilities ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        検索中...
+                      </>
+                    ) : (
+                      "周辺を検索"
+                    )}
+                  </Button>
+                </div>
+
+                {nearbyFacilities.length > 0 && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {nearbyFacilities.map((facility, index) => (
+                      <Card key={index} data-testid={`card-facility-${index}`}>
+                        <CardContent className="p-3">
+                          <div className="space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-medium text-sm" data-testid={`text-facility-name-${index}`}>
+                                {facility.name}
+                              </h4>
+                              {facility.rating && (
+                                <div className="flex items-center gap-1">
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-xs font-medium">{facility.rating.toFixed(1)}</span>
+                                  {facility.userRatingsTotal && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({facility.userRatingsTotal})
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-start gap-2">
+                              <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <p className="text-xs text-muted-foreground" data-testid={`text-facility-address-${index}`}>
+                                {facility.vicinity}
+                              </p>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-1">
+                              {facility.openNow !== undefined && (
+                                <Badge variant={facility.openNow ? "default" : "secondary"} className="text-xs">
+                                  {facility.openNow ? "営業中" : "営業時間外"}
+                                </Badge>
+                              )}
+                              {facility.types.slice(0, 2).map((type: string, i: number) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  {type.replace(/_/g, ' ')}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {!searchingFacilities && nearbyFacilities.length === 0 && (
+                  <div className="text-center py-6">
+                    <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      「周辺を検索」ボタンを押して、周辺施設を表示します
+                    </p>
                   </div>
                 )}
               </div>
