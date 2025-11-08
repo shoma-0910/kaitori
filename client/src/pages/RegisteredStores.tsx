@@ -16,7 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EventReservationModal, EventReservationData } from "@/components/EventReservationModal";
+import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
+import { EventReservationData } from "@/components/EventReservationModal";
 import { useState } from "react";
 
 export default function RegisteredStores() {
@@ -254,7 +255,7 @@ export default function RegisteredStores() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <EventReservationModal
+      <RegisteredStoreDetailModal
         open={reservationModalOpen}
         onOpenChange={setReservationModalOpen}
         store={selectedStore}
