@@ -57,16 +57,6 @@ export const registeredStores = pgTable("registered_stores", {
   longitude: real("longitude").notNull(),
   website: text("website"),
   openingHours: text("opening_hours").array(),
-  rating: real("rating"),
-  userRatingsTotal: integer("user_ratings_total"),
-  hasParking: integer("has_parking"),
-  freeGarageParking: integer("free_garage_parking"),
-  freeParkingLot: integer("free_parking_lot"),
-  freeStreetParking: integer("free_street_parking"),
-  paidGarageParking: integer("paid_garage_parking"),
-  paidParkingLot: integer("paid_parking_lot"),
-  paidStreetParking: integer("paid_street_parking"),
-  valetParking: integer("valet_parking"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
 });
 

@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Star, Car } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -18,25 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EventReservationModal, EventReservationData } from "@/components/EventReservationModal";
 import { useState } from "react";
-
-function translateWeekdayToJapanese(text: string): string {
-  const dayMap: { [key: string]: string } = {
-    'Monday': '月曜日',
-    'Tuesday': '火曜日',
-    'Wednesday': '水曜日',
-    'Thursday': '木曜日',
-    'Friday': '金曜日',
-    'Saturday': '土曜日',
-    'Sunday': '日曜日',
-  };
-
-  let translated = text;
-  for (const [english, japanese] of Object.entries(dayMap)) {
-    translated = translated.replace(english, japanese);
-  }
-  
-  return translated;
-}
 
 export default function RegisteredStores() {
   const { toast } = useToast();
@@ -178,79 +159,6 @@ export default function RegisteredStores() {
                       </Badge>
                     </div>
                     
-                    <div className="flex flex-wrap gap-2">
-                      {store.freeParkingLot === 1 && (
-                        <Badge variant="default" className="bg-green-600 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          無料駐車場
-                        </Badge>
-                      )}
-                      {store.freeGarageParking === 1 && (
-                        <Badge variant="default" className="bg-green-600 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          無料立体駐車場
-                        </Badge>
-                      )}
-                      {store.freeStreetParking === 1 && (
-                        <Badge variant="default" className="bg-green-500 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          無料路上駐車
-                        </Badge>
-                      )}
-                      {store.paidParkingLot === 1 && (
-                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          有料駐車場
-                        </Badge>
-                      )}
-                      {store.paidGarageParking === 1 && (
-                        <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          有料立体駐車場
-                        </Badge>
-                      )}
-                      {store.paidStreetParking === 1 && (
-                        <Badge variant="outline" className="bg-blue-400/10 border-blue-400 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          有料路上駐車
-                        </Badge>
-                      )}
-                      {store.valetParking === 1 && (
-                        <Badge variant="outline" className="bg-purple-500/10 border-purple-500 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          バレーパーキング
-                        </Badge>
-                      )}
-                      {/* Fallback for legacy data with only hasParking flag */}
-                      {store.hasParking === 1 && 
-                       !store.freeParkingLot && 
-                       !store.freeGarageParking && 
-                       !store.freeStreetParking && 
-                       !store.paidParkingLot && 
-                       !store.paidGarageParking && 
-                       !store.paidStreetParking && 
-                       !store.valetParking && (
-                        <Badge variant="default" className="bg-green-600 text-xs">
-                          <Car className="w-3 h-3 mr-1" />
-                          駐車場あり
-                        </Badge>
-                      )}
-                    </div>
-
-                    {store.rating !== null && store.rating !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold text-sm">{store.rating.toFixed(1)}</span>
-                        </div>
-                        {store.userRatingsTotal && (
-                          <span className="text-xs text-muted-foreground">
-                            ({store.userRatingsTotal}件のレビュー)
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    
                     <div className="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -276,7 +184,7 @@ export default function RegisteredStores() {
                           <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <div className="space-y-0.5" data-testid={`text-store-hours-${store.id}`}>
                             {store.openingHours.map((hours, index) => (
-                              <div key={index} className="text-sm">{translateWeekdayToJapanese(hours)}</div>
+                              <div key={index} className="text-sm">{hours}</div>
                             ))}
                           </div>
                         </div>

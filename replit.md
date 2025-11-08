@@ -13,17 +13,6 @@ A comprehensive data-driven event management system for planning, executing, and
 - Editable event details (manager, dates, cost, notes) with instant UI updates
 - Repeated Google Calendar additions (no duplicate prevention)
 - Comprehensive store database with CRUD operations
-- Detailed parking information (7 types) from Google Places API with multi-badge display
-
-## Recent Changes
-
-### November 8, 2024 - Google Places API (New) Migration
-- Migrated from legacy Google Places API to new Places API (REST v1) for detailed parking information
-- Added 7 parking type columns to database: free/paid garage, lot, street parking, and valet parking
-- Created `/api/place-details/:placeId` backend endpoint that returns parkingOptions from Google Places API
-- Implemented multi-badge UI system showing detailed parking types in PlaceDetailsDialog and RegisteredStores page
-- Added backward compatibility fallback to display "駐車場あり" badge for legacy data with only hasParking flag
-- All e2e tests passing, including legacy data fallback verification
 
 ## User Preferences
 
@@ -103,18 +92,6 @@ stores
 - averageIncome, averageRent (real)
 - potentialScore (integer) - AI-calculated viability score
 
-registered_stores
-- id (UUID, primary key)
-- placeId (text, unique) - Google Places ID
-- name, address (text)
-- lat, lng (real) - Coordinates
-- rating (real), userRatingsTotal (integer)
-- hasParking (integer 0/1) - Legacy field for backward compatibility
-- freeParkingLot, freeGarageParking, freeStreetParking (integer 0/1)
-- paidParkingLot, paidGarageParking, paidStreetParking (integer 0/1)
-- valetParking (integer 0/1)
-- phoneNumber, website, openingHours (text, optional)
-
 events
 - id (UUID, primary key)
 - storeId (foreign key to stores)
@@ -146,11 +123,8 @@ costs
 **Maps Integration**: Google Maps API (`@react-google-maps/api`)
 - Geocoding for address lookups
 - Store location visualization with interactive markers
-- Nearby store search using Places API (JavaScript API)
-- Place details using Places API (New) REST v1 with parkingOptions field
+- Nearby store search using Places API
 - Requires `VITE_GOOGLE_MAPS_API_KEY` environment variable
-- Parking information: 7 detailed types (free/paid garage, lot, street parking, valet) displayed with color-coded badges
-- Backend endpoint: `GET /api/place-details/:placeId` for fetching detailed place data
 
 **Calendar Integration**: Google Calendar
 - Event URLs auto-generated for one-click calendar additions
