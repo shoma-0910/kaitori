@@ -98,6 +98,9 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       longitude: number;
       website?: string;
       openingHours?: string[];
+      rating?: number;
+      userRatingsTotal?: number;
+      hasParking?: number;
     }) => {
       const res = await apiRequest('POST', '/api/registered-stores', data);
       return await res.json() as RegisteredStore;
@@ -352,6 +355,9 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       longitude: selectedPlaceDetails.position.lng,
       website: selectedPlaceDetails.website,
       openingHours: selectedPlaceDetails.openingHours,
+      rating: selectedPlaceDetails.rating,
+      userRatingsTotal: selectedPlaceDetails.userRatingsTotal,
+      hasParking: selectedPlaceDetails.hasParking ? 1 : 0,
     });
   }, [selectedPlaceDetails, registerStoreMutation]);
 

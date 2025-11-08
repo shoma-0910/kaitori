@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock, Calendar } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Star, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -157,7 +157,27 @@ export default function RegisteredStores() {
                       >
                         スーパー
                       </Badge>
+                      {store.hasParking === 1 && (
+                        <Badge variant="default" className="bg-green-600 text-xs">
+                          <Car className="w-3 h-3 mr-1" />
+                          駐車場あり
+                        </Badge>
+                      )}
                     </div>
+
+                    {store.rating !== null && store.rating !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="font-semibold text-sm">{store.rating.toFixed(1)}</span>
+                        </div>
+                        {store.userRatingsTotal && (
+                          <span className="text-xs text-muted-foreground">
+                            ({store.userRatingsTotal}件のレビュー)
+                          </span>
+                        )}
+                      </div>
+                    )}
                     
                     <div className="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
