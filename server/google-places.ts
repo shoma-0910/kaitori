@@ -70,13 +70,18 @@ export async function fetchPlaceDetails(
 
     const data = await response.json();
 
+    // Transform opening hours to Japanese
+    const openingHours = data.currentOpeningHours?.weekdayDescriptions?.map(
+      (desc: string) => translateWeekdayToJapanese(desc)
+    );
+
     // Transform the response to our format
     const placeDetails: PlaceDetails = {
       name: data.displayName?.text || '',
       formattedAddress: data.formattedAddress || '',
       phoneNumber: data.nationalPhoneNumber,
       website: data.websiteUri,
-      openingHours: data.currentOpeningHours?.weekdayDescriptions,
+      openingHours,
       rating: data.rating,
       userRatingsTotal: data.userRatingCount,
       parkingOptions: data.parkingOptions,
@@ -135,4 +140,26 @@ export function hasAnyParking(parkingOptions?: ParkingOptions): boolean {
     parkingOptions.paidStreetParking ||
     parkingOptions.valetParking
   );
+}
+
+/**
+ * Convert English weekday names to Japanese
+ */
+function translateWeekdayToJapanese(text: string): string {
+  const dayMap: { [key: string]: string } = {
+    'Monday': '月曜日',
+    'Tuesday': '火曜日',
+    'Wednesday': '水曜日',
+    'Thursday': '木曜日',
+    'Friday': '金曜日',
+    'Saturday': '土曜日',
+    'Sunday': '日曜日',
+  };
+
+  let translated = text;
+  for (const [english, japanese] of Object.entries(dayMap)) {
+    translated = translated.replace(english, japanese);
+  }
+  
+  return translated;
 }

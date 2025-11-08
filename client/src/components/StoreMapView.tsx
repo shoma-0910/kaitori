@@ -21,6 +21,25 @@ import type { RegisteredStore } from "@shared/schema";
 
 const libraries: ("places")[] = ["places"];
 
+function translateWeekdayToJapanese(text: string): string {
+  const dayMap: { [key: string]: string } = {
+    'Monday': '月曜日',
+    'Tuesday': '火曜日',
+    'Wednesday': '水曜日',
+    'Thursday': '木曜日',
+    'Friday': '金曜日',
+    'Saturday': '土曜日',
+    'Sunday': '日曜日',
+  };
+
+  let translated = text;
+  for (const [english, japanese] of Object.entries(dayMap)) {
+    translated = translated.replace(english, japanese);
+  }
+  
+  return translated;
+}
+
 interface Store {
   id: string;
   name: string;
@@ -782,7 +801,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                       <p className="text-sm text-muted-foreground mb-1">営業時間</p>
                       <div className="space-y-1" data-testid="detail-opening-hours">
                         {selectedPlaceDetails.openingHours.map((hours, index) => (
-                          <p key={index} className="text-sm">{hours}</p>
+                          <p key={index} className="text-sm">{translateWeekdayToJapanese(hours)}</p>
                         ))}
                       </div>
                     </div>

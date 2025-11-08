@@ -19,6 +19,25 @@ import {
 import { EventReservationModal, EventReservationData } from "@/components/EventReservationModal";
 import { useState } from "react";
 
+function translateWeekdayToJapanese(text: string): string {
+  const dayMap: { [key: string]: string } = {
+    'Monday': '月曜日',
+    'Tuesday': '火曜日',
+    'Wednesday': '水曜日',
+    'Thursday': '木曜日',
+    'Friday': '金曜日',
+    'Saturday': '土曜日',
+    'Sunday': '日曜日',
+  };
+
+  let translated = text;
+  for (const [english, japanese] of Object.entries(dayMap)) {
+    translated = translated.replace(english, japanese);
+  }
+  
+  return translated;
+}
+
 export default function RegisteredStores() {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -257,7 +276,7 @@ export default function RegisteredStores() {
                           <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <div className="space-y-0.5" data-testid={`text-store-hours-${store.id}`}>
                             {store.openingHours.map((hours, index) => (
-                              <div key={index} className="text-sm">{hours}</div>
+                              <div key={index} className="text-sm">{translateWeekdayToJapanese(hours)}</div>
                             ))}
                           </div>
                         </div>
