@@ -69,7 +69,7 @@ interface StoreMapViewProps {
 
 const mapContainerStyle = {
   width: "100%",
-  height: "600px",
+  height: "100%",
 };
 
 const defaultCenter = {
@@ -517,7 +517,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       {showMap && (
         <>
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 h-[400px] md:h-[600px]">
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}
