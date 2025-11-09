@@ -440,14 +440,20 @@ export function RegisteredStoreDetailModal({
                   </p>
                 </div>
 
-                {searchingFacilities ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    検索中...
-                  </>
-                ) : (
-                  "周辺を検索"
-                )}
+                <Button
+                  onClick={handleNearbySearch}
+                  disabled={searchingFacilities}
+                  data-testid="button-search-nearby"
+                >
+                  {searchingFacilities ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      検索中...
+                    </>
+                  ) : (
+                    "周辺を検索"
+                  )}
+                </Button>
               </div>
 
               <div
