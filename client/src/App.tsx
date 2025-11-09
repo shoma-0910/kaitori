@@ -3,15 +3,38 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
 import Dashboard from "@/pages/Dashboard";
 import StoreSelection from "@/pages/StoreSelection";
 import RegisteredStores from "@/pages/RegisteredStores";
 import CalendarSchedule from "@/pages/CalendarSchedule";
 import StoreDataPage from "@/pages/StoreData";
 import NotFound from "@/pages/not-found";
+
+function HamburgerButton() {
+  const { toggleSidebar, open } = useSidebar();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleSidebar}
+      className="relative"
+      data-testid="button-sidebar-toggle"
+      aria-label="サイドバーを開閉"
+      aria-expanded={open}
+    >
+      <div className="hamburger-icon">
+        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
+        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
+        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
+      </div>
+    </Button>
+  );
+}
 
 function Router() {
   return (
@@ -40,7 +63,7 @@ export default function App() {
             <AppSidebar />
             <div className="flex flex-col flex-1">
               <header className="flex items-center justify-between p-4 border-b">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <HamburgerButton />
                 <ThemeToggle />
               </header>
               <main className="flex-1 overflow-auto p-8">
