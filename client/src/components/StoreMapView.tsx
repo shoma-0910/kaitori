@@ -363,7 +363,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
 
     const request: google.maps.places.PlaceSearchRequest = {
       location: location,
-      radius: 500,
+      radius: 100,
       language: "ja",
     };
 
@@ -781,7 +781,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                   <div>
                     <h3 className="text-lg font-semibold">周辺施設</h3>
                     <p className="text-sm text-muted-foreground">
-                      半径500m以内の施設
+                      半径100m以内の施設
                     </p>
                   </div>
                   <Button
