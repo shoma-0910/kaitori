@@ -484,9 +484,15 @@ export function RegisteredStoreDetailModal({
                             )}
                           </div>
 
-                          <p className="text-xs text-muted-foreground">
-                            {facility.vicinity}
-                          </p>
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <p
+                              className="text-xs text-muted-foreground"
+                              data-testid={`text-facility-address-${index}`}
+                            >
+                              {facility.vicinity}
+                            </p>
+                          </div>
 
                           <div className="flex flex-wrap gap-1">
                             {facility.openNow !== undefined && (
