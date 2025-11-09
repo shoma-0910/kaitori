@@ -524,7 +524,6 @@ export function RegisteredStoreDetailModal({
 
               {!searchingFacilities && nearbyFacilities.length === 0 && (
                 <div className="text-center py-6">
-                  <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
                     「周辺を検索」ボタンを押して、周辺施設を表示します
                   </p>
