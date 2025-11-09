@@ -64,7 +64,9 @@ export function RegisteredStoreDetailModal({
   const [estimatedCost, setEstimatedCost] = useState("");
   const [notes, setNotes] = useState("");
   const [addToGoogleCalendar, setAddToGoogleCalendar] = useState(true);
-  const [nearbyFacilities, setNearbyFacilities] = useState<NearbyFacility[]>([]);
+  const [nearbyFacilities, setNearbyFacilities] = useState<NearbyFacility[]>(
+    [],
+  );
   const [searchingFacilities, setSearchingFacilities] = useState(false);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const mapInitTimerRef = useRef<number | null>(null);
@@ -107,7 +109,9 @@ export function RegisteredStoreDetailModal({
       });
     };
 
-    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+    const existingScript = document.querySelector(
+      `script[src*="maps.googleapis.com"]`,
+    );
     if (!existingScript) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=ja`;
@@ -173,15 +177,21 @@ export function RegisteredStoreDetailModal({
       clearTimeout(timeoutId);
       setSearchingFacilities(false);
 
-      if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-        const facilities: NearbyFacility[] = results.slice(0, 20).map((result) => ({
-          name: result.name || "",
-          vicinity: result.vicinity || "",
-          types: result.types || [],
-          rating: result.rating,
-          userRatingsTotal: result.user_ratings_total,
-          openNow: result.opening_hours?.open_now,
-        }));
+      if (
+        status === google.maps.places.PlacesServiceStatus.OK &&
+        results &&
+        results.length > 0
+      ) {
+        const facilities: NearbyFacility[] = results
+          .slice(0, 20)
+          .map((result) => ({
+            name: result.name || "",
+            vicinity: result.vicinity || "",
+            types: result.types || [],
+            rating: result.rating,
+            userRatingsTotal: result.user_ratings_total,
+            openNow: result.opening_hours?.open_now,
+          }));
         setNearbyFacilities(facilities);
       }
     });
@@ -243,7 +253,9 @@ export function RegisteredStoreDetailModal({
 
               {store.website && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">ウェブサイト</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    ウェブサイト
+                  </p>
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-muted-foreground" />
                     <a
@@ -279,7 +291,8 @@ export function RegisteredStoreDetailModal({
               <div className="pt-2">
                 <p className="text-sm text-muted-foreground mb-1">位置情報</p>
                 <p className="text-sm font-mono" data-testid="text-coordinates">
-                  緯度: {store.latitude.toFixed(6)}, 経度: {store.longitude.toFixed(6)}
+                  緯度: {store.latitude.toFixed(6)}, 経度:{" "}
+                  {store.longitude.toFixed(6)}
                 </p>
               </div>
             </div>
@@ -426,10 +439,10 @@ export function RegisteredStoreDetailModal({
                     半径100m以内の施設
                   </p>
                 </div>
+
                 <Button
                   onClick={handleNearbySearch}
                   disabled={searchingFacilities}
-                  size="sm"
                   data-testid="button-search-nearby"
                 >
                   {searchingFacilities ? (
@@ -456,13 +469,18 @@ export function RegisteredStoreDetailModal({
                       <CardContent className="p-3">
                         <div className="space-y-1">
                           <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-medium text-sm" data-testid={`text-facility-name-${index}`}>
+                            <h4
+                              className="font-medium text-sm"
+                              data-testid={`text-facility-name-${index}`}
+                            >
                               {facility.name}
                             </h4>
                             {facility.rating && (
                               <div className="flex items-center gap-1">
                                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                <span className="text-xs font-medium">{facility.rating.toFixed(1)}</span>
+                                <span className="text-xs font-medium">
+                                  {facility.rating.toFixed(1)}
+                                </span>
                                 {facility.userRatingsTotal && (
                                   <span className="text-xs text-muted-foreground">
                                     ({facility.userRatingsTotal})
@@ -471,23 +489,35 @@ export function RegisteredStoreDetailModal({
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex items-start gap-2">
                             <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-muted-foreground" data-testid={`text-facility-address-${index}`}>
+                            <p
+                              className="text-xs text-muted-foreground"
+                              data-testid={`text-facility-address-${index}`}
+                            >
                               {facility.vicinity}
                             </p>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-1">
                             {facility.openNow !== undefined && (
-                              <Badge variant={facility.openNow ? "default" : "secondary"} className="text-xs">
+                              <Badge
+                                variant={
+                                  facility.openNow ? "default" : "secondary"
+                                }
+                                className="text-xs"
+                              >
                                 {facility.openNow ? "営業中" : "営業時間外"}
                               </Badge>
                             )}
                             {facility.types.slice(0, 2).map((type, i) => (
-                              <Badge key={i} variant="outline" className="text-xs">
-                                {type.replace(/_/g, ' ')}
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {type.replace(/_/g, " ")}
                               </Badge>
                             ))}
                           </div>
