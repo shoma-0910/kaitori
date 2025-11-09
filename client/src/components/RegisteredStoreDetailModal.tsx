@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -67,38 +67,65 @@ export function RegisteredStoreDetailModal({
   const [nearbyFacilities, setNearbyFacilities] = useState<NearbyFacility[]>([]);
   const [searchingFacilities, setSearchingFacilities] = useState(false);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+  const mapInitTimerRef = useRef<number | null>(null);
+  const isOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open && store) {
-      const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
-      if (!existingScript) {
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=ja`;
-        script.async = true;
-        script.onload = initializeMap;
-        document.head.appendChild(script);
-      } else {
-        setTimeout(initializeMap, 100);
+    isOpenRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !store) {
+      setMapInstance(null);
+      setNearbyFacilities([]);
+      if (mapInitTimerRef.current) {
+        clearTimeout(mapInitTimerRef.current);
+        mapInitTimerRef.current = null;
       }
+      return;
     }
 
-    function initializeMap() {
-      if (!store) return;
+    const initializeMap = () => {
+      if (!isOpenRef.current) return;
+
       const mapDiv = document.getElementById("registered-nearby-map");
-      if (mapDiv && window.google && window.google.maps) {
-        const map = new google.maps.Map(mapDiv, {
-          center: { lat: store.latitude, lng: store.longitude },
-          zoom: 15,
-        });
-        setMapInstance(map);
-
-        new google.maps.Marker({
-          position: { lat: store.latitude, lng: store.longitude },
-          map: map,
-          title: store.name,
-        });
+      if (!mapDiv || !window.google || !window.google.maps) {
+        mapInitTimerRef.current = window.setTimeout(initializeMap, 100);
+        return;
       }
+
+      const map = new google.maps.Map(mapDiv, {
+        center: { lat: store.latitude, lng: store.longitude },
+        zoom: 15,
+      });
+      setMapInstance(map);
+
+      new google.maps.Marker({
+        position: { lat: store.latitude, lng: store.longitude },
+        map: map,
+        title: store.name,
+      });
+    };
+
+    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=ja`;
+      script.async = true;
+      script.onload = initializeMap;
+      document.head.appendChild(script);
+    } else if (window.google && window.google.maps) {
+      initializeMap();
+    } else {
+      mapInitTimerRef.current = window.setTimeout(initializeMap, 100);
     }
+
+    return () => {
+      if (mapInitTimerRef.current) {
+        clearTimeout(mapInitTimerRef.current);
+        mapInitTimerRef.current = null;
+      }
+    };
   }, [open, store]);
 
   const handleSubmit = () => {
