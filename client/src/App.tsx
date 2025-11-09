@@ -55,12 +55,10 @@ export default function App() {
     "--sidebar-width-icon": "4rem",
   };
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties} defaultOpen={!isMobile}>
+        <SidebarProvider style={style as React.CSSProperties} defaultOpen={false}>
           <div className="flex h-screen w-full">
             <AppSidebar />
             <div className="flex flex-col flex-1">

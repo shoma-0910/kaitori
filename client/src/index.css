@@ -240,6 +240,13 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Mobile touch target accessibility: ensure 44px minimum height on mobile devices */
+  @media (max-width: 767px) {
+    :where(button, [role="button"], input, select) {
+      min-height: 44px !important;
+    }
+  }
 }
 
 /**
@@ -379,5 +386,31 @@
 
   .hamburger-line:nth-child(3).open {
     transform: translateY(-9px) rotate(-45deg);
+  }
+
+  /* Mobile Touch Target Sizes - Force 44px minimum on mobile devices */
+  @media (max-width: 767px) {
+    /* Buttons */
+    button {
+      min-height: 44px !important;
+    }
+    
+    /* Inputs */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="number"],
+    input {
+      height: 44px !important;
+    }
+    
+    /* Select triggers */
+    [role="combobox"],
+    select {
+      height: 44px !important;
+    }
   }
 }
