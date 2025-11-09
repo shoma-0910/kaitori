@@ -552,22 +552,27 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                   />
                 ))}
 
-                {/* 周辺のスーパーマーケット（オレンジ色） */}
-                {nearbyPlaces.map((place) => (
-                  <Marker
-                    key={place.placeId}
-                    position={place.position}
-                    onClick={() => handlePlaceClick(place)}
-                    icon={{
-                      path: google.maps.SymbolPath.CIRCLE,
-                      scale: 8,
-                      fillColor: "#f97316",
-                      fillOpacity: 0.8,
-                      strokeColor: "#ffffff",
-                      strokeWeight: 2,
-                    }}
-                  />
-                ))}
+                {/* 周辺のスーパーマーケット（オレンジ色 or グレー色） */}
+                {nearbyPlaces.map((place) => {
+                  const isRegistered = registeredStores.some(
+                    (store) => store.placeId === place.placeId
+                  );
+                  return (
+                    <Marker
+                      key={place.placeId}
+                      position={place.position}
+                      onClick={() => handlePlaceClick(place)}
+                      icon={{
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: isRegistered ? "#9ca3af" : "#f97316",
+                        fillOpacity: 0.8,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 2,
+                      }}
+                    />
+                  );
+                })}
 
                 {selectedMarker && (
                   <InfoWindow
@@ -584,11 +589,16 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
                           スコア: <strong>{selectedMarker.potentialScore}</strong>
                         </p>
                       )}
-                      {!isStore(selectedMarker) && (
-                        <p className="text-xs text-orange-600 font-medium">
-                          周辺スーパー
-                        </p>
-                      )}
+                      {!isStore(selectedMarker) && (() => {
+                        const isRegistered = registeredStores.some(
+                          (store) => store.placeId === (selectedMarker as NearbyPlace).placeId
+                        );
+                        return (
+                          <p className={`text-xs font-medium ${isRegistered ? 'text-gray-500' : 'text-orange-600'}`}>
+                            {isRegistered ? '登録済み' : '周辺スーパー'}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </InfoWindow>
                 )}
@@ -603,58 +613,73 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
               </CardHeader>
               <CardContent>
                 <div className="space-y-2" data-testid="list-nearby-supermarkets">
-                  {nearbyPlaces.map((place, index) => (
-                    <button
-                      key={place.placeId}
-                      className="w-full text-left bg-card border rounded-md p-3 hover-elevate active-elevate-2 cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlaceClick(place);
-                        e.currentTarget.focus();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+                  {nearbyPlaces.map((place, index) => {
+                    const isRegistered = registeredStores.some(
+                      (store) => store.placeId === place.placeId
+                    );
+                    return (
+                      <button
+                        key={place.placeId}
+                        className="w-full text-left bg-card border rounded-md p-3 hover-elevate active-elevate-2 cursor-pointer"
+                        onClick={(e) => {
                           e.stopPropagation();
                           handlePlaceClick(place);
                           e.currentTarget.focus();
-                        }
-                      }}
-                      onKeyUp={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
-                      data-testid={`card-nearby-${index}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <MapPin className="w-5 h-5 text-orange-600" />
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handlePlaceClick(place);
+                            e.currentTarget.focus();
+                          }
+                        }}
+                        onKeyUp={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+                        data-testid={`card-nearby-${index}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <MapPin className={`w-5 h-5 ${isRegistered ? 'text-gray-400' : 'text-orange-600'}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm mb-1" data-testid={`text-nearby-name-${index}`}>
+                              {place.name}
+                            </h4>
+                            <p className="text-xs text-muted-foreground" data-testid={`text-nearby-address-${index}`}>
+                              {place.address}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1 flex-shrink-0">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${isRegistered ? 'bg-gray-500/10 border-gray-500' : 'bg-orange-500/10 border-orange-500'}`}
+                            >
+                              スーパー
+                            </Badge>
+                            {isRegistered && (
+                              <Badge 
+                                variant="secondary" 
+                                className="text-xs bg-gray-500/20"
+                              >
+                                登録済み
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm mb-1" data-testid={`text-nearby-name-${index}`}>
-                            {place.name}
-                          </h4>
-                          <p className="text-xs text-muted-foreground" data-testid={`text-nearby-address-${index}`}>
-                            {place.address}
-                          </p>
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className="flex-shrink-0 bg-orange-500/10 border-orange-500 text-xs"
-                        >
-                          スーパー
-                        </Badge>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
