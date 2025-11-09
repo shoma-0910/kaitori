@@ -2,7 +2,7 @@ import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 
 const locales = {
@@ -36,7 +36,20 @@ export function EventCalendar({
   onEventClick,
   onSelectSlot,
 }: EventCalendarProps) {
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>(() => {
+    return window.innerWidth < 768 ? "agenda" : "month";
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && view === "month") {
+        setView("agenda");
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [view]);
 
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = "hsl(var(--primary))";
@@ -94,11 +107,18 @@ export function EventCalendar({
           margin-bottom: 16px;
         }
         .rbc-toolbar button {
-          padding: 8px 16px;
+          padding: 8px 12px;
           border-radius: var(--radius);
           border: 1px solid hsl(var(--border));
           background: hsl(var(--background));
           color: hsl(var(--foreground));
+          font-size: 0.875rem;
+        }
+        @media (min-width: 768px) {
+          .rbc-toolbar button {
+            padding: 8px 16px;
+            font-size: 1rem;
+          }
         }
         .rbc-toolbar button:hover {
           background: hsl(var(--accent));
@@ -124,28 +144,30 @@ export function EventCalendar({
           border-top: 1px solid hsl(var(--border));
         }
       `}</style>
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 600 }}
-        view={view}
-        onView={setView}
-        onSelectEvent={onEventClick}
-        onSelectSlot={onSelectSlot}
-        selectable
-        eventPropGetter={eventStyleGetter}
-        messages={{
-          next: "次",
-          previous: "前",
-          today: "今日",
-          month: "月",
-          week: "週",
-          day: "日",
-          agenda: "予定リスト",
-        }}
-      />
+      <div className="h-[500px] md:h-[600px]">
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: "100%" }}
+          view={view}
+          onView={setView}
+          onSelectEvent={onEventClick}
+          onSelectSlot={onSelectSlot}
+          selectable
+          eventPropGetter={eventStyleGetter}
+          messages={{
+            next: "次",
+            previous: "前",
+            today: "今日",
+            month: "月",
+            week: "週",
+            day: "日",
+            agenda: "予定リスト",
+          }}
+        />
+      </div>
     </Card>
   );
 }
