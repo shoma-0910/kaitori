@@ -440,20 +440,14 @@ export function RegisteredStoreDetailModal({
                   </p>
                 </div>
 
-                <Button
-                  onClick={handleNearbySearch}
-                  disabled={searchingFacilities}
-                  data-testid="button-search-nearby"
-                >
-                  {searchingFacilities ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      検索中...
-                    </>
-                  ) : (
-                    "周辺を検索"
-                  )}
-                </Button>
+                {searchingFacilities ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    検索中...
+                  </>
+                ) : (
+                  "周辺を検索"
+                )}
               </div>
 
               <div
@@ -490,15 +484,9 @@ export function RegisteredStoreDetailModal({
                             )}
                           </div>
 
-                          <div className="flex items-start gap-2">
-                            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <p
-                              className="text-xs text-muted-foreground"
-                              data-testid={`text-facility-address-${index}`}
-                            >
-                              {facility.vicinity}
-                            </p>
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {facility.vicinity}
+                          </p>
 
                           <div className="flex flex-wrap gap-1">
                             {facility.openNow !== undefined && (
