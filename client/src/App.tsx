@@ -55,10 +55,12 @@ export default function App() {
     "--sidebar-width-icon": "4rem",
   };
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
+        <SidebarProvider style={style as React.CSSProperties} defaultOpen={!isMobile}>
           <div className="flex h-screen w-full">
             <AppSidebar />
             <div className="flex flex-col flex-1">
@@ -66,7 +68,7 @@ export default function App() {
                 <HamburgerButton />
                 <ThemeToggle />
               </header>
-              <main className="flex-1 overflow-auto p-8">
+              <main className="flex-1 overflow-auto p-8 md:p-8 p-4">
                 <Router />
               </main>
             </div>
