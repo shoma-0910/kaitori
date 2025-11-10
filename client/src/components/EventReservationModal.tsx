@@ -114,7 +114,7 @@ export function EventReservationModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-event-reservation">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-event-reservation">
         <DialogHeader>
           <DialogTitle data-testid="dialog-title">催事予約フォーム</DialogTitle>
           <DialogDescription data-testid="dialog-description">

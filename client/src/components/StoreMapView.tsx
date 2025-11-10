@@ -687,7 +687,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
       )}
 
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-place-details">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-place-details">
           <DialogHeader>
             <DialogTitle className="text-xl" data-testid="dialog-title">
               スーパー詳細情報
