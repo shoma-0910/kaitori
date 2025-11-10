@@ -28,9 +28,9 @@ function HamburgerButton() {
       aria-expanded={open}
     >
       <div className="hamburger-icon">
-        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
-        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
-        <span className={`hamburger-line ${!open ? 'open' : ''}`}></span>
+        <span className={`hamburger-line ${open ? 'open' : ''}`}></span>
+        <span className={`hamburger-line ${open ? 'open' : ''}`}></span>
+        <span className={`hamburger-line ${open ? 'open' : ''}`}></span>
       </div>
     </Button>
   );
