@@ -1,125 +1,131 @@
-# Design Guidelines: 買取催事管理システム
+# Design Guidelines: 買取催事管理システム (Enterprise Edition)
 
 ## Design Approach
 
-**Selected System**: Modern SaaS Hybrid (Linear + Notion + Data Dashboard Best Practices)
+**Selected System**: Enterprise Data Dashboard (Inspired by Bloomberg Terminal + SAP Fiori + Linear's refinement)
 
-**Justification**: This data-intensive enterprise application requires exceptional clarity for complex information while maintaining a modern, professional aesthetic. Drawing from Linear's refined typography and spatial rhythm combined with Notion's content organization principles and professional dashboard patterns creates an optimal balance for Japanese business users managing high-stakes retail operations.
+**Justification**: This mission-critical enterprise application demands maximum information density, unwavering clarity, and professional formality. Drawing from financial terminal design patterns (high data density, clear hierarchies) combined with modern enterprise design systems ensures trustworthiness for high-stakes retail decision-making.
+
+**Core Principles**: 
+- Formality over friendliness
+- Information density over whitespace
+- Structure over flexibility
+- Clarity over aesthetics
 
 ## Core Design Elements
 
 ### A. Typography
 
-**Japanese Typography**:
+**Font Families**:
 - Primary: Noto Sans JP (400, 500, 600, 700) - Google Fonts
-- Monospace: JetBrains Mono (for numerical data, costs, scores)
+- Numerical Data: JetBrains Mono (500, 600, 700) - essential for data alignment and readability
+- Use monospace exclusively for all numerical values, costs, percentages, scores
 
 **Hierarchy**:
-- Page Titles: text-3xl font-semibold (36px)
-- Section Headers: text-2xl font-semibold (24px)
-- Card Titles: text-lg font-medium (18px)
-- Body Text: text-base font-normal (16px)
-- Data Labels: text-sm font-medium (14px)
-- Captions/Metadata: text-xs font-normal (12px)
-- Numerical Data: font-mono text-lg font-semibold
+- Page Titles: text-2xl font-semibold (24px) - conservative sizing
+- Section Headers: text-xl font-semibold (20px)
+- Data Table Headers: text-sm font-semibold uppercase tracking-wide (14px)
+- Body Text: text-sm font-normal (14px)
+- Large Numerical Display: text-3xl font-mono font-bold (30px) - KPI cards
+- Table Numerical Data: text-sm font-mono font-medium (14px)
+- Data Labels: text-xs font-medium uppercase tracking-wide (12px)
+- Metadata/Timestamps: text-xs font-normal (12px)
+
+**Critical Rule**: All numbers, currency, percentages, scores must use font-mono for vertical alignment in tables and consistent width.
 
 ### B. Layout System
 
-**Spacing Primitives**: Tailwind units of 2, 4, 6, 8, 12, 16
-- Micro spacing (between related elements): 2, 4
-- Component internal padding: 4, 6
+**Spacing Primitives**: Tailwind units of 1, 2, 4, 6, 8
+- Tight spacing (data tables): 1, 2
+- Component padding: 4, 6
 - Card padding: 6, 8
-- Section spacing: 12, 16
-- Page margins: 8, 12
+- Section spacing: 8
+- Page margins: 6, 8
 
-**Grid System**:
-- Dashboard KPI Cards: grid-cols-2 lg:grid-cols-4 gap-6
-- Store List: grid-cols-1 gap-4
-- Data Tables: Full-width with internal column structure
-- Calendar + Schedule: 70/30 split on desktop, stacked mobile
+**Dense Grid Philosophy**:
+- Maximize visible data per viewport
+- Tables use full available width
+- Multi-column layouts where logical (3-4 columns for KPI cards)
+- Minimal vertical spacing between data rows
+- Clear borders separate sections rather than whitespace
 
 ### C. Component Library
 
 **Navigation**:
-- Fixed sidebar navigation (w-64) with icon + label pattern
-- Active state with subtle indicator bar
-- Collapsible on mobile to hamburger menu
-- Top bar with breadcrumb navigation and user profile
+- Fixed left sidebar (w-56) with bordered sections
+- Simple icon + text pattern, no fancy animations
+- Active state: solid border-l-4 indicator
+- Top bar: breadcrumbs (left) + user/settings (right) with border-b separator
 
 **Dashboard Components**:
-- **KPI Cards**: Elevated cards (shadow-sm) with large numerical display (text-4xl font-mono), label (text-sm), subtle icon (w-8 h-8), and percentage change indicator
-- **Bar Chart Visualization**: Multi-series bars showing 過去粗利, 実績粗利, コスト, ポテンシャルスコア with legend, gridlines, and axis labels
-- **Chart Container**: Rounded corners (rounded-xl), generous padding (p-8), white background
+- **KPI Cards**: Grid of 4 (grid-cols-4 gap-4), bordered (border-2), sharp corners (rounded-none or rounded-sm), large monospace number (text-4xl font-mono font-bold), small label above, subtle icon in corner, percentage change below with directional indicator
+- **Data Tables**: Dense rows with border-b on each row, alternating row backgrounds for readability, sticky headers (bg-gray-100 border-b-2), sortable columns with arrow indicators, monospace alignment for numerical columns, right-aligned numbers
+- **Bar Charts**: Grid backgrounds visible, axis labels prominent (text-xs), legend at top, multiple series with clear contrast, height constrained (h-80)
+- **Section Containers**: border-2 with header bar (bg-gray-50 border-b px-6 py-3 flex justify-between items-center)
 
-**Store Selection Components**:
-- **Candidate List Table**: Sortable headers, alternating row background, ポテンシャルスコア with badge styling (rounded-full px-3 py-1), hover state with subtle elevation
-- **Detail Modal**: Large modal (max-w-4xl), header with store name and close button, two-column layout for demographics vs. competition data, form section at bottom
-- **Data Grid Display**: Label-value pairs in grid-cols-2 layout, clear visual separation
+**Store Selection Interface**:
+- **Candidate Table**: Full-width table with 8-10 visible columns (店舗名, エリア, 総人口, 競合店舗数, 過去実績, ポテンシャルスコア, etc.), fixed header, horizontal scroll if needed, score badges (rounded-md px-2 py-1 font-mono text-xs font-semibold)
+- **Detail View**: Split layout (60/40), left side has data grid (grid-cols-2 gap-x-8 gap-y-2), right side has map placeholder + action buttons, border separators between sections
+- **Filters Panel**: Horizontal filter bar above table with dropdowns and inputs aligned in row
 
-**Calendar Components**:
-- **Calendar View**: Full calendar interface with month/week/agenda toggle buttons, date cells with event indicators, drag-and-drop visual feedback
-- **Event Cards**: Compact cards showing store name, date range, status badge, click to expand
-- **Schedule Table**: Dense data table with status badges (rounded-md px-2 py-1), inline edit for 実績粗利, action buttons column
+**Calendar & Schedule**:
+- **Calendar Grid**: Traditional month view with bordered cells (border), date numbers in corner (text-xs), event pills stacked in cells (h-5 text-xs truncate), week numbers in left column
+- **Schedule Table**: Dense table showing all events in list view, columns: 催事名, 店舗, 期間, ステータス, 実績粗利, 概算粗利, コスト, アクション, inline editing with pencil icon trigger, status badges (4-5 variations)
 
 **Cost Management**:
-- **Event Selector**: Prominent dropdown (w-full max-w-md) at page top
-- **Cost Entry Table**: Editable rows with category select, item input, amount input (text-right font-mono), delete icon button
-- **Add Row Button**: Outlined button style with plus icon
-- **Cost Summary Panel**: Sticky summary showing 固定費計, 変動費計, 総コスト in large monospace numbers with comparison to 概算コスト
+- **Event Selector**: Bordered dropdown at page top with event details summary panel (border-2 p-4)
+- **Cost Table**: Editable grid with category dropdown (固定費/変動費), item text input, amount input (right-aligned monospace), unit price, quantity, total calculation, delete button column, totals row at bottom (border-t-2 bg-gray-50 font-semibold)
+- **Summary Panel**: Sticky right sidebar or bottom panel showing 固定費計, 変動費計, 総コスト vs 概算コスト comparison with variance percentage (font-mono text-2xl)
 
-**Store Data CRUD**:
-- **Data Table**: Dense table with search bar, column filters, pagination controls
-- **Action Buttons**: Icon buttons in consistent size (w-8 h-8), edit/delete in row actions
-- **Add Store Form**: Slide-over panel from right with form fields in logical groupings
+**Store Master Data**:
+- **CRUD Table**: Sortable, filterable dense table, search input with icon, pagination showing "1-50 of 247", action column with edit/delete icons (w-6 h-6)
+- **Form Panel**: Slide-over from right (w-96), sections divided by border-b, field groups with clear labels (text-xs font-medium uppercase mb-1), validation inline
 
 **AI Crawling Interface**:
-- **Input Section**: Clean form with clear labels, text inputs (rounded-lg border-2), primary action button
-- **Results Display**: Card-based results with store name, address, "AI地域分析" button
-- **Analysis Panel**: Expandable sections showing 総人口, 年齢分布 (bar chart), 平均年収, 平均家賃, computed ポテンシャルスコア (large badge)
-- **Add to System**: Prominent success-style button
+- **Input Form**: Boxed section (border-2 p-6), fields for 店舗名/住所, search button (primary solid)
+- **Results Cards**: List of bordered cards showing extracted data in label-value grid, "AI分析実行" button per card
+- **Analysis Display**: Data grid showing demographics (総人口, 年齢分布 percentages, 平均年収, 平均家賃), bar chart visualization for age distribution, computed ポテンシャルスコア (large badge with mono font), "システムに追加" action button
 
-**Form Patterns**:
-- Input fields: rounded-lg border-2 px-4 py-3 with focus ring
-- Labels: text-sm font-medium mb-2 block
-- Select dropdowns: Full-width with chevron icon
-- Date inputs: Calendar picker integration
-- Validation: Inline error messages (text-red-600 text-sm mt-1)
-
-**Buttons**:
-- Primary: Solid fill, rounded-lg px-6 py-3 font-medium
-- Secondary: Outlined style with transparent background
-- Danger: Solid red variant for delete actions
-- Icon-only: Square (w-10 h-10) with centered icon
+**Form Elements**:
+- Inputs: border-2 rounded-sm px-3 py-2 text-sm, focus with darker border (no fancy rings)
+- Labels: text-xs font-medium uppercase tracking-wide mb-1
+- Dropdowns: chevron icon, full-width, border-2
+- Buttons: rectangular (rounded-sm), solid fills, text-sm font-medium px-4 py-2
 
 **Status Badges**:
-- Rounded style (rounded-full px-3 py-1 text-xs font-medium)
+- Rectangular with slight rounding (rounded-md)
+- Border + background fill pattern
+- Uppercase text (text-xs font-semibold uppercase)
 - States: 予定, 実施中, 終了, キャンセル
-- Visual weight through subtle background with contrasting text
 
 **Data Visualization**:
-- Chart.js or Recharts for bar charts and trend lines
-- Consistent axis styling and gridlines
-- Legend placement outside plot area
-- Responsive sizing with min-height constraints
-
-**Modal Patterns**:
-- Backdrop: Semi-transparent overlay
-- Container: Centered, max-width constraints, rounded-xl
-- Header: Border-bottom separator, title + close button
-- Content: Scrollable if needed (max-h-[80vh])
-- Footer: Action buttons right-aligned
+- Chart.js for consistency across all charts
+- Visible gridlines (important for data reading)
+- Axis labels prominent and clear
+- Legends positioned above charts
+- Conservative color palette (grays with subtle accent differentiation)
 
 ### D. Animations
 
-**Purposeful Motion Only**:
-- Modal entrance: Fade + scale (duration-200)
-- Dropdown menus: Slide down (duration-150)
-- Hover states: Subtle elevation change (transition-all duration-150)
-- No page transitions, no scroll effects
-- Loading states: Subtle spinner or skeleton screens
+**Strictly Minimal**:
+- Modal fade-in (duration-150) only
+- No hover animations
+- No transitions between states
+- Loading: simple spinner or progress bar, no skeleton screens
 
 ## Images
 
-**No Hero Images**: This is an enterprise dashboard application - visual focus on data clarity, not imagery.
+**No Images**: This is a pure data application. No hero sections, no decorative imagery. Interface is 100% functional elements: tables, forms, charts, and text.
 
-**Icon Usage**: Heroicons (outline style) for navigation and actions, consistent 24px sizing throughout application.
+**Icons**: Heroicons (outline style), 20px standard size, used sparingly for navigation and critical actions only.
+
+## Layout Principles
+
+- Dense information packing: minimize vertical spacing
+- Clear borders define sections (border, border-2 throughout)
+- Grid-based alignment: everything on strict grid
+- Tables maximize viewport usage
+- Multi-column data displays where appropriate (2-4 columns)
+- Sticky headers and navigation for constant context
+- Horizontal scrolling acceptable for wide data tables
+- No floating elements: everything anchored and bordered
