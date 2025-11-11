@@ -386,7 +386,7 @@ export function RegisteredStoreDetailModal({
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <Checkbox
                     id="addToCalendar"
                     checked={addToGoogleCalendar}
@@ -394,13 +394,19 @@ export function RegisteredStoreDetailModal({
                       setAddToGoogleCalendar(checked as boolean)
                     }
                     data-testid="checkbox-calendar"
+                    className="mt-0.5"
                   />
-                  <Label
-                    htmlFor="addToCalendar"
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    Googleカレンダーに追加
-                  </Label>
+                  <div className="space-y-1 leading-none flex-1">
+                    <Label
+                      htmlFor="addToCalendar"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Googleカレンダーに追加
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      この催事をGoogleカレンダーに自動的に登録します
+                    </p>
+                  </div>
                 </div>
               </div>
 
