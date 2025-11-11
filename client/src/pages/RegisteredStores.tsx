@@ -16,9 +16,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
 import { EventReservationData } from "@/components/EventReservationModal";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+// 住所から都道府県を抽出する関数
+function extractPrefecture(address: string): string {
+  const prefectures = [
+    "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県",
+    "岐阜県", "静岡県", "愛知県", "三重県",
+    "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県",
+    "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+    "徳島県", "香川県", "愛媛県", "高知県",
+    "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
+  ];
+  
+  for (const pref of prefectures) {
+    if (address.includes(pref)) {
+      return pref;
+    }
+  }
+  return "その他";
+}
 
 export default function RegisteredStores() {
   const { toast } = useToast();
@@ -26,10 +54,31 @@ export default function RegisteredStores() {
   const [storeToDelete, setStoreToDelete] = useState<RegisteredStore | null>(null);
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
 
   const { data: stores = [], isLoading } = useQuery<RegisteredStore[]>({
     queryKey: ['/api/registered-stores'],
   });
+
+  // 都道府県リストを取得（ユニーク）
+  const prefectures = useMemo(() => {
+    const prefs = new Set<string>();
+    stores.forEach(store => {
+      const pref = extractPrefecture(store.address);
+      prefs.add(pref);
+    });
+    return Array.from(prefs).sort();
+  }, [stores]);
+
+  // フィルタリングされた店舗リスト
+  const filteredStores = useMemo(() => {
+    if (selectedPrefecture === "all") {
+      return stores;
+    }
+    return stores.filter(store => 
+      extractPrefecture(store.address) === selectedPrefecture
+    );
+  }, [stores, selectedPrefecture]);
 
   const deleteStoreMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -124,6 +173,38 @@ export default function RegisteredStores() {
         </p>
       </div>
 
+      {stores.length > 0 && (
+        <Card className="neomorph-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <label htmlFor="prefecture-filter" className="text-sm font-medium whitespace-nowrap">
+                都道府県で絞り込み
+              </label>
+              <Select value={selectedPrefecture} onValueChange={setSelectedPrefecture}>
+                <SelectTrigger 
+                  id="prefecture-filter"
+                  className="w-[200px]" 
+                  data-testid="select-prefecture-filter"
+                >
+                  <SelectValue placeholder="すべて" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべて</SelectItem>
+                  {prefectures.map(pref => (
+                    <SelectItem key={pref} value={pref}>
+                      {pref}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">
+                {filteredStores.length}件
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {stores.length === 0 ? (
         <Card className="neomorph-card">
           <CardContent className="p-12 text-center">
@@ -136,9 +217,21 @@ export default function RegisteredStores() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredStores.length === 0 ? (
+        <Card className="neomorph-card">
+          <CardContent className="p-12 text-center">
+            <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              該当する店舗がありません
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              別の都道府県を選択してください
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
-          {stores.map((store) => (
+          {filteredStores.map((store) => (
             <Card 
               key={store.id} 
               className="neomorph-card hover-elevate active-elevate-2 cursor-pointer"
