@@ -287,14 +287,6 @@ export function RegisteredStoreDetailModal({
                   </div>
                 </div>
               )}
-
-              <div className="pt-2">
-                <p className="text-sm text-muted-foreground mb-1">位置情報</p>
-                <p className="text-sm font-mono" data-testid="text-coordinates">
-                  緯度: {store.latitude.toFixed(6)}, 経度:{" "}
-                  {store.longitude.toFixed(6)}
-                </p>
-              </div>
             </div>
           </TabsContent>
 
