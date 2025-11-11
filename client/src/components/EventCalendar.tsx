@@ -42,7 +42,8 @@ export function EventCalendar({
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768 && view === "month") {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile && (view === "month" || view === "week")) {
         setView("agenda");
       }
     };
@@ -105,14 +106,30 @@ export function EventCalendar({
         .rbc-toolbar {
           padding: 12px 0;
           margin-bottom: 16px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .rbc-toolbar-label {
+          flex: 1 1 100%;
+          text-align: center;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+        @media (min-width: 768px) {
+          .rbc-toolbar-label {
+            flex: 1 1 auto;
+            margin-bottom: 0;
+          }
         }
         .rbc-toolbar button {
-          padding: 8px 12px;
+          padding: 6px 10px;
           border-radius: var(--radius);
           border: 1px solid hsl(var(--border));
           background: hsl(var(--background));
           color: hsl(var(--foreground));
-          font-size: 0.875rem;
+          font-size: 0.75rem;
+          white-space: nowrap;
         }
         @media (min-width: 768px) {
           .rbc-toolbar button {
@@ -143,8 +160,45 @@ export function EventCalendar({
         .rbc-month-row + .rbc-month-row {
           border-top: 1px solid hsl(var(--border));
         }
+        
+        /* Agenda view improvements */
+        .rbc-agenda-view {
+          font-size: 0.875rem;
+        }
+        .rbc-agenda-view table.rbc-agenda-table {
+          border-collapse: collapse;
+        }
+        .rbc-agenda-view .rbc-agenda-date-cell,
+        .rbc-agenda-view .rbc-agenda-time-cell {
+          padding: 8px 12px;
+          white-space: normal;
+        }
+        .rbc-agenda-view .rbc-agenda-event-cell {
+          padding: 8px 12px;
+        }
+        @media (max-width: 767px) {
+          .rbc-agenda-view .rbc-agenda-date-cell {
+            width: 25%;
+            font-size: 0.75rem;
+          }
+          .rbc-agenda-view .rbc-agenda-time-cell {
+            width: 25%;
+            font-size: 0.75rem;
+          }
+          .rbc-agenda-view .rbc-agenda-event-cell {
+            width: 50%;
+          }
+        }
+        
+        /* Hide week and day views on mobile */
+        @media (max-width: 767px) {
+          .rbc-toolbar button[title*="週"],
+          .rbc-toolbar button[title*="日"] {
+            display: none;
+          }
+        }
       `}</style>
-      <div className="h-[500px] md:h-[600px]">
+      <div className="h-[600px] md:h-[650px]">
         <Calendar
           localizer={localizer}
           events={events}
@@ -157,6 +211,7 @@ export function EventCalendar({
           onSelectSlot={onSelectSlot}
           selectable
           eventPropGetter={eventStyleGetter}
+          views={window.innerWidth < 768 ? ['month', 'agenda'] : ['month', 'week', 'day', 'agenda']}
           messages={{
             next: "次",
             previous: "前",
@@ -164,7 +219,11 @@ export function EventCalendar({
             month: "月",
             week: "週",
             day: "日",
-            agenda: "予定リスト",
+            agenda: "リスト",
+            date: "日付",
+            time: "時間",
+            event: "予定",
+            noEventsInRange: "この期間に予定はありません",
           }}
         />
       </div>
