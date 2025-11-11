@@ -148,11 +148,11 @@ export function EventDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-event-detail">
         <DialogHeader>
-          <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-2xl" data-testid="text-event-detail-title">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-8">
+            <DialogTitle className="text-xl sm:text-2xl" data-testid="text-event-detail-title">
               催事詳細
             </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Badge 
                 variant="outline" 
                 className={getStatusColor(event.status)}
