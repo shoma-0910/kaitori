@@ -2,15 +2,16 @@
 
 ## Design Approach
 
-**Selected System**: Enterprise Data Dashboard (Inspired by Bloomberg Terminal + SAP Fiori + Linear's refinement)
+**Selected System**: Enterprise Data Dashboard with Subtle Neumorphism (Inspired by Bloomberg Terminal + SAP Fiori + Linear's refinement)
 
-**Justification**: This mission-critical enterprise application demands maximum information density, unwavering clarity, and professional formality. Drawing from financial terminal design patterns (high data density, clear hierarchies) combined with modern enterprise design systems ensures trustworthiness for high-stakes retail decision-making.
+**Justification**: This mission-critical enterprise application demands maximum information density, unwavering clarity, and professional formality. Drawing from financial terminal design patterns (high data density, clear hierarchies) combined with modern enterprise design systems ensures trustworthiness for high-stakes retail decision-making. Subtle neumorphism elements (soft shadows and lighting) add a refined, modern touch while maintaining professional appearance and data readability.
 
 **Core Principles**: 
 - Formality over friendliness
 - Information density over whitespace
 - Structure over flexibility
 - Clarity over aesthetics
+- Subtle elevation for modern refinement
 
 ## Core Design Elements
 
@@ -105,7 +106,31 @@
 - Legends positioned above charts
 - Conservative color palette (grays with subtle accent differentiation)
 
-### D. Animations
+### D. Neumorphism Implementation
+
+**Controlled & Subtle Application**:
+- Apply `.neomorph-card` class to main content cards (dashboard KPIs, data sections)
+- Use `.neomorph-card-sm` for smaller cards and badges
+- Use `.neomorph-card-lg` for prominent feature areas
+- Neumorphism creates soft, dual-direction shadows (light from top-left, shadow to bottom-right)
+- Maintains data readability - shadows are subtle and don't interfere with text contrast
+- Works seamlessly in both light and dark modes
+
+**Where to Apply**:
+- Dashboard KPI cards
+- Data summary panels
+- Main content cards in all pages
+- Modal content areas
+- Section containers
+
+**Where NOT to Apply**:
+- Buttons (use existing button styles)
+- Tables and table rows
+- Small UI elements
+- Navigation elements
+- Dense data displays where borders are clearer
+
+### E. Animations
 
 **Strictly Minimal**:
 - Modal fade-in (duration-150) only

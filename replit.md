@@ -13,6 +13,7 @@ A comprehensive data-driven event management system for planning, executing, and
 - Editable event details (manager, dates, cost, notes) with instant UI updates
 - Repeated Google Calendar additions (no duplicate prevention)
 - Comprehensive store database with CRUD operations
+- Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
 
 ## User Preferences
 
@@ -35,6 +36,7 @@ Preferred communication style: Simple, everyday language.
 - Japanese typography: Noto Sans JP and JetBrains Mono for numerical data
 - Custom color system with light/dark mode support via CSS variables
 - Elevation-based interaction states (hover/active) for modern feel
+- Subtle neumorphism effects with dual-direction shadows for refined appearance
 - Responsive grid layouts optimized for data-heavy displays
 
 **State Management**:

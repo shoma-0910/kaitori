@@ -68,7 +68,7 @@ export function CostManagement({
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="neomorph-card">
         <CardHeader>
           <CardTitle>{eventName} - コスト内訳</CardTitle>
         </CardHeader>
@@ -158,7 +158,7 @@ export function CostManagement({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="neomorph-card">
         <CardContent className="p-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">

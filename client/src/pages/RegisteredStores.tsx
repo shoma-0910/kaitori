@@ -125,7 +125,7 @@ export default function RegisteredStores() {
       </div>
 
       {stores.length === 0 ? (
-        <Card>
+        <Card className="neomorph-card">
           <CardContent className="p-12 text-center">
             <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground" data-testid="text-no-stores">
@@ -141,7 +141,7 @@ export default function RegisteredStores() {
           {stores.map((store) => (
             <Card 
               key={store.id} 
-              className="hover-elevate active-elevate-2 cursor-pointer"
+              className="neomorph-card hover-elevate active-elevate-2 cursor-pointer"
               onClick={() => handleStoreClick(store)}
               data-testid={`card-registered-store-${store.id}`}
             >

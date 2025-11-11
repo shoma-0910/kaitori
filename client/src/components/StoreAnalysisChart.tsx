@@ -24,7 +24,7 @@ interface StoreAnalysisChartProps {
 
 export function StoreAnalysisChart({ data }: StoreAnalysisChartProps) {
   return (
-    <Card>
+    <Card className="neomorph-card">
       <CardHeader>
         <CardTitle className="text-2xl font-semibold">店舗別分析</CardTitle>
       </CardHeader>

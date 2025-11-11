@@ -470,7 +470,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="neomorph-card">
         <CardContent className="p-4">
           <div className="flex gap-2">
             <div className="flex-1">
@@ -516,7 +516,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
 
       {showMap && (
         <>
-          <Card>
+          <Card className="neomorph-card">
             <CardContent className="p-0 h-[400px] md:h-[600px]">
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
@@ -607,7 +607,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapV
           </Card>
 
           {nearbyPlaces.length > 0 && (
-            <Card>
+            <Card className="neomorph-card">
               <CardHeader>
                 <CardTitle className="text-lg">周辺スーパー一覧</CardTitle>
               </CardHeader>

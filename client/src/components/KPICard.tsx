@@ -13,7 +13,7 @@ interface KPICardProps {
 
 export function KPICard({ title, value, icon: Icon, trend }: KPICardProps) {
   return (
-    <Card data-testid={`card-kpi-${title}`}>
+    <Card data-testid={`card-kpi-${title}`} className="neomorph-card">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">

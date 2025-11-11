@@ -82,7 +82,7 @@ export function EventCalendar({
   };
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 neomorph-card">
       <style>{`
         .rbc-calendar {
           font-family: var(--font-sans);
