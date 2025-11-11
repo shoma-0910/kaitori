@@ -176,30 +176,32 @@ export default function RegisteredStores() {
       {stores.length > 0 && (
         <Card className="neomorph-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <label htmlFor="prefecture-filter" className="text-sm font-medium whitespace-nowrap">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <label htmlFor="prefecture-filter" className="text-sm font-medium">
                 都道府県で絞り込み
               </label>
-              <Select value={selectedPrefecture} onValueChange={setSelectedPrefecture}>
-                <SelectTrigger 
-                  id="prefecture-filter"
-                  className="w-[200px]" 
-                  data-testid="select-prefecture-filter"
-                >
-                  <SelectValue placeholder="すべて" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">すべて</SelectItem>
-                  {prefectures.map(pref => (
-                    <SelectItem key={pref} value={pref}>
-                      {pref}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">
-                {filteredStores.length}件
-              </span>
+              <div className="flex items-center gap-3 flex-1">
+                <Select value={selectedPrefecture} onValueChange={setSelectedPrefecture}>
+                  <SelectTrigger 
+                    id="prefecture-filter"
+                    className="w-full sm:w-[200px]" 
+                    data-testid="select-prefecture-filter"
+                  >
+                    <SelectValue placeholder="すべて" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    {prefectures.map(pref => (
+                      <SelectItem key={pref} value={pref}>
+                        {pref}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {filteredStores.length}件
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -239,10 +241,10 @@ export default function RegisteredStores() {
               data-testid={`card-registered-store-${store.id}`}
             >
               <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="text-lg font-semibold" data-testid={`text-store-name-${store.id}`}>
+                      <h3 className="text-base sm:text-lg font-semibold break-words" data-testid={`text-store-name-${store.id}`}>
                         {store.name}
                       </h3>
                       <Badge 
@@ -253,10 +255,10 @@ export default function RegisteredStores() {
                       </Badge>
                     </div>
                     
-                    <div className="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span data-testid={`text-store-address-${store.id}`}>{store.address}</span>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span className="break-words" data-testid={`text-store-address-${store.id}`}>{store.address}</span>
                       </div>
                       
                       {store.phoneNumber && (
@@ -264,7 +266,7 @@ export default function RegisteredStores() {
                           <Phone className="w-4 h-4 flex-shrink-0" />
                           <a 
                             href={`tel:${store.phoneNumber}`}
-                            className="text-primary hover:underline"
+                            className="text-primary hover:underline break-all"
                             onClick={(e) => e.stopPropagation()}
                             data-testid={`link-store-phone-${store.id}`}
                           >
@@ -277,9 +279,12 @@ export default function RegisteredStores() {
                         <div className="flex items-start gap-2">
                           <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <div className="space-y-0.5" data-testid={`text-store-hours-${store.id}`}>
-                            {store.openingHours.map((hours, index) => (
-                              <div key={index} className="text-sm">{hours}</div>
+                            {store.openingHours.slice(0, 2).map((hours, index) => (
+                              <div key={index} className="text-sm break-words">{hours}</div>
                             ))}
+                            {store.openingHours.length > 2 && (
+                              <div className="text-xs text-muted-foreground">他{store.openingHours.length - 2}件</div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -300,11 +305,11 @@ export default function RegisteredStores() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="flex-shrink-0 self-start sm:self-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteClick(store);
                     }}
-                    className="flex-shrink-0"
                     data-testid={`button-delete-${store.id}`}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
