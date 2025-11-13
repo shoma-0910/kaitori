@@ -1,8 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock, Calendar } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore } from "@shared/schema";
@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
 import { EventReservationData } from "@/components/EventReservationModal";
 import { useState, useMemo } from "react";
@@ -232,93 +240,116 @@ export default function RegisteredStores() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filteredStores.map((store) => (
-            <Card 
-              key={store.id} 
-              className="neomorph-card hover-elevate active-elevate-2 cursor-pointer"
-              onClick={() => handleStoreClick(store)}
-              data-testid={`card-registered-store-${store.id}`}
-            >
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="text-base sm:text-lg font-semibold break-words" data-testid={`text-store-name-${store.id}`}>
-                        {store.name}
-                      </h3>
-                      <Badge 
-                        variant="outline" 
-                        className="bg-orange-500/10 border-orange-500 text-xs"
-                      >
-                        スーパー
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        <span className="break-words" data-testid={`text-store-address-${store.id}`}>{store.address}</span>
-                      </div>
-                      
-                      {store.phoneNumber && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 flex-shrink-0" />
+        <Card className="neomorph-card">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[30%] min-w-[200px]">店舗名</TableHead>
+                    <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">住所</TableHead>
+                    <TableHead className="w-[15%] min-w-[120px] hidden lg:table-cell">電話番号</TableHead>
+                    <TableHead className="w-[12%] min-w-[100px] hidden xl:table-cell">登録日</TableHead>
+                    <TableHead className="w-[8%] text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStores.map((store) => (
+                    <TableRow 
+                      key={store.id}
+                      className="hover-elevate cursor-pointer"
+                      onClick={() => handleStoreClick(store)}
+                      data-testid={`row-store-${store.id}`}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="break-words" data-testid={`text-store-name-${store.id}`}>
+                              {store.name}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className="bg-orange-500/10 border-orange-500 text-xs"
+                            >
+                              スーパー
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground md:hidden">
+                            <div className="flex items-start gap-1">
+                              <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                              <span className="break-words text-xs">{store.address}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground" />
+                          <span className="text-sm break-words" data-testid={`text-store-address-${store.id}`}>
+                            {store.address}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {store.phoneNumber ? (
                           <a 
                             href={`tel:${store.phoneNumber}`}
-                            className="text-primary hover:underline break-all"
+                            className="flex items-center gap-2 text-sm text-primary hover:underline"
                             onClick={(e) => e.stopPropagation()}
                             data-testid={`link-store-phone-${store.id}`}
                           >
+                            <Phone className="w-4 h-4 flex-shrink-0" />
                             {store.phoneNumber}
                           </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                          <span className="text-sm">
+                            {new Date(store.registeredAt).toLocaleDateString('ja-JP', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                            })}
+                          </span>
                         </div>
-                      )}
-                      
-                      {store.openingHours && store.openingHours.length > 0 && (
-                        <div className="flex items-start gap-2">
-                          <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                          <div className="space-y-0.5" data-testid={`text-store-hours-${store.id}`}>
-                            {store.openingHours.slice(0, 2).map((hours, index) => (
-                              <div key={index} className="text-sm break-words">{hours}</div>
-                            ))}
-                            {store.openingHours.length > 2 && (
-                              <div className="text-xs text-muted-foreground">他{store.openingHours.length - 2}件</div>
-                            )}
-                          </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStoreClick(store);
+                            }}
+                            data-testid={`button-view-${store.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(store);
+                            }}
+                            data-testid={`button-delete-${store.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 flex-shrink-0" />
-                        <span className="text-xs">
-                          登録: {new Date(store.registeredAt).toLocaleDateString('ja-JP', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 self-start sm:self-center"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteClick(store);
-                    }}
-                    data-testid={`button-delete-${store.id}`}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
