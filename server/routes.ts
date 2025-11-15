@@ -372,6 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 2. 年齢分布（0-17歳、18-34歳、35-49歳、50-64歳、65歳以上の割合）
 3. 男女比（男性と女性の割合）
 4. 平均年収（万円単位、数値のみ）
+5. 外国人比率（総人口に対する外国人の割合、パーセンテージ）
 
 以下のJSON形式で厳密に回答してください:
 {
@@ -388,7 +389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "male": 数値,
     "female": 数値
   },
-  "averageIncome": 数値
+  "averageIncome": 数値,
+  "foreignerRatio": 数値
 }
 
 注意: JSON以外のテキストは一切含めず、JSONのみを返してください。`;

@@ -33,6 +33,7 @@ interface RegionInfo {
     female: number;
   };
   averageIncome: number;
+  foreignerRatio: number;
 }
 
 export default function StoreSelection() {
@@ -194,7 +195,7 @@ export default function StoreSelection() {
           </div>
 
           {regionInfo && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 rounded-md bg-muted/50" data-testid="region-info-results">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 p-4 rounded-md bg-muted/50" data-testid="region-info-results">
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-2">平均年齢</h3>
                 <p className="text-2xl font-bold" data-testid="text-average-age">{regionInfo.averageAge}歳</p>
@@ -206,19 +207,26 @@ export default function StoreSelection() {
                 </p>
               </div>
               <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-2">外国人比率</h3>
+                <p className="text-2xl font-bold" data-testid="text-foreigner-ratio">
+                  {regionInfo.foreignerRatio.toFixed(1)}%
+                </p>
+              </div>
+              <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-2">男女比</h3>
                 <div className="space-y-1" data-testid="text-gender-ratio">
                   <p className="text-sm">男性: {regionInfo.genderRatio.male}%</p>
                   <p className="text-sm">女性: {regionInfo.genderRatio.female}%</p>
                 </div>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <h3 className="font-semibold text-sm text-muted-foreground mb-2">年齢分布</h3>
-                <div className="space-y-1" data-testid="text-age-distribution">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" data-testid="text-age-distribution">
                   {regionInfo.ageDistribution.map((dist, index) => (
-                    <p key={index} className="text-sm">
-                      {dist.range}: {dist.percentage}%
-                    </p>
+                    <div key={index} className="text-sm">
+                      <p className="font-medium">{dist.range}</p>
+                      <p className="text-muted-foreground">{dist.percentage}%</p>
+                    </div>
                   ))}
                 </div>
               </div>
