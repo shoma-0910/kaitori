@@ -5,21 +5,22 @@ import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegistere
 import { createCalendarEvent } from "./google-calendar";
 import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
+import { requireAuth, type AuthRequest } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
-  app.get("/api/stores", async (req, res) => {
+  app.get("/api/stores", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const stores = await storage.getAllStores();
+      const stores = await storage.getAllStores(req.organizationId!);
       res.json(stores);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/stores/:id", async (req, res) => {
+  app.get("/api/stores/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const store = await storage.getStore(req.params.id);
+      const store = await storage.getStore(req.params.id, req.organizationId!);
       if (!store) {
         return res.status(404).json({ error: "Store not found" });
       }
@@ -29,9 +30,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/stores", async (req, res) => {
+  app.post("/api/stores", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const data = insertStoreSchema.parse(req.body);
+      const data = insertStoreSchema.parse({
+        ...req.body,
+        organizationId: req.organizationId,
+      });
       const store = await storage.createStore(data);
       res.status(201).json(store);
     } catch (error: any) {
@@ -39,9 +43,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/stores/:id", async (req, res) => {
+  app.patch("/api/stores/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const store = await storage.updateStore(req.params.id, req.body);
+      const store = await storage.updateStore(req.params.id, req.organizationId!, req.body);
       if (!store) {
         return res.status(404).json({ error: "Store not found" });
       }
@@ -51,9 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/stores/:id", async (req, res) => {
+  app.delete("/api/stores/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const success = await storage.deleteStore(req.params.id);
+      const success = await storage.deleteStore(req.params.id, req.organizationId!);
       if (!success) {
         return res.status(404).json({ error: "Store not found" });
       }
@@ -64,18 +68,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Events
-  app.get("/api/events", async (req, res) => {
+  app.get("/api/events", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const events = await storage.getAllEvents();
+      const events = await storage.getAllEvents(req.organizationId!);
       res.json(events);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/events/:id", async (req, res) => {
+  app.get("/api/events/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const event = await storage.getEvent(req.params.id);
+      const event = await storage.getEvent(req.params.id, req.organizationId!);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
@@ -85,12 +89,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events", async (req, res) => {
+  app.post("/api/events", requireAuth, async (req: AuthRequest, res) => {
     try {
       const { addToGoogleCalendar, ...eventData } = req.body;
       
       const dataToValidate = {
         ...eventData,
+        organizationId: req.organizationId,
         startDate: new Date(eventData.startDate),
         endDate: new Date(eventData.endDate),
       };
@@ -104,12 +109,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let storeName = "店舗";
           let location = undefined;
           
-          const regularStore = await storage.getStore(data.storeId);
+          const regularStore = await storage.getStore(data.storeId, req.organizationId!);
           if (regularStore) {
             storeName = regularStore.name;
             location = regularStore.address;
           } else {
-            const registeredStore = await storage.getRegisteredStore(data.storeId);
+            const registeredStore = await storage.getRegisteredStore(data.storeId, req.organizationId!);
             if (registeredStore) {
               storeName = registeredStore.name;
               location = registeredStore.address;
@@ -142,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/events/:id", async (req, res) => {
+  app.patch("/api/events/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
       const updateData = { ...req.body };
       
@@ -154,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.endDate = new Date(updateData.endDate);
       }
       
-      const event = await storage.updateEvent(req.params.id, updateData);
+      const event = await storage.updateEvent(req.params.id, req.organizationId!, updateData);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
@@ -164,9 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events/:id/add-to-calendar", async (req, res) => {
+  app.post("/api/events/:id/add-to-calendar", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const event = await storage.getEvent(req.params.id);
+      const event = await storage.getEvent(req.params.id, req.organizationId!);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
@@ -174,12 +179,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let storeName = "店舗";
       let location = undefined;
       
-      const regularStore = await storage.getStore(event.storeId);
+      const regularStore = await storage.getStore(event.storeId, req.organizationId!);
       if (regularStore) {
         storeName = regularStore.name;
         location = regularStore.address;
       } else {
-        const registeredStore = await storage.getRegisteredStore(event.storeId);
+        const registeredStore = await storage.getRegisteredStore(event.storeId, req.organizationId!);
         if (registeredStore) {
           storeName = registeredStore.name;
           location = registeredStore.address;
@@ -207,9 +212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/events/:id", async (req, res) => {
+  app.delete("/api/events/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const success = await storage.deleteEvent(req.params.id);
+      const success = await storage.deleteEvent(req.params.id, req.organizationId!);
       if (!success) {
         return res.status(404).json({ error: "Event not found" });
       }
@@ -220,18 +225,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Costs
-  app.get("/api/events/:eventId/costs", async (req, res) => {
+  app.get("/api/events/:eventId/costs", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const costs = await storage.getCostsByEvent(req.params.eventId);
+      const costs = await storage.getCostsByEvent(req.params.eventId, req.organizationId!);
       res.json(costs);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.post("/api/costs", async (req, res) => {
+  app.post("/api/costs", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const data = insertCostSchema.parse(req.body);
+      const data = insertCostSchema.parse({
+        ...req.body,
+        organizationId: req.organizationId,
+      });
       const cost = await storage.createCost(data);
       res.status(201).json(cost);
     } catch (error: any) {
@@ -239,9 +247,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/costs/:id", async (req, res) => {
+  app.delete("/api/costs/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const success = await storage.deleteCost(req.params.id);
+      const success = await storage.deleteCost(req.params.id, req.organizationId!);
       if (!success) {
         return res.status(404).json({ error: "Cost not found" });
       }
@@ -252,18 +260,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Registered Stores
-  app.get("/api/registered-stores", async (req, res) => {
+  app.get("/api/registered-stores", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const stores = await storage.getAllRegisteredStores();
+      const stores = await storage.getAllRegisteredStores(req.organizationId!);
       res.json(stores);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/registered-stores/place/:placeId", async (req, res) => {
+  app.get("/api/registered-stores/place/:placeId", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const store = await storage.getRegisteredStoreByPlaceId(req.params.placeId);
+      const store = await storage.getRegisteredStoreByPlaceId(req.params.placeId, req.organizationId!);
       if (!store) {
         return res.status(404).json({ error: "Registered store not found" });
       }
@@ -273,12 +281,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/registered-stores", async (req, res) => {
+  app.post("/api/registered-stores", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const data = insertRegisteredStoreSchema.parse(req.body);
+      const data = insertRegisteredStoreSchema.parse({
+        ...req.body,
+        organizationId: req.organizationId,
+      });
       
       // Check if store already registered
-      const existing = await storage.getRegisteredStoreByPlaceId(data.placeId);
+      const existing = await storage.getRegisteredStoreByPlaceId(data.placeId, req.organizationId!);
       if (existing) {
         return res.status(409).json({ error: "Store already registered" });
       }
@@ -290,9 +301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/registered-stores/:id", async (req, res) => {
+  app.delete("/api/registered-stores/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const success = await storage.deleteRegisteredStore(req.params.id);
+      const success = await storage.deleteRegisteredStore(req.params.id, req.organizationId!);
       if (!success) {
         return res.status(404).json({ error: "Registered store not found" });
       }

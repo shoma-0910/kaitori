@@ -13,45 +13,48 @@ import {
   registeredStores,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // Stores
-  getAllStores(): Promise<Store[]>;
-  getStore(id: string): Promise<Store | undefined>;
+  getAllStores(organizationId: string): Promise<Store[]>;
+  getStore(id: string, organizationId: string): Promise<Store | undefined>;
   createStore(store: InsertStore): Promise<Store>;
-  updateStore(id: string, store: Partial<InsertStore>): Promise<Store | undefined>;
-  deleteStore(id: string): Promise<boolean>;
+  updateStore(id: string, organizationId: string, store: Partial<InsertStore>): Promise<Store | undefined>;
+  deleteStore(id: string, organizationId: string): Promise<boolean>;
 
   // Events
-  getAllEvents(): Promise<Event[]>;
-  getEvent(id: string): Promise<Event | undefined>;
-  getEventsByStore(storeId: string): Promise<Event[]>;
+  getAllEvents(organizationId: string): Promise<Event[]>;
+  getEvent(id: string, organizationId: string): Promise<Event | undefined>;
+  getEventsByStore(storeId: string, organizationId: string): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
-  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
-  deleteEvent(id: string): Promise<boolean>;
+  updateEvent(id: string, organizationId: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: string, organizationId: string): Promise<boolean>;
 
   // Costs
-  getCostsByEvent(eventId: string): Promise<Cost[]>;
+  getCostsByEvent(eventId: string, organizationId: string): Promise<Cost[]>;
   createCost(cost: InsertCost): Promise<Cost>;
-  deleteCost(id: string): Promise<boolean>;
+  deleteCost(id: string, organizationId: string): Promise<boolean>;
 
   // Registered Stores
-  getAllRegisteredStores(): Promise<RegisteredStore[]>;
-  getRegisteredStore(id: string): Promise<RegisteredStore | undefined>;
-  getRegisteredStoreByPlaceId(placeId: string): Promise<RegisteredStore | undefined>;
+  getAllRegisteredStores(organizationId: string): Promise<RegisteredStore[]>;
+  getRegisteredStore(id: string, organizationId: string): Promise<RegisteredStore | undefined>;
+  getRegisteredStoreByPlaceId(placeId: string, organizationId: string): Promise<RegisteredStore | undefined>;
   createRegisteredStore(store: InsertRegisteredStore): Promise<RegisteredStore>;
-  deleteRegisteredStore(id: string): Promise<boolean>;
+  deleteRegisteredStore(id: string, organizationId: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
   // Stores
-  async getAllStores(): Promise<Store[]> {
-    return await db.select().from(stores).orderBy(desc(stores.potentialScore));
+  async getAllStores(organizationId: string): Promise<Store[]> {
+    return await db.select().from(stores)
+      .where(eq(stores.organizationId, organizationId))
+      .orderBy(desc(stores.potentialScore));
   }
 
-  async getStore(id: string): Promise<Store | undefined> {
-    const result = await db.select().from(stores).where(eq(stores.id, id));
+  async getStore(id: string, organizationId: string): Promise<Store | undefined> {
+    const result = await db.select().from(stores)
+      .where(and(eq(stores.id, id), eq(stores.organizationId, organizationId)));
     return result[0];
   }
 
@@ -60,28 +63,35 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateStore(id: string, store: Partial<InsertStore>): Promise<Store | undefined> {
-    const result = await db.update(stores).set(store).where(eq(stores.id, id)).returning();
+  async updateStore(id: string, organizationId: string, store: Partial<InsertStore>): Promise<Store | undefined> {
+    const result = await db.update(stores).set(store)
+      .where(and(eq(stores.id, id), eq(stores.organizationId, organizationId)))
+      .returning();
     return result[0];
   }
 
-  async deleteStore(id: string): Promise<boolean> {
-    const result = await db.delete(stores).where(eq(stores.id, id));
+  async deleteStore(id: string, organizationId: string): Promise<boolean> {
+    const result = await db.delete(stores)
+      .where(and(eq(stores.id, id), eq(stores.organizationId, organizationId)));
     return result.rowCount! > 0;
   }
 
   // Events
-  async getAllEvents(): Promise<Event[]> {
-    return await db.select().from(events).orderBy(desc(events.startDate));
+  async getAllEvents(organizationId: string): Promise<Event[]> {
+    return await db.select().from(events)
+      .where(eq(events.organizationId, organizationId))
+      .orderBy(desc(events.startDate));
   }
 
-  async getEvent(id: string): Promise<Event | undefined> {
-    const result = await db.select().from(events).where(eq(events.id, id));
+  async getEvent(id: string, organizationId: string): Promise<Event | undefined> {
+    const result = await db.select().from(events)
+      .where(and(eq(events.id, id), eq(events.organizationId, organizationId)));
     return result[0];
   }
 
-  async getEventsByStore(storeId: string): Promise<Event[]> {
-    return await db.select().from(events).where(eq(events.storeId, storeId));
+  async getEventsByStore(storeId: string, organizationId: string): Promise<Event[]> {
+    return await db.select().from(events)
+      .where(and(eq(events.storeId, storeId), eq(events.organizationId, organizationId)));
   }
 
   async createEvent(event: InsertEvent): Promise<Event> {
@@ -89,19 +99,23 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined> {
-    const result = await db.update(events).set(event).where(eq(events.id, id)).returning();
+  async updateEvent(id: string, organizationId: string, event: Partial<InsertEvent>): Promise<Event | undefined> {
+    const result = await db.update(events).set(event)
+      .where(and(eq(events.id, id), eq(events.organizationId, organizationId)))
+      .returning();
     return result[0];
   }
 
-  async deleteEvent(id: string): Promise<boolean> {
-    const result = await db.delete(events).where(eq(events.id, id));
+  async deleteEvent(id: string, organizationId: string): Promise<boolean> {
+    const result = await db.delete(events)
+      .where(and(eq(events.id, id), eq(events.organizationId, organizationId)));
     return result.rowCount! > 0;
   }
 
   // Costs
-  async getCostsByEvent(eventId: string): Promise<Cost[]> {
-    return await db.select().from(costs).where(eq(costs.eventId, eventId));
+  async getCostsByEvent(eventId: string, organizationId: string): Promise<Cost[]> {
+    return await db.select().from(costs)
+      .where(and(eq(costs.eventId, eventId), eq(costs.organizationId, organizationId)));
   }
 
   async createCost(cost: InsertCost): Promise<Cost> {
@@ -109,23 +123,28 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async deleteCost(id: string): Promise<boolean> {
-    const result = await db.delete(costs).where(eq(costs.id, id));
+  async deleteCost(id: string, organizationId: string): Promise<boolean> {
+    const result = await db.delete(costs)
+      .where(and(eq(costs.id, id), eq(costs.organizationId, organizationId)));
     return result.rowCount! > 0;
   }
 
   // Registered Stores
-  async getAllRegisteredStores(): Promise<RegisteredStore[]> {
-    return await db.select().from(registeredStores).orderBy(desc(registeredStores.registeredAt));
+  async getAllRegisteredStores(organizationId: string): Promise<RegisteredStore[]> {
+    return await db.select().from(registeredStores)
+      .where(eq(registeredStores.organizationId, organizationId))
+      .orderBy(desc(registeredStores.registeredAt));
   }
 
-  async getRegisteredStore(id: string): Promise<RegisteredStore | undefined> {
-    const result = await db.select().from(registeredStores).where(eq(registeredStores.id, id));
+  async getRegisteredStore(id: string, organizationId: string): Promise<RegisteredStore | undefined> {
+    const result = await db.select().from(registeredStores)
+      .where(and(eq(registeredStores.id, id), eq(registeredStores.organizationId, organizationId)));
     return result[0];
   }
 
-  async getRegisteredStoreByPlaceId(placeId: string): Promise<RegisteredStore | undefined> {
-    const result = await db.select().from(registeredStores).where(eq(registeredStores.placeId, placeId));
+  async getRegisteredStoreByPlaceId(placeId: string, organizationId: string): Promise<RegisteredStore | undefined> {
+    const result = await db.select().from(registeredStores)
+      .where(and(eq(registeredStores.placeId, placeId), eq(registeredStores.organizationId, organizationId)));
     return result[0];
   }
 
@@ -134,8 +153,9 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async deleteRegisteredStore(id: string): Promise<boolean> {
-    const result = await db.delete(registeredStores).where(eq(registeredStores.id, id));
+  async deleteRegisteredStore(id: string, organizationId: string): Promise<boolean> {
+    const result = await db.delete(registeredStores)
+      .where(and(eq(registeredStores.id, id), eq(registeredStores.organizationId, organizationId)));
     return result.rowCount! > 0;
   }
 }
