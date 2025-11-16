@@ -55,41 +55,38 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: signupEmail,
+          password: signupPassword,
+          organizationName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Signup failed");
+      }
+
+      toast({
+        title: "アカウント作成成功",
+        description: "ログインしてください",
+      });
+
+      // Auto-login after successful signup
+      const { error: loginError } = await supabase.auth.signInWithPassword({
         email: signupEmail,
         password: signupPassword,
       });
 
-      if (error) throw error;
+      if (loginError) throw loginError;
 
-      if (data.user) {
-        const { data: orgData, error: orgError } = await supabase
-          .from("organizations")
-          .insert({ name: organizationName })
-          .select()
-          .single();
-
-        if (orgError) throw orgError;
-
-        if (orgData) {
-          const { error: userOrgError } = await supabase
-            .from("user_organizations")
-            .insert({
-              user_id: data.user.id,
-              organization_id: orgData.id,
-              role: "admin",
-            });
-
-          if (userOrgError) throw userOrgError;
-        }
-
-        toast({
-          title: "アカウント作成成功",
-          description: "ログインしてご利用ください",
-        });
-        
-        setLocation("/");
-      }
+      setLocation("/");
     } catch (error: any) {
       toast({
         title: "アカウント作成エラー",

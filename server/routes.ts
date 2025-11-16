@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
+import { supabaseAdmin } from "../lib/supabase";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -413,6 +415,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Region info error:", error);
       res.status(500).json({ error: error.message || "Failed to fetch region information" });
+    }
+  });
+
+  // Auth signup endpoint using service role to bypass RLS
+  const signupSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    organizationName: z.string().min(1),
+  });
+
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { email, password, organizationName } = signupSchema.parse(req.body);
+
+      // Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm email for development
+      });
+
+      if (authError || !authData.user) {
+        return res.status(400).json({ error: authError?.message || "Failed to create user" });
+      }
+
+      // Create organization using service role (bypasses RLS)
+      const { data: org, error: orgError } = await supabaseAdmin
+        .from("organizations")
+        .insert({ name: organizationName })
+        .select()
+        .single();
+
+      if (orgError || !org) {
+        // Cleanup: delete the created user if org creation fails
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return res.status(500).json({ error: orgError?.message || "Failed to create organization" });
+      }
+
+      // Link user to organization with admin role
+      const { error: memberError } = await supabaseAdmin
+        .from("user_organizations")
+        .insert({
+          userId: authData.user.id,
+          organizationId: org.id,
+          role: "admin",
+        });
+
+      if (memberError) {
+        // Cleanup: delete org and user if membership creation fails
+        await supabaseAdmin.from("organizations").delete().eq("id", org.id);
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return res.status(500).json({ error: memberError.message });
+      }
+
+      res.status(201).json({
+        user: authData.user,
+        organization: org,
+      });
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      res.status(400).json({ error: error.message || "Signup failed" });
     }
   });
 

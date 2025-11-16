@@ -54,14 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("user_organizations")
-        .select("organization_id, role")
-        .eq("user_id", userId)
+        .select("organizationId, role")
+        .eq("userId", userId)
         .single();
 
       if (error) {
         console.error("Error fetching user organization:", error);
       } else if (data) {
-        setOrganizationId(data.organization_id);
+        setOrganizationId(data.organizationId);
         setUserRole(data.role);
       }
     } catch (error) {
