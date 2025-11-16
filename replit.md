@@ -7,6 +7,8 @@ A comprehensive data-driven event management system for planning, executing, and
 **Core Purpose**: Centralize the entire lifecycle of buyback events - from AI-powered store candidate discovery to post-event profit analysis - enabling data-driven decision making for maximizing event ROI.
 
 **Key Features**:
+- **Multi-tenant architecture** with organization-based data isolation using Supabase
+- **User authentication** with email/password login and role-based access control (admin/member)
 - Dashboard with KPI tracking and store performance analytics
 - Store selection with potential scoring and Google Maps integration
 - Calendar-based event scheduling with Google Calendar sync and in-place event editing
@@ -80,15 +82,34 @@ Preferred communication style: Simple, everyday language.
 
 **ORM**: Drizzle ORM - lightweight TypeScript ORM with type-safe queries
 
-**Database Provider**: Neon Serverless PostgreSQL
-- WebSocket-based connection pooling
-- Configured via `DATABASE_URL` environment variable
+**Database Provider**: Supabase PostgreSQL
+- Managed PostgreSQL with built-in authentication
+- Row Level Security (RLS) for multi-tenant data isolation
+- Configured via `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables
+
+**Multi-Tenant Architecture**:
+- All tables include `organizationId` for data isolation
+- Row Level Security policies ensure users only access their organization's data
+- Helper functions in database to get user's organization from JWT tokens
 
 **Schema Design** (`shared/schema.ts`):
 
 ```
+organizations
+- id (UUID, primary key)
+- name (text)
+- createdAt (timestamp)
+
+user_organizations
+- id (UUID, primary key)
+- userId (UUID, foreign key to auth.users)
+- organizationId (UUID, foreign key to organizations)
+- role (text) - 'admin' or 'member'
+- createdAt (timestamp)
+
 stores
 - id (UUID, primary key)
+- organizationId (UUID, foreign key to organizations)
 - name, address (text)
 - population, averageAge (integer)
 - averageIncome, averageRent (real)
@@ -96,6 +117,7 @@ stores
 
 events
 - id (UUID, primary key)
+- organizationId (UUID, foreign key to organizations)
 - storeId (foreign key to stores)
 - manager, status (text)
 - startDate, endDate (timestamp)
@@ -104,9 +126,19 @@ events
 
 costs
 - id (UUID, primary key)
+- organizationId (UUID, foreign key to organizations)
 - eventId (foreign key to events)
 - category, item (text) - e.g., "固定費", "会場費"
 - amount (integer)
+
+registered_stores
+- id (UUID, primary key)
+- organizationId (UUID, foreign key to organizations)
+- placeId, name, address (text)
+- latitude, longitude (real)
+- phoneNumber, website (text, optional)
+- openingHours (text array)
+- registeredAt (timestamp)
 ```
 
 **Schema Validation**: Zod schemas auto-generated from Drizzle tables using `drizzle-zod`
