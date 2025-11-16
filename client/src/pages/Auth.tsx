@@ -32,8 +32,10 @@ export default function Auth() {
 
       if (error) throw error;
 
+      // Immediate redirect to prevent layout shift
       if (data.user) {
-        window.location.href = "/";
+        location.replace("/");
+        return;
       }
     } catch (error: any) {
       toast({
@@ -76,7 +78,9 @@ export default function Auth() {
 
       if (loginError) throw loginError;
 
-      window.location.href = "/";
+      // Immediate redirect to prevent layout shift
+      location.replace("/");
+      return;
     } catch (error: any) {
       toast({
         title: "アカウント作成エラー",
