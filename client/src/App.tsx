@@ -82,12 +82,13 @@ function Router() {
 }
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const style = {
     "--sidebar-width": "20rem",
     "--sidebar-width-icon": "4rem",
   };
 
+  // Show router immediately for unauthenticated users (prevents layout shift on /auth)
   if (!user) {
     return <Router />;
   }
