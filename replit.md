@@ -17,6 +17,21 @@ A comprehensive data-driven event management system for planning, executing, and
 - Comprehensive store database with CRUD operations
 - Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
 
+## Recent Changes (November 16, 2025)
+
+**Authentication Flow Fixes**:
+- Configured Supabase client with session persistence (`persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true`)
+- Implemented React Router (wouter) based navigation for login redirect instead of window.location
+- Added useEffect in Auth.tsx to watch AuthContext user state and redirect when authenticated
+- Fixed loading state management to prevent UI blocking during authentication
+- Verified full auth flow: signup → dashboard → logout → login → dashboard
+
+**Architecture Clarification**:
+- Supabase Auth serves as identity provider (users in auth.users table)
+- Local PostgreSQL (via Drizzle ORM) stores domain data (organizations, stores, events)
+- user_organizations table links Supabase user_id to local organization data
+- Backend middleware validates Supabase JWT tokens via supabaseAdmin.auth.getUser()
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

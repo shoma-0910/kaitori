@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -20,33 +22,36 @@ export default function Auth() {
   const [signupPassword, setSignupPassword] = useState("");
   const [organizationName, setOrganizationName] = useState("");
 
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      setLoading(true);
+      
+      const { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
 
       if (error) throw error;
 
-      // Redirect immediately - don't reset loading state
-      if (data.user) {
-        // Use setTimeout to ensure session is saved before redirect
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 100);
-        return;
-      }
+      // Clear loading state and redirect
+      setLoading(false);
+      setLocation("/");
     } catch (error: any) {
+      setLoading(false);
       toast({
         title: "ログインエラー",
         description: error.message,
         variant: "destructive",
       });
-      setLoading(false);
     }
   };
 
@@ -81,11 +86,9 @@ export default function Auth() {
 
       if (loginError) throw loginError;
 
-      // Redirect after ensuring session is saved
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
-      return;
+      // Clear loading state and redirect
+      setLoading(false);
+      setLocation("/");
     } catch (error: any) {
       toast({
         title: "アカウント作成エラー",
