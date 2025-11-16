@@ -32,9 +32,12 @@ export default function Auth() {
 
       if (error) throw error;
 
-      // Immediate redirect to prevent layout shift
+      // Redirect immediately - don't reset loading state
       if (data.user) {
-        location.replace("/");
+        // Use setTimeout to ensure session is saved before redirect
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 100);
         return;
       }
     } catch (error: any) {
@@ -78,8 +81,10 @@ export default function Auth() {
 
       if (loginError) throw loginError;
 
-      // Immediate redirect to prevent layout shift
-      location.replace("/");
+      // Redirect after ensuring session is saved
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
       return;
     } catch (error: any) {
       toast({
