@@ -457,8 +457,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { error: memberError } = await supabaseAdmin
         .from("user_organizations")
         .insert({
-          userId: authData.user.id,
-          organizationId: org.id,
+          user_id: authData.user.id,
+          organization_id: org.id,
           role: "admin",
         });
 
