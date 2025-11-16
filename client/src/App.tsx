@@ -58,21 +58,11 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 function Router() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">読み込み中...</p>
-      </div>
-    );
-  }
-
   return (
     <Switch>
       <Route path="/auth" component={Auth} />
       <Route path="/">
-        {user ? <Dashboard /> : <Redirect to="/auth" />}
+        <ProtectedRoute component={Dashboard} />
       </Route>
       <Route path="/stores">
         <ProtectedRoute component={StoreSelection} />
