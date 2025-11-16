@@ -522,7 +522,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Organization not found" });
       }
 
-      res.json(orgResult[0]);
+      res.json({
+        ...orgResult[0],
+        currentUserRole: req.userRole,
+      });
     } catch (error: any) {
       console.error("Get organization error:", error);
       res.status(500).json({ error: error.message });
