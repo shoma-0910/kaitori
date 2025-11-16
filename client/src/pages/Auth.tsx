@@ -33,11 +33,7 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.user) {
-        toast({
-          title: "ログイン成功",
-          description: "ダッシュボードにリダイレクトします",
-        });
-        setLocation("/");
+        window.location.href = "/";
       }
     } catch (error: any) {
       toast({
@@ -45,7 +41,6 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -73,11 +68,6 @@ export default function Auth() {
         throw new Error(result.error || "Signup failed");
       }
 
-      toast({
-        title: "アカウント作成成功",
-        description: "ログインしてください",
-      });
-
       // Auto-login after successful signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: signupEmail,
@@ -86,7 +76,7 @@ export default function Auth() {
 
       if (loginError) throw loginError;
 
-      setLocation("/");
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "アカウント作成エラー",
