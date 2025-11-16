@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../../lib/supabase";
+import { db } from "../db";
+import { userOrganizations } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -15,6 +18,7 @@ export async function requireAuth(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("[Auth] No authorization header");
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -23,21 +27,31 @@ export async function requireAuth(
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !user) {
+      console.log("[Auth] Invalid token:", error?.message);
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    const { data: userOrg, error: orgError } = await supabaseAdmin
-      .from("user_organizations")
-      .select("organization_id, role")
-      .eq("user_id", user.id)
-      .single();
+    console.log("[Auth] User authenticated:", user.email, "User ID:", user.id);
 
-    if (orgError || !userOrg) {
+    const userOrgResult = await db.select({
+      organizationId: userOrganizations.organizationId,
+      role: userOrganizations.role,
+    })
+      .from(userOrganizations)
+      .where(eq(userOrganizations.userId, user.id))
+      .limit(1);
+
+    if (!userOrgResult || userOrgResult.length === 0) {
+      console.log("[Auth] No organization found for user:", user.email);
       return res.status(403).json({ error: "No organization found" });
     }
 
+    const userOrg = userOrgResult[0];
+    
+    console.log("[Auth] Organization found:", userOrg.organizationId, "Role:", userOrg.role);
+
     req.userId = user.id;
-    req.organizationId = userOrg.organization_id;
+    req.organizationId = userOrg.organizationId;
     req.userRole = userOrg.role;
 
     next();

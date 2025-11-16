@@ -37,7 +37,13 @@ export const stores = pgTable("stores", {
   potentialScore: integer("potential_score").notNull(),
 });
 
-export const insertStoreSchema = createInsertSchema(stores).omit({ id: true });
+export const insertStoreSchema = createInsertSchema(stores).omit({ id: true }).extend({
+  population: z.coerce.number(),
+  averageAge: z.coerce.number(),
+  averageIncome: z.coerce.number(),
+  averageRent: z.coerce.number(),
+  potentialScore: z.coerce.number(),
+});
 export type InsertStore = z.infer<typeof insertStoreSchema>;
 export type Store = typeof stores.$inferSelect;
 
@@ -55,7 +61,10 @@ export const events = pgTable("events", {
   notes: text("notes"),
 });
 
-export const insertEventSchema = createInsertSchema(events).omit({ id: true });
+export const insertEventSchema = createInsertSchema(events).omit({ id: true }).extend({
+  estimatedCost: z.coerce.number(),
+  actualProfit: z.coerce.number().optional().nullable(),
+});
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 
@@ -68,7 +77,9 @@ export const costs = pgTable("costs", {
   amount: integer("amount").notNull(),
 });
 
-export const insertCostSchema = createInsertSchema(costs).omit({ id: true });
+export const insertCostSchema = createInsertSchema(costs).omit({ id: true }).extend({
+  amount: z.coerce.number(),
+});
 export type InsertCost = z.infer<typeof insertCostSchema>;
 export type Cost = typeof costs.$inferSelect;
 
@@ -89,6 +100,9 @@ export const registeredStores = pgTable("registered_stores", {
 export const insertRegisteredStoreSchema = createInsertSchema(registeredStores).omit({ 
   id: true, 
   registeredAt: true 
+}).extend({
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
 });
 export type InsertRegisteredStore = z.infer<typeof insertRegisteredStoreSchema>;
 export type RegisteredStore = typeof registeredStores.$inferSelect;

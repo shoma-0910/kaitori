@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema } from "@shared/schema";
+import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, organizations, userOrganizations } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
 import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -32,13 +34,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/stores", requireAuth, async (req: AuthRequest, res) => {
     try {
+      console.log("[POST /api/stores] Request body:", JSON.stringify(req.body));
+      console.log("[POST /api/stores] organizationId from auth:", req.organizationId);
+      
       const data = insertStoreSchema.parse({
         ...req.body,
         organizationId: req.organizationId,
       });
+      
+      console.log("[POST /api/stores] Parsed data:", JSON.stringify(data));
+      
       const store = await storage.createStore(data);
       res.status(201).json(store);
     } catch (error: any) {
+      console.error("[POST /api/stores] Error:", error.message, error.stack);
       res.status(400).json({ error: error.message });
     }
   });
@@ -451,33 +460,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: authError?.message || "Failed to create user" });
       }
 
-      // Create organization using service role (bypasses RLS)
-      const { data: org, error: orgError } = await supabaseAdmin
-        .from("organizations")
-        .insert({ name: organizationName })
-        .select()
-        .single();
-
-      if (orgError || !org) {
+      // Create organization in local database using Drizzle
+      const orgResult = await db.insert(organizations).values({ name: organizationName }).returning();
+      
+      if (!orgResult || orgResult.length === 0) {
         // Cleanup: delete the created user if org creation fails
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        return res.status(500).json({ error: orgError?.message || "Failed to create organization" });
+        return res.status(500).json({ error: "Failed to create organization" });
       }
+      
+      const org = orgResult[0];
 
       // Link user to organization with admin role
-      const { error: memberError } = await supabaseAdmin
-        .from("user_organizations")
-        .insert({
-          user_id: authData.user.id,
-          organization_id: org.id,
+      try {
+        await db.insert(userOrganizations).values({
+          userId: authData.user.id,
+          organizationId: org.id,
           role: "admin",
         });
-
-      if (memberError) {
+      } catch (memberError: any) {
         // Cleanup: delete org and user if membership creation fails
-        await supabaseAdmin.from("organizations").delete().eq("id", org.id);
+        await db.delete(organizations).where(eq(organizations.id, org.id));
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         return res.status(500).json({ error: memberError.message });
+      }
+
+      // Set organizationId in user's app_metadata
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        authData.user.id,
+        {
+          app_metadata: {
+            organizationId: org.id,
+          },
+        }
+      );
+
+      if (updateError) {
+        console.error("Failed to update user metadata:", updateError);
+        // Don't fail the signup, but log the error
       }
 
       res.status(201).json({
