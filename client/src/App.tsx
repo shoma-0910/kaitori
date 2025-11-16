@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/Dashboard";
@@ -108,7 +109,10 @@ function AppContent() {
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b">
             <HamburgerButton />
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <UserMenu />
+            </div>
           </header>
           <main className="flex-1 overflow-auto p-8 md:p-8 p-4">
             <Router />

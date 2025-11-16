@@ -63,7 +63,7 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.user) {
-        const { error: orgError } = await supabase
+        const { data: orgData, error: orgError } = await supabase
           .from("organizations")
           .insert({ name: organizationName })
           .select()
@@ -71,10 +71,24 @@ export default function Auth() {
 
         if (orgError) throw orgError;
 
+        if (orgData) {
+          const { error: userOrgError } = await supabase
+            .from("user_organizations")
+            .insert({
+              user_id: data.user.id,
+              organization_id: orgData.id,
+              role: "admin",
+            });
+
+          if (userOrgError) throw userOrgError;
+        }
+
         toast({
           title: "アカウント作成成功",
-          description: "確認メールをご確認ください",
+          description: "ログインしてご利用ください",
         });
+        
+        setLocation("/");
       }
     } catch (error: any) {
       toast({
