@@ -510,33 +510,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Organization management endpoints
-  app.get("/api/organization", requireAuth, async (req: AuthRequest, res) => {
+  // Get current user info
+  app.get("/api/user/me", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const orgResult = await db.select()
-        .from(organizations)
-        .where(eq(organizations.id, req.organizationId!))
-        .limit(1);
-
-      if (!orgResult || orgResult.length === 0) {
-        return res.status(404).json({ error: "Organization not found" });
-      }
-
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(req.userId!);
+      
       res.json({
-        ...orgResult[0],
-        currentUserRole: req.userRole,
+        userId: req.userId,
+        email: userData?.user?.email || null,
+        organizationId: req.organizationId,
+        role: req.userRole,
+        isSuperAdmin: req.isSuperAdmin,
       });
     } catch (error: any) {
-      console.error("Get organization error:", error);
+      console.error("Get user info error:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  app.patch("/api/organization", requireAuth, async (req: AuthRequest, res) => {
+  // Super Admin Only: Organization Management
+  app.get("/api/admin/organizations", requireAuth, async (req: AuthRequest, res) => {
     try {
-      // Only admins can update organization
-      if (req.userRole !== "admin") {
-        return res.status(403).json({ error: "Only admins can update organization" });
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const allOrgs = await db.select().from(organizations);
+      
+      // Get user count for each organization
+      const orgsWithUserCount = await Promise.all(
+        allOrgs.map(async (org) => {
+          const users = await db.select()
+            .from(userOrganizations)
+            .where(eq(userOrganizations.organizationId, org.id));
+          
+          // Get user email from first user
+          let userEmail = null;
+          if (users.length > 0) {
+            const { data: userData } = await supabaseAdmin.auth.admin.getUserById(users[0].userId);
+            userEmail = userData?.user?.email || null;
+          }
+          
+          return {
+            ...org,
+            userEmail,
+            userId: users.length > 0 ? users[0].userId : null,
+          };
+        })
+      );
+
+      res.json(orgsWithUserCount);
+    } catch (error: any) {
+      console.error("Get all organizations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/organizations", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const createOrgSchema = z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(6),
+      });
+
+      const { name, email, password } = createOrgSchema.parse(req.body);
+
+      // Create user with Supabase Auth
+      console.log(`[Create Org] Creating user with email: ${email}, password length: ${password.length}`);
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          created_by_admin: true,
+        },
+      });
+
+      if (authError || !authData.user) {
+        console.error(`[Create Org] Failed to create user:`, authError);
+        return res.status(400).json({ error: authError?.message || "Failed to create user" });
+      }
+
+      console.log(`[Create Org] User created successfully: ${authData.user.id}, email confirmed: ${authData.user.email_confirmed_at ? 'yes' : 'no'}`);
+
+      // Create organization
+      const orgResult = await db.insert(organizations).values({ name }).returning();
+      const org = orgResult[0];
+
+      // Link user to organization as admin
+      try {
+        await db.insert(userOrganizations).values({
+          userId: authData.user.id,
+          organizationId: org.id,
+          role: "admin",
+          isSuperAdmin: "false",
+        });
+
+        res.status(201).json({
+          ...org,
+          userEmail: email,
+          userId: authData.user.id,
+        });
+      } catch (memberError: any) {
+        // Cleanup: delete organization and user if linking fails
+        await db.delete(organizations).where(eq(organizations.id, org.id));
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return res.status(500).json({ error: memberError.message });
+      }
+    } catch (error: any) {
+      console.error("Create organization error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/organizations/:id", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
       }
 
       const updateSchema = z.object({
@@ -547,7 +642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const orgResult = await db.update(organizations)
         .set({ name })
-        .where(eq(organizations.id, req.organizationId!))
+        .where(eq(organizations.id, req.params.id))
         .returning();
 
       if (!orgResult || orgResult.length === 0) {
@@ -561,167 +656,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/organization/members", requireAuth, async (req: AuthRequest, res) => {
+  app.delete("/api/admin/organizations/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
-      // Only admins can view members
-      if (req.userRole !== "admin") {
-        return res.status(403).json({ error: "Only admins can view members" });
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
       }
 
-      const members = await db.select()
+      // Prevent deleting super admin's own organization
+      if (req.organizationId === req.params.id) {
+        return res.status(400).json({ error: "Cannot delete your own organization" });
+      }
+
+      // Get all users in this organization
+      const users = await db.select()
         .from(userOrganizations)
-        .where(eq(userOrganizations.organizationId, req.organizationId!));
+        .where(eq(userOrganizations.organizationId, req.params.id));
 
-      // Fetch user details from Supabase Auth
-      const membersWithDetails = await Promise.all(
-        members.map(async (member) => {
-          const { data: userData } = await supabaseAdmin.auth.admin.getUserById(member.userId);
-          return {
-            id: member.id,
-            userId: member.userId,
-            email: userData?.user?.email || "Unknown",
-            role: member.role,
-            createdAt: member.createdAt,
-          };
-        })
-      );
-
-      res.json(membersWithDetails);
-    } catch (error: any) {
-      console.error("Get members error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/organization/members", requireAuth, async (req: AuthRequest, res) => {
-    try {
-      // Only admins can add members
-      if (req.userRole !== "admin") {
-        return res.status(403).json({ error: "Only admins can add members" });
+      // Delete all users from Supabase Auth
+      for (const user of users) {
+        await supabaseAdmin.auth.admin.deleteUser(user.userId);
       }
 
-      const addMemberSchema = z.object({
-        email: z.string().email(),
-        password: z.string().min(6),
-        role: z.enum(["admin", "member"]),
-      });
-
-      const { email, password, role } = addMemberSchema.parse(req.body);
-
-      // Create user with Supabase Auth
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-
-      if (authError || !authData.user) {
-        return res.status(400).json({ error: authError?.message || "Failed to create user" });
-      }
-
-      // Link user to organization
-      try {
-        const memberResult = await db.insert(userOrganizations).values({
-          userId: authData.user.id,
-          organizationId: req.organizationId!,
-          role,
-        }).returning();
-
-        res.status(201).json({
-          id: memberResult[0].id,
-          userId: authData.user.id,
-          email: authData.user.email,
-          role: memberResult[0].role,
-          createdAt: memberResult[0].createdAt,
-        });
-      } catch (memberError: any) {
-        // Cleanup: delete the created user if membership creation fails
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        return res.status(500).json({ error: memberError.message });
-      }
-    } catch (error: any) {
-      console.error("Add member error:", error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.patch("/api/organization/members/:id", requireAuth, async (req: AuthRequest, res) => {
-    try {
-      // Only admins can update member roles
-      if (req.userRole !== "admin") {
-        return res.status(403).json({ error: "Only admins can update member roles" });
-      }
-
-      const updateMemberSchema = z.object({
-        role: z.enum(["admin", "member"]),
-      });
-
-      const { role } = updateMemberSchema.parse(req.body);
-
-      const memberResult = await db.update(userOrganizations)
-        .set({ role })
-        .where(eq(userOrganizations.id, req.params.id))
-        .returning();
-
-      if (!memberResult || memberResult.length === 0) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-
-      // Fetch user details
-      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(memberResult[0].userId);
-
-      res.json({
-        id: memberResult[0].id,
-        userId: memberResult[0].userId,
-        email: userData?.user?.email || "Unknown",
-        role: memberResult[0].role,
-        createdAt: memberResult[0].createdAt,
-      });
-    } catch (error: any) {
-      console.error("Update member error:", error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.delete("/api/organization/members/:id", requireAuth, async (req: AuthRequest, res) => {
-    try {
-      // Only admins can delete members
-      if (req.userRole !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete members" });
-      }
-
-      // Get member info before deleting
-      const memberResult = await db.select()
-        .from(userOrganizations)
-        .where(eq(userOrganizations.id, req.params.id))
-        .limit(1);
-
-      if (!memberResult || memberResult.length === 0) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-
-      const member = memberResult[0];
-
-      // Don't allow deleting the last admin
-      const adminCount = await db.select()
-        .from(userOrganizations)
-        .where(eq(userOrganizations.organizationId, req.organizationId!));
-      
-      const admins = adminCount.filter(m => m.role === "admin");
-      if (admins.length === 1 && member.role === "admin") {
-        return res.status(400).json({ error: "Cannot delete the last admin" });
-      }
-
-      // Delete from user_organizations
-      await db.delete(userOrganizations)
-        .where(eq(userOrganizations.id, req.params.id));
-
-      // Delete user from Supabase Auth
-      await supabaseAdmin.auth.admin.deleteUser(member.userId);
+      // Delete organization (cascade will delete user_organizations and all related data)
+      await db.delete(organizations).where(eq(organizations.id, req.params.id));
 
       res.status(204).send();
     } catch (error: any) {
-      console.error("Delete member error:", error);
+      console.error("Delete organization error:", error);
       res.status(500).json({ error: error.message });
     }
   });

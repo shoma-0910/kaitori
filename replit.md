@@ -17,7 +17,36 @@ A comprehensive data-driven event management system for planning, executing, and
 - Comprehensive store database with CRUD operations
 - Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
 
-## Recent Changes (November 16, 2025)
+## Recent Changes (November 17, 2025)
+
+**Super Admin Organization Management**:
+- Removed public signup functionality (login-only authentication)
+- Implemented super admin role system with `is_super_admin` flag in user_organizations
+- Created super admin-only organization management (/settings page)
+- Super admins can create, edit, and delete all organizations
+- Each organization = 1 user (1:1 relationship)
+- Admin creates organization accounts and distributes credentials
+- Regular users cannot access organization management
+
+**Schema Changes**:
+- Added `is_super_admin` text column to user_organizations ('true'/'false')
+- admin@example.com set as the first super admin
+
+**API Changes**:
+- GET /api/user/me - Returns user info including isSuperAdmin flag
+- GET /api/admin/organizations - List all organizations (super admin only)
+- POST /api/admin/organizations - Create organization with user account (super admin only)
+- PATCH /api/admin/organizations/:id - Update organization name (super admin only)
+- DELETE /api/admin/organizations/:id - Delete organization and user (super admin only)
+- Removed member management APIs (organizations are now 1:1 with users)
+
+**Frontend Changes**:
+- AuthContext now includes userInfo with isSuperAdmin flag
+- Sidebar shows "会社管理" only for super admins
+- Organization Settings page redesigned for full organization CRUD
+- Removed signup tab from authentication page
+
+**Previous Changes (November 16, 2025)**:
 
 **Authentication Flow Fixes**:
 - Configured Supabase client with session persistence (`persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true`)

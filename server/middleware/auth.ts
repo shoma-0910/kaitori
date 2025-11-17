@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
   userId?: string;
   organizationId?: string;
   userRole?: string;
+  isSuperAdmin?: boolean;
 }
 
 export async function requireAuth(
@@ -36,6 +37,7 @@ export async function requireAuth(
     const userOrgResult = await db.select({
       organizationId: userOrganizations.organizationId,
       role: userOrganizations.role,
+      isSuperAdmin: userOrganizations.isSuperAdmin,
     })
       .from(userOrganizations)
       .where(eq(userOrganizations.userId, user.id))
@@ -48,11 +50,12 @@ export async function requireAuth(
 
     const userOrg = userOrgResult[0];
     
-    console.log("[Auth] Organization found:", userOrg.organizationId, "Role:", userOrg.role);
+    console.log("[Auth] Organization found:", userOrg.organizationId, "Role:", userOrg.role, "SuperAdmin:", userOrg.isSuperAdmin);
 
     req.userId = user.id;
     req.organizationId = userOrg.organizationId;
     req.userRole = userOrg.role;
+    req.isSuperAdmin = userOrg.isSuperAdmin === "true";
 
     next();
   } catch (error: any) {

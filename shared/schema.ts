@@ -18,6 +18,7 @@ export const userOrganizations = pgTable("user_organizations", {
   userId: uuid("user_id").notNull(),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("member"),
+  isSuperAdmin: text("is_super_admin").notNull().default("false"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
