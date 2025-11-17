@@ -46,6 +46,12 @@ A comprehensive data-driven event management system for planning, executing, and
 - Organization Settings page redesigned for full organization CRUD
 - Removed signup tab from authentication page
 
+**Database Migration Planning** (Postponed):
+- Investigated Supabase PostgreSQL migration
+- Created data backup in migration-data.sql
+- Currently using Replit local Neon PostgreSQL database
+- Supabase migration can be performed later when needed
+
 **Previous Changes (November 16, 2025)**:
 
 **Authentication Flow Fixes**:
