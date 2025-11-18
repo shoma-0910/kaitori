@@ -97,9 +97,18 @@ class EStatClient {
     try {
       // 2020年国勢調査データ - 人口・年齢構成
       // Dataset ID: 0003410379 (2020年国勢調査 人口等基本集計)
+      // Note: e-Stat API parameters may vary by dataset
       const populationData = await this.fetchStatsData("0003410379", {
         cdArea: municipalityInfo.code,
+      }).catch(err => {
+        console.warn(`Failed to fetch e-Stat data for ${region}: ${err.message}`);
+        return null;
       });
+
+      if (!populationData) {
+        console.log(`No e-Stat data available for ${region}, will use Gemini instead`);
+        throw new Error(`No e-Stat data available for ${region}`);
+      }
 
       const dataValues = populationData.GET_STATS_DATA?.STATISTICAL_DATA?.DATA_INF?.VALUE || [];
       

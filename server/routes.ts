@@ -393,7 +393,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { getEStatClient } = await import("./services/eStatClient");
           const eStatClient = getEStatClient();
           demographicsData = await eStatClient.getRegionDemographics(region);
-          console.log(`✓ e-Stat data retrieved for ${region}`);
+          
+          // Check if we actually got meaningful data (more than just the region name)
+          const hasData = Object.keys(demographicsData).length > 1;
+          if (hasData) {
+            console.log(`✓ e-Stat data retrieved for ${region}`);
+          } else {
+            console.log(`e-Stat returned no data for ${region}, using Gemini fallback`);
+            useGeminiFallback = true;
+          }
         } catch (eStatError: any) {
           console.warn(`e-Stat data fetch failed for ${region}:`, eStatError.message);
           useGeminiFallback = true;
