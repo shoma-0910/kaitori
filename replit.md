@@ -17,7 +17,36 @@ A comprehensive data-driven event management system for planning, executing, and
 - Comprehensive store database with CRUD operations
 - Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
 
-## Recent Changes (November 17, 2025)
+## Recent Changes (November 18, 2025)
+
+**Regional Demographics Data Enhancement**:
+- Implemented hybrid data approach: e-Stat official data + Gemini AI enrichment
+- Added comprehensive data citation system with source attribution
+- Implemented graceful degradation: Falls back to Gemini-only when e-Stat unavailable
+- Each data metric now includes source information (name, URL, retrieval date, type)
+- UI distinguishes between official data (公式データ) and AI estimates (AI推定値)
+- Municipality code mapping for major cities/wards (Tokyo 23 wards, major cities)
+- e-Stat API integration requires ESTAT_API_KEY (optional, free registration)
+- System works fully with Gemini-only fallback when e-Stat not configured
+
+**Schema Changes**:
+- Added `RegionDemographics` type with comprehensive metrics structure
+- Added `RegionMetricSource` type for data attribution (name, url, retrievedAt, type)
+- Each demographic metric includes both value and source information
+
+**Backend Services**:
+- `server/services/municipalityCodes.ts` - JIS code mapping for regions
+- `server/services/eStatClient.ts` - Official data retrieval from e-Stat API
+- `server/services/geminiEnrichment.ts` - AI-based data enrichment and fallback
+- POST /api/region-info - Enhanced endpoint with hybrid data pipeline
+
+**Frontend Changes**:
+- Store Selection page displays data source badges
+- Citation URLs shown when available
+- Retrieval timestamp displayed for all metrics
+- Visual distinction between official and AI-estimated data
+
+**Previous Changes (November 17, 2025)**:
 
 **Super Admin Organization Management**:
 - Removed public signup functionality (login-only authentication)
@@ -200,9 +229,17 @@ registered_stores
 ### External Dependencies
 
 **AI Service**: Google Gemini API (`@google/genai`)
-- Used in AI Crawling feature for analyzing regional demographics
-- Suggests store candidates based on location queries
-- Requires `GOOGLE_AI_API_KEY` environment variable (currently mocked in UI)
+- Used for regional demographic analysis and data enrichment
+- Provides fallback when e-Stat official data unavailable
+- Enriches official data with AI-estimated metrics (income, foreigner ratio)
+- Requires `GEMINI_API_KEY` environment variable
+
+**Official Statistics**: e-Stat API (Statistics Bureau of Japan)
+- Primary source for official demographic data
+- Provides population, age distribution, gender ratio
+- Requires `ESTAT_API_KEY` environment variable (optional)
+- Free registration at https://www.e-stat.go.jp/
+- System gracefully degrades to Gemini-only if not configured
 
 **Maps Integration**: Google Maps API (`@react-google-maps/api`)
 - Geocoding for address lookups
