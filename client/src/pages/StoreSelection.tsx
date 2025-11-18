@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { StoreDetailModal, ReservationData } from "@/components/StoreDetailModal";
 import { StoreMapView } from "@/components/StoreMapView";
 import { useToast } from "@/hooks/use-toast";
@@ -25,11 +26,16 @@ interface Store {
 
 
 export default function StoreSelection() {
+  const [location, setLocation] = useLocation();
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [regionQuery, setRegionQuery] = useState("");
   const [regionInfo, setRegionInfo] = useState<RegionDemographics | null>(null);
   const { toast } = useToast();
+
+  // URLパラメータから地域検索クエリを取得
+  const searchParams = useMemo(() => new URLSearchParams(location.split('?')[1] || ''), [location]);
+  const regionFromUrl = searchParams.get('region') || '';
 
   const { data: stores = [], isLoading } = useQuery<Store[]>({
     queryKey: ["/api/stores"],
@@ -90,8 +96,14 @@ export default function StoreSelection() {
       const res = await apiRequest("POST", "/api/region-info", { region });
       return await res.json();
     },
-    onSuccess: (data: RegionDemographics) => {
+    onSuccess: (data: RegionDemographics, region: string) => {
       setRegionInfo(data);
+      
+      // URLパラメータを更新
+      const newSearchParams = new URLSearchParams();
+      newSearchParams.set('region', region);
+      setLocation(`/stores?${newSearchParams.toString()}`, { replace: true });
+      
       toast({
         title: "地域情報を取得しました",
         description: `${data.region}の人口統計情報を表示しています`,
@@ -117,6 +129,15 @@ export default function StoreSelection() {
     }
     regionSearchMutation.mutate(regionQuery);
   };
+
+  // 初回レンダリング時、またはURLパラメータが変更された時に検索を実行
+  useEffect(() => {
+    if (regionFromUrl && regionFromUrl !== regionQuery) {
+      setRegionQuery(regionFromUrl);
+      // URLから復元されたクエリで検索を実行
+      regionSearchMutation.mutate(regionFromUrl);
+    }
+  }, [regionFromUrl]);
 
   const storesWithPositions = useMemo(() => {
     return stores.map((store) => ({
