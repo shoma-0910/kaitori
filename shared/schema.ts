@@ -107,3 +107,49 @@ export const insertRegisteredStoreSchema = createInsertSchema(registeredStores).
 });
 export type InsertRegisteredStore = z.infer<typeof insertRegisteredStoreSchema>;
 export type RegisteredStore = typeof registeredStores.$inferSelect;
+
+// Region Demographics with citation sources
+export const regionMetricSourceSchema = z.object({
+  name: z.string(),
+  url: z.string().optional(),
+  retrievedAt: z.string(),
+  type: z.enum(["official", "ai_estimated"]),
+});
+
+export type RegionMetricSource = z.infer<typeof regionMetricSourceSchema>;
+
+export const regionDemographicsSchema = z.object({
+  region: z.string(),
+  averageAge: z.object({
+    value: z.number(),
+    source: regionMetricSourceSchema,
+  }).optional(),
+  ageDistribution: z.object({
+    value: z.array(z.object({
+      range: z.string(),
+      percentage: z.number(),
+    })),
+    source: regionMetricSourceSchema,
+  }).optional(),
+  genderRatio: z.object({
+    value: z.object({
+      male: z.number(),
+      female: z.number(),
+    }),
+    source: regionMetricSourceSchema,
+  }).optional(),
+  averageIncome: z.object({
+    value: z.number(),
+    source: regionMetricSourceSchema,
+  }).optional(),
+  foreignerRatio: z.object({
+    value: z.number(),
+    source: regionMetricSourceSchema,
+  }).optional(),
+  population: z.object({
+    value: z.number(),
+    source: regionMetricSourceSchema,
+  }).optional(),
+});
+
+export type RegionDemographics = z.infer<typeof regionDemographicsSchema>;

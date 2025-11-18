@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Region Info
+  // Region Info - Hybrid approach using e-Stat official data + Gemini enrichment
   app.post("/api/region-info", async (req, res) => {
     try {
       const { region } = req.body;
@@ -384,10 +384,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Region name is required" });
       }
 
-      const { GoogleGenAI } = await import("@google/genai");
-      const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+      let demographicsData: Partial<import("../../shared/schema").RegionDemographics> = {};
 
-      const prompt = `日本の${region}について、以下の統計情報をJSON形式で提供してください。最新の公開データに基づいて回答してください。
+      // Try to get official data from e-Stat first
+      try {
+        const { getEStatClient } = await import("./services/eStatClient");
+        const eStatClient = getEStatClient();
+        demographicsData = await eStatClient.getRegionDemographics(region);
+      } catch (eStatError: any) {
+        console.warn("e-Stat data fetch failed, will use Gemini fallback:", eStatError.message);
+        
+        // If e-Stat fails completely, fall back to Gemini for all data
+        const { GoogleGenAI } = await import("@google/genai");
+        const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+        const prompt = `日本の${region}について、以下の統計情報をJSON形式で提供してください。最新の公開データに基づいて回答し、必ずデータの出典も含めてください。
 
 必要な情報:
 1. 平均年齢（数値のみ）
@@ -412,26 +423,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "female": 数値
   },
   "averageIncome": 数値,
-  "foreignerRatio": 数値
+  "foreignerRatio": 数値,
+  "citations": ["出典URL1", "出典URL2"]
 }
 
 注意: JSON以外のテキストは一切含めず、JSONのみを返してください。`;
 
-      const result = await client.models.generateContent({
-        model: "gemini-2.0-flash-001",
-        contents: prompt,
-      });
-      const text = result.text || "";
+        const result = await client.models.generateContent({
+          model: "gemini-2.0-flash-001",
+          contents: prompt,
+        });
+        const text = result.text || "";
+        let jsonText = text.trim();
+        jsonText = jsonText.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+        jsonText = jsonText.trim();
+        
+        const geminiData = JSON.parse(jsonText);
+        
+        const createAISource = (citations?: string[]): import("../../shared/schema").RegionMetricSource => ({
+          name: "AI推定値（Gemini）",
+          url: citations && citations.length > 0 ? citations[0] : undefined,
+          retrievedAt: new Date().toISOString(),
+          type: "ai_estimated",
+        });
+
+        demographicsData = {
+          region: geminiData.region || region,
+          averageAge: geminiData.averageAge ? {
+            value: geminiData.averageAge,
+            source: createAISource(geminiData.citations),
+          } : undefined,
+          ageDistribution: geminiData.ageDistribution ? {
+            value: geminiData.ageDistribution,
+            source: createAISource(geminiData.citations),
+          } : undefined,
+          genderRatio: geminiData.genderRatio ? {
+            value: geminiData.genderRatio,
+            source: createAISource(geminiData.citations),
+          } : undefined,
+          averageIncome: geminiData.averageIncome ? {
+            value: geminiData.averageIncome,
+            source: createAISource(geminiData.citations),
+          } : undefined,
+          foreignerRatio: geminiData.foreignerRatio !== undefined ? {
+            value: geminiData.foreignerRatio,
+            source: createAISource(geminiData.citations),
+          } : undefined,
+        };
+      }
+
+      // Enrich with Gemini for missing fields (e.g., average income, foreigner ratio)
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const { enrichWithGemini } = await import("./services/geminiEnrichment");
+          demographicsData = await enrichWithGemini(region, demographicsData);
+        } catch (enrichError) {
+          console.warn("Gemini enrichment failed:", enrichError);
+        }
+      }
       
-      // Extract JSON from response
-      let jsonText = text.trim();
-      // Remove markdown code blocks if present
-      jsonText = jsonText.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-      jsonText = jsonText.trim();
-      
-      const data = JSON.parse(jsonText);
-      
-      res.json(data);
+      res.json(demographicsData);
     } catch (error: any) {
       console.error("Region info error:", error);
       res.status(500).json({ error: error.message || "Failed to fetch region information" });
