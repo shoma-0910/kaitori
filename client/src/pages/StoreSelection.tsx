@@ -150,7 +150,7 @@ export default function StoreSelection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
             <div className="flex-1">
               <Label htmlFor="region-search">地域名</Label>
               <Input
@@ -165,7 +165,7 @@ export default function StoreSelection() {
             <Button
               onClick={handleRegionSearch}
               disabled={regionSearchMutation.isPending}
-              className="mt-6"
+              className="sm:mt-6 w-full sm:w-auto"
               data-testid="button-search-region"
             >
               {regionSearchMutation.isPending ? (
@@ -183,8 +183,8 @@ export default function StoreSelection() {
           </div>
 
           {regionInfo && (
-            <div className="space-y-6 mt-4" data-testid="region-info-results">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-md bg-muted/50">
+            <div className="space-y-4 sm:space-y-6 mt-4" data-testid="region-info-results">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 rounded-md bg-muted/50">
                 {regionInfo.population && (
                   <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -268,7 +268,7 @@ export default function StoreSelection() {
                 )}
                 {regionInfo.ageDistribution && (
                   <div className="md:col-span-2 lg:col-span-3">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <h3 className="font-semibold text-sm text-muted-foreground">年齢分布</h3>
                       {regionInfo.ageDistribution.source.type === "ai_estimated" && (
                         <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
@@ -277,7 +277,7 @@ export default function StoreSelection() {
                         </Badge>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" data-testid="text-age-distribution">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3" data-testid="text-age-distribution">
                       {regionInfo.ageDistribution.value.map((dist, index) => (
                         <div key={index} className="text-sm">
                           <p className="font-medium">{dist.range}</p>
@@ -290,12 +290,12 @@ export default function StoreSelection() {
               </div>
 
               {/* Data Sources Section */}
-              <div className="p-4 rounded-md bg-card border">
+              <div className="p-3 sm:p-4 rounded-md bg-card border">
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                   <ExternalLink className="w-4 h-4" />
                   データ出典
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {[
                     regionInfo.population?.source,
                     regionInfo.averageAge?.source,
@@ -308,27 +308,27 @@ export default function StoreSelection() {
                       source && self.findIndex(s => s?.name === source.name) === index
                     )
                     .map((source, index) => (
-                      <div key={index} className="flex items-start gap-2 text-sm">
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
                         <Badge 
                           variant={source!.type === "official" ? "default" : "secondary"}
-                          className="mt-0.5"
+                          className="w-fit"
                         >
                           {source!.type === "official" ? "公式" : "AI推定"}
                         </Badge>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium">{source!.name}</p>
                           {source!.url && (
                             <a
                               href={source!.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1"
+                              className="text-primary hover:underline inline-flex items-center gap-1 break-all"
                             >
-                              {source!.url}
-                              <ExternalLink className="w-3 h-3" />
+                              <span className="break-all">{source!.url}</span>
+                              <ExternalLink className="w-3 h-3 flex-shrink-0" />
                             </a>
                           )}
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground mt-1">
                             取得日時: {new Date(source!.retrievedAt).toLocaleString('ja-JP')}
                           </p>
                         </div>
