@@ -384,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Region name is required" });
       }
 
-      let demographicsData: Partial<import("../../shared/schema").RegionDemographics> = {};
+      let demographicsData: Partial<import("../shared/schema").RegionDemographics> = {};
 
       // Try to get official data from e-Stat first
       try {
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const geminiData = JSON.parse(jsonText);
         
-        const createAISource = (citations?: string[]): import("../../shared/schema").RegionMetricSource => ({
+        const createAISource = (citations?: string[]): import("../shared/schema").RegionMetricSource => ({
           name: "AI推定値（Gemini）",
           url: citations && citations.length > 0 ? citations[0] : undefined,
           retrievedAt: new Date().toISOString(),

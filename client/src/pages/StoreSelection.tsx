@@ -4,11 +4,13 @@ import { StoreDetailModal, ReservationData } from "@/components/StoreDetailModal
 import { StoreMapView } from "@/components/StoreMapView";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, ExternalLink, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import type { RegionDemographics } from "@shared/schema";
 
 interface Store {
   id: string;
@@ -21,26 +23,12 @@ interface Store {
   averageRent: number;
 }
 
-interface RegionInfo {
-  region: string;
-  averageAge: number;
-  ageDistribution: {
-    range: string;
-    percentage: number;
-  }[];
-  genderRatio: {
-    male: number;
-    female: number;
-  };
-  averageIncome: number;
-  foreignerRatio: number;
-}
 
 export default function StoreSelection() {
   const [selectedStore, setSelectedStore] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [regionQuery, setRegionQuery] = useState("");
-  const [regionInfo, setRegionInfo] = useState<RegionInfo | null>(null);
+  const [regionInfo, setRegionInfo] = useState<RegionDemographics | null>(null);
   const { toast } = useToast();
 
   const { data: stores = [], isLoading } = useQuery<Store[]>({
@@ -102,7 +90,7 @@ export default function StoreSelection() {
       const res = await apiRequest("POST", "/api/region-info", { region });
       return await res.json();
     },
-    onSuccess: (data: RegionInfo) => {
+    onSuccess: (data: RegionDemographics) => {
       setRegionInfo(data);
       toast({
         title: "地域情報を取得しました",
@@ -195,39 +183,157 @@ export default function StoreSelection() {
           </div>
 
           {regionInfo && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 p-4 rounded-md bg-muted/50" data-testid="region-info-results">
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-2">平均年齢</h3>
-                <p className="text-2xl font-bold" data-testid="text-average-age">{regionInfo.averageAge}歳</p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-2">平均年収</h3>
-                <p className="text-2xl font-bold" data-testid="text-average-income">
-                  {regionInfo.averageIncome.toLocaleString()}万円
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-2">外国人比率</h3>
-                <p className="text-2xl font-bold" data-testid="text-foreigner-ratio">
-                  {regionInfo.foreignerRatio.toFixed(1)}%
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-2">男女比</h3>
-                <div className="space-y-1" data-testid="text-gender-ratio">
-                  <p className="text-sm">男性: {regionInfo.genderRatio.male}%</p>
-                  <p className="text-sm">女性: {regionInfo.genderRatio.female}%</p>
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <h3 className="font-semibold text-sm text-muted-foreground mb-2">年齢分布</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" data-testid="text-age-distribution">
-                  {regionInfo.ageDistribution.map((dist, index) => (
-                    <div key={index} className="text-sm">
-                      <p className="font-medium">{dist.range}</p>
-                      <p className="text-muted-foreground">{dist.percentage}%</p>
+            <div className="space-y-6 mt-4" data-testid="region-info-results">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-md bg-muted/50">
+                {regionInfo.population && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">人口</h3>
+                      {regionInfo.population.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
                     </div>
-                  ))}
+                    <p className="text-2xl font-bold font-mono" data-testid="text-population">
+                      {regionInfo.population.value.toLocaleString()}人
+                    </p>
+                  </div>
+                )}
+                {regionInfo.averageAge && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">平均年齢</h3>
+                      {regionInfo.averageAge.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold font-mono" data-testid="text-average-age">
+                      {regionInfo.averageAge.value}歳
+                    </p>
+                  </div>
+                )}
+                {regionInfo.averageIncome && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">平均年収</h3>
+                      {regionInfo.averageIncome.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold font-mono" data-testid="text-average-income">
+                      {regionInfo.averageIncome.value.toLocaleString()}万円
+                    </p>
+                  </div>
+                )}
+                {regionInfo.foreignerRatio && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">外国人比率</h3>
+                      {regionInfo.foreignerRatio.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold font-mono" data-testid="text-foreigner-ratio">
+                      {regionInfo.foreignerRatio.value.toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+                {regionInfo.genderRatio && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">男女比</h3>
+                      {regionInfo.genderRatio.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-1" data-testid="text-gender-ratio">
+                      <p className="text-sm font-mono">男性: {regionInfo.genderRatio.value.male}%</p>
+                      <p className="text-sm font-mono">女性: {regionInfo.genderRatio.value.female}%</p>
+                    </div>
+                  </div>
+                )}
+                {regionInfo.ageDistribution && (
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground">年齢分布</h3>
+                      {regionInfo.ageDistribution.source.type === "ai_estimated" && (
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-ai-estimated">
+                          <Info className="w-3 h-3 mr-1" />
+                          AI推定
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" data-testid="text-age-distribution">
+                      {regionInfo.ageDistribution.value.map((dist, index) => (
+                        <div key={index} className="text-sm">
+                          <p className="font-medium">{dist.range}</p>
+                          <p className="text-muted-foreground font-mono">{dist.percentage}%</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Data Sources Section */}
+              <div className="p-4 rounded-md bg-card border">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" />
+                  データ出典
+                </h3>
+                <div className="space-y-2">
+                  {[
+                    regionInfo.population?.source,
+                    regionInfo.averageAge?.source,
+                    regionInfo.ageDistribution?.source,
+                    regionInfo.genderRatio?.source,
+                    regionInfo.averageIncome?.source,
+                    regionInfo.foreignerRatio?.source,
+                  ]
+                    .filter((source, index, self) => 
+                      source && self.findIndex(s => s?.name === source.name) === index
+                    )
+                    .map((source, index) => (
+                      <div key={index} className="flex items-start gap-2 text-sm">
+                        <Badge 
+                          variant={source!.type === "official" ? "default" : "secondary"}
+                          className="mt-0.5"
+                        >
+                          {source!.type === "official" ? "公式" : "AI推定"}
+                        </Badge>
+                        <div className="flex-1">
+                          <p className="font-medium">{source!.name}</p>
+                          {source!.url && (
+                            <a
+                              href={source!.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              {source!.url}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            取得日時: {new Date(source!.retrievedAt).toLocaleString('ja-JP')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
