@@ -28,27 +28,19 @@ export default function Map() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="p-4 border-b bg-background">
-        <h1 className="text-2xl font-semibold">マップ</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          登録済み店舗の位置を確認できます
-        </p>
-      </div>
-      <div className="flex-1 relative">
-        <StoreMapView
-          stores={storesWithPositions}
-          onStoreSelect={() => {}}
-          selectedStore={null}
-        />
-      </div>
+    <div className="w-full h-full">
+      <StoreMapView
+        stores={storesWithPositions}
+        onStoreSelect={() => {}}
+        selectedStore={null}
+      />
     </div>
   );
 }
