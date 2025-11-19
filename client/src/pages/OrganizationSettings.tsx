@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Building2, Trash2, Pencil, Save, X, UserPlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Trash2, Pencil, Save, X, UserPlus, Users, ChevronDown, ChevronUp } from "lucide-react";
 
 interface OrganizationWithUser {
   id: string;
@@ -17,10 +19,415 @@ interface OrganizationWithUser {
   createdAt: string;
 }
 
+interface OrganizationMember {
+  userId: string;
+  email: string | null;
+  role: "admin" | "member";
+  isSuperAdmin: boolean;
+  createdAt: string;
+}
+
+function OrganizationItem({ org }: { org: OrganizationWithUser }) {
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(org.name);
+  const [showMembers, setShowMembers] = useState(false);
+  const [showMemberForm, setShowMemberForm] = useState(false);
+
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [newMemberPassword, setNewMemberPassword] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
+
+  const { data: members, isLoading: membersLoading } = useQuery<OrganizationMember[]>({
+    queryKey: [`/api/admin/organizations/${org.id}/members`],
+    enabled: showMembers,
+  });
+
+  const updateOrgMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      return await apiRequest("PATCH", `/api/admin/organizations/${id}`, { name });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/organizations"] });
+      toast({
+        title: "組織名を更新しました",
+        description: `${variables.name} に更新しました`,
+      });
+      setIsEditing(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "更新エラー",
+        description: error.message || "組織名の更新に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteOrgMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/admin/organizations/${id}`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/organizations"] });
+      toast({
+        title: "組織を削除しました",
+        description: "組織とすべての関連データを削除しました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "削除エラー",
+        description: error.message || "組織の削除に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createMemberMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/admin/organizations/${org.id}/members`, {
+        email: newMemberEmail,
+        password: newMemberPassword,
+        role: newMemberRole,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/organizations/${org.id}/members`] });
+      toast({
+        title: "メンバーを追加しました",
+        description: `${newMemberEmail} を追加しました`,
+      });
+      setShowMemberForm(false);
+      setNewMemberEmail("");
+      setNewMemberPassword("");
+      setNewMemberRole("member");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "追加エラー",
+        description: error.message || "メンバーの追加に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "member" }) => {
+      return await apiRequest("PATCH", `/api/admin/organizations/${org.id}/members/${userId}`, { role });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/organizations/${org.id}/members`] });
+      toast({
+        title: "役割を変更しました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "変更エラー",
+        description: error.message || "役割の変更に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest("DELETE", `/api/admin/organizations/${org.id}/members/${userId}`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/organizations/${org.id}/members`] });
+      toast({
+        title: "メンバーを削除しました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "削除エラー",
+        description: error.message || "メンバーの削除に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveEdit = () => {
+    if (editedName.trim()) {
+      updateOrgMutation.mutate({ id: org.id, name: editedName });
+    }
+  };
+
+  const handleAddMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMemberEmail.trim() && newMemberPassword.trim()) {
+      createMemberMutation.mutate();
+    }
+  };
+
+  return (
+    <div className="border rounded-md" data-testid={`org-item-${org.id}`}>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-4 flex-1">
+          <Building2 className="h-8 w-8 text-muted-foreground" />
+          <div className="flex-1">
+            {isEditing ? (
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="max-w-md"
+                  data-testid={`input-edit-org-${org.id}`}
+                />
+                <Button
+                  size="icon"
+                  onClick={handleSaveEdit}
+                  disabled={updateOrgMutation.isPending}
+                  data-testid={`button-save-org-${org.id}`}
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedName(org.name);
+                  }}
+                  disabled={updateOrgMutation.isPending}
+                  data-testid={`button-cancel-edit-org-${org.id}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="font-semibold" data-testid={`text-org-name-${org.id}`}>
+                  {org.name}
+                </div>
+                <div className="text-sm text-muted-foreground" data-testid={`text-org-email-${org.id}`}>
+                  メンバー数: {members?.length || "-"}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        {!isEditing && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowMembers(!showMembers)}
+              data-testid={`button-toggle-members-${org.id}`}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              メンバー管理
+              {showMembers ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              data-testid={`button-edit-org-${org.id}`}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  data-testid={`button-delete-org-${org.id}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>組織を削除しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {org.name} とすべての関連データ（店舗、イベント、コストなど）が削除されます。この操作は取り消せません。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid={`button-cancel-delete-org-${org.id}`}>
+                    キャンセル
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteOrgMutation.mutate(org.id)}
+                    data-testid={`button-confirm-delete-org-${org.id}`}
+                  >
+                    削除
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
+      </div>
+
+      {showMembers && (
+        <div className="border-t px-4 py-4 bg-muted/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              メンバー一覧
+            </h3>
+            {!showMemberForm && (
+              <Button
+                size="sm"
+                onClick={() => setShowMemberForm(true)}
+                data-testid={`button-add-member-${org.id}`}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                メンバーを追加
+              </Button>
+            )}
+          </div>
+
+          {showMemberForm && (
+            <form onSubmit={handleAddMember} className="mb-4 p-4 border rounded-md bg-background">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor={`member-email-${org.id}`}>メールアドレス</Label>
+                  <Input
+                    id={`member-email-${org.id}`}
+                    type="email"
+                    value={newMemberEmail}
+                    onChange={(e) => setNewMemberEmail(e.target.value)}
+                    placeholder="member@example.com"
+                    required
+                    data-testid={`input-member-email-${org.id}`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`member-password-${org.id}`}>パスワード</Label>
+                  <Input
+                    id={`member-password-${org.id}`}
+                    type="password"
+                    value={newMemberPassword}
+                    onChange={(e) => setNewMemberPassword(e.target.value)}
+                    placeholder="パスワード（6文字以上）"
+                    minLength={6}
+                    required
+                    data-testid={`input-member-password-${org.id}`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`member-role-${org.id}`}>役割</Label>
+                  <Select value={newMemberRole} onValueChange={(value: "admin" | "member") => setNewMemberRole(value)}>
+                    <SelectTrigger data-testid={`select-member-role-${org.id}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">一般メンバー</SelectItem>
+                      <SelectItem value="admin">管理者</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={createMemberMutation.isPending}
+                    data-testid={`button-submit-member-${org.id}`}
+                  >
+                    追加
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowMemberForm(false);
+                      setNewMemberEmail("");
+                      setNewMemberPassword("");
+                      setNewMemberRole("member");
+                    }}
+                    data-testid={`button-cancel-member-${org.id}`}
+                  >
+                    キャンセル
+                  </Button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {membersLoading ? (
+            <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+          ) : members && members.length > 0 ? (
+            <div className="space-y-2">
+              {members.map((member) => (
+                <div
+                  key={member.userId}
+                  className="flex items-center justify-between p-3 border rounded-md bg-background"
+                  data-testid={`member-item-${member.userId}`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">{member.email || "メールなし"}</div>
+                    <div className="flex gap-2 mt-1">
+                      {member.isSuperAdmin && (
+                        <Badge variant="destructive">スーパー管理者</Badge>
+                      )}
+                    </div>
+                  </div>
+                  {!member.isSuperAdmin && (
+                    <div className="flex gap-2 items-center">
+                      <Select 
+                        value={member.role} 
+                        onValueChange={(value: "admin" | "member") => 
+                          updateMemberRoleMutation.mutate({ userId: member.userId, role: value })
+                        }
+                      >
+                        <SelectTrigger className="w-32" data-testid={`select-role-${member.userId}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="member">メンバー</SelectItem>
+                          <SelectItem value="admin">管理者</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            data-testid={`button-delete-member-${member.userId}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>メンバーを削除しますか？</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {member.email} を削除します。この操作は取り消せません。
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMemberMutation.mutate(member.userId)}
+                            >
+                              削除
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              メンバーがいません
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OrganizationSettings() {
   const { toast } = useToast();
-  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
-  const [editedOrgName, setEditedOrgName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   
   const [newOrgName, setNewOrgName] = useState("");
@@ -59,64 +466,6 @@ export default function OrganizationSettings() {
     },
   });
 
-  const updateOrgMutation = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      return await apiRequest("PATCH", `/api/admin/organizations/${id}`, { name });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/organizations"] });
-      toast({
-        title: "組織名を更新しました",
-        description: `${variables.name} に更新しました`,
-      });
-      setEditingOrgId(null);
-      setEditedOrgName("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "更新エラー",
-        description: error.message || "組織名の更新に失敗しました",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteOrgMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest("DELETE", `/api/admin/organizations/${id}`, undefined);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/organizations"] });
-      toast({
-        title: "組織を削除しました",
-        description: "組織とすべての関連データを削除しました",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "削除エラー",
-        description: error.message || "組織の削除に失敗しました",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleStartEdit = (org: OrganizationWithUser) => {
-    setEditingOrgId(org.id);
-    setEditedOrgName(org.name);
-  };
-
-  const handleSaveEdit = () => {
-    if (editingOrgId && editedOrgName.trim()) {
-      updateOrgMutation.mutate({ id: editingOrgId, name: editedOrgName });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingOrgId(null);
-    setEditedOrgName("");
-  };
-
   const handleCreateOrg = (e: React.FormEvent) => {
     e.preventDefault();
     if (newOrgName.trim() && newOrgEmail.trim() && newOrgPassword.trim()) {
@@ -142,7 +491,7 @@ export default function OrganizationSettings() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">会社管理</h1>
-        <p className="text-muted-foreground">すべての組織アカウントを管理します</p>
+        <p className="text-muted-foreground">すべての組織アカウントとメンバーを管理します</p>
       </div>
 
       <Card data-testid="card-add-organization">
@@ -230,101 +579,13 @@ export default function OrganizationSettings() {
       <Card data-testid="card-organizations-list">
         <CardHeader>
           <CardTitle>組織一覧</CardTitle>
-          <CardDescription>登録されているすべての組織</CardDescription>
+          <CardDescription>登録されているすべての組織とメンバー</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {organizations && organizations.length > 0 ? (
               organizations.map((org) => (
-                <div
-                  key={org.id}
-                  className="flex items-center justify-between p-4 border rounded-md"
-                  data-testid={`org-item-${org.id}`}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <Building2 className="h-8 w-8 text-muted-foreground" />
-                    <div className="flex-1">
-                      {editingOrgId === org.id ? (
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            value={editedOrgName}
-                            onChange={(e) => setEditedOrgName(e.target.value)}
-                            className="max-w-md"
-                            data-testid={`input-edit-org-${org.id}`}
-                          />
-                          <Button
-                            size="icon"
-                            onClick={handleSaveEdit}
-                            disabled={updateOrgMutation.isPending}
-                            data-testid={`button-save-org-${org.id}`}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                            disabled={updateOrgMutation.isPending}
-                            data-testid={`button-cancel-edit-org-${org.id}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="font-semibold" data-testid={`text-org-name-${org.id}`}>
-                            {org.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground" data-testid={`text-org-email-${org.id}`}>
-                            {org.userEmail || "メールアドレスなし"}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {editingOrgId !== org.id && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleStartEdit(org)}
-                        data-testid={`button-edit-org-${org.id}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            data-testid={`button-delete-org-${org.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>組織を削除しますか？</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {org.name} とすべての関連データ（店舗、イベント、コストなど）が削除されます。この操作は取り消せません。
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel data-testid={`button-cancel-delete-org-${org.id}`}>
-                              キャンセル
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteOrgMutation.mutate(org.id)}
-                              data-testid={`button-confirm-delete-org-${org.id}`}
-                            >
-                              削除
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
-                </div>
+                <OrganizationItem key={org.id} org={org} />
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
