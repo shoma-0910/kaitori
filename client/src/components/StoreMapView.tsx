@@ -211,6 +211,18 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     }
   }, [mapInstance, searchNearbySupermarkets]);
 
+  // autoShowMapがtrueの場合、マップロード時に自動的にスーパーを検索
+  useEffect(() => {
+    if (autoShowMap && mapInstance && nearbyPlaces.length === 0 && !searchingNearby) {
+      const searchId = `auto-${Date.now()}`;
+      currentSearchRef.current = searchId;
+      setSearchingNearby(true);
+      
+      const location = new google.maps.LatLng(defaultCenter.lat, defaultCenter.lng);
+      searchNearbySupermarkets(location, mapInstance, searchId);
+    }
+  }, [autoShowMap, mapInstance, nearbyPlaces.length, searchingNearby, searchNearbySupermarkets]);
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery || !isLoaded) return;
 
