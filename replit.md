@@ -19,6 +19,22 @@ A comprehensive data-driven event management system for planning, executing, and
 
 ## Recent Changes (November 19, 2025)
 
+**Dynamic Map-Based Supermarket Discovery**:
+- Implemented automatic supermarket search based on map viewport
+- Search triggers automatically when user pans or zooms the map
+- Zoom-level-adaptive search radius (500m to 50km)
+- Intelligent search throttling with distance-based and zoom-based triggers
+- 500ms debounce prevents excessive API calls
+- Full-screen map page (`/map`) with auto-load on navigation
+
+**Technical Implementation**:
+- `handleMapIdle` callback triggers on Google Maps `onIdle` event
+- Distance calculation using Haversine formula
+- Zoom change detection (±1 level triggers new search)
+- Pan distance threshold (300m-500m based on zoom level)
+- Tracks last search location and zoom level to prevent redundant queries
+- Search radius adapts to zoom: 16+ (500m), 14-15 (1km), 12-13 (3km), 10-11 (10km), <10 (50km)
+
 **Multi-User Organization Support**:
 - Removed 1:1 organization-user constraint
 - Organizations can now have multiple members with role-based access
