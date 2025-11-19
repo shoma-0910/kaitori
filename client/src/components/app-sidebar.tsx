@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, BookmarkCheck, Calendar, Database, Settings } from "lucide-react";
+import { LayoutDashboard, Store, BookmarkCheck, Calendar, Database, Settings, Map } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -41,6 +41,12 @@ const menuItems = [
     title: "店舗データ",
     url: "/data",
     icon: Database,
+    superAdminOnly: false,
+  },
+  {
+    title: "マップ",
+    url: "/map",
+    icon: Map,
     superAdminOnly: false,
   },
   {
