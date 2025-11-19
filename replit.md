@@ -17,7 +17,35 @@ A comprehensive data-driven event management system for planning, executing, and
 - Comprehensive store database with CRUD operations
 - Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
 
-## Recent Changes (November 18, 2025)
+## Recent Changes (November 19, 2025)
+
+**Multi-User Organization Support**:
+- Removed 1:1 organization-user constraint
+- Organizations can now have multiple members with role-based access
+- Implemented member management for super admins in Organization Settings page
+- Added member invitation, role management, and deletion features
+- Each organization member has a role: 'admin' (can manage organization members) or 'member' (regular access)
+
+**API Changes**:
+- GET /api/admin/organizations/:id/members - List organization members (super admin only)
+- POST /api/admin/organizations/:id/members - Add member to organization (super admin only)
+- PATCH /api/admin/organizations/:id/members/:userId - Update member role (super admin only)
+- DELETE /api/admin/organizations/:id/members/:userId - Remove member from organization (super admin only)
+
+**Frontend Changes**:
+- Organization Settings page enhanced with collapsible member management panels
+- Member list displays email, role, and super admin status
+- Add member form with email, password, and role selection
+- Inline role change via Select dropdown (admin ↔ member)
+- Member deletion with confirmation dialog
+- Super admins cannot be deleted from member list
+- Fixed TanStack Query cache key patterns to use full URL strings for proper cache invalidation
+
+**Schema Impact**:
+- user_organizations table supports multiple users per organization
+- Existing is_super_admin column remains for super admin identification
+
+**Previous Changes (November 18, 2025)**:
 
 **Regional Demographics Data Enhancement**:
 - Implemented hybrid data approach: e-Stat official data + Gemini AI enrichment
