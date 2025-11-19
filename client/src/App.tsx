@@ -15,6 +15,7 @@ import RegisteredStores from "@/pages/RegisteredStores";
 import CalendarSchedule from "@/pages/CalendarSchedule";
 import StoreDataPage from "@/pages/StoreData";
 import OrganizationSettings from "@/pages/OrganizationSettings";
+import Map from "@/pages/Map";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
@@ -76,6 +77,9 @@ function Router() {
       </Route>
       <Route path="/data">
         <ProtectedRoute component={StoreDataPage} />
+      </Route>
+      <Route path="/map">
+        <ProtectedRoute component={Map} />
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={OrganizationSettings} />
