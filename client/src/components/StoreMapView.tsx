@@ -94,6 +94,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [nearbyFacilities, setNearbyFacilities] = useState<NearbyFacility[]>([]);
   const [searchingFacilities, setSearchingFacilities] = useState(false);
+  const lastSearchLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const { data: registeredStores = [] } = useQuery<RegisteredStore[]>({
@@ -154,12 +156,27 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     region: "JP",
   });
 
-  const searchNearbySupermarkets = useCallback((location: google.maps.LatLng, map: google.maps.Map, searchId: string) => {
+  // ズームレベルに応じた検索半径を計算（メートル単位）
+  const getSearchRadiusForZoom = useCallback((zoom: number): number => {
+    // ズームレベルが高い（拡大）ほど、小さい半径で検索
+    // ズームレベルが低い（縮小）ほど、大きい半径で検索
+    if (zoom >= 16) return 500;    // 非常に拡大: 500m
+    if (zoom >= 14) return 1000;   // 拡大: 1km
+    if (zoom >= 12) return 3000;   // 中: 3km
+    if (zoom >= 10) return 10000;  // 縮小: 10km
+    return 50000;                  // 非常に縮小: 50km（最大）
+  }, []);
+
+  const searchNearbySupermarkets = useCallback((location: google.maps.LatLng, map: google.maps.Map, searchId: string, radius?: number) => {
     const service = new google.maps.places.PlacesService(map);
+    
+    // 半径が指定されていない場合は、現在のズームレベルから計算
+    const zoom = map.getZoom() || 11;
+    const searchRadius = radius || getSearchRadiusForZoom(zoom);
     
     const request: google.maps.places.PlaceSearchRequest = {
       location: location,
-      radius: 2000,
+      radius: searchRadius,
       type: "supermarket",
       language: "ja",
     };
@@ -184,23 +201,14 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
         setNearbyPlaces(places);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
         setNearbyPlaces([]);
-        toast({
-          title: "周辺にスーパーが見つかりませんでした",
-          description: "検索範囲を広げるか、別の地域を試してください。",
-        });
       } else if (status !== google.maps.places.PlacesServiceStatus.OK) {
         setNearbyPlaces([]);
         console.error("Places API error:", status);
-        toast({
-          title: "検索エラー",
-          description: "周辺のスーパー検索に失敗しました。",
-          variant: "destructive",
-        });
       }
       
       setSearchingNearby(false);
     });
-  }, [toast]);
+  }, [toast, getSearchRadiusForZoom]);
 
   // マップが読み込まれたら、保留中の検索を実行
   useEffect(() => {
@@ -219,9 +227,72 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
       setSearchingNearby(true);
       
       const location = new google.maps.LatLng(defaultCenter.lat, defaultCenter.lng);
+      lastSearchLocationRef.current = { lat: defaultCenter.lat, lng: defaultCenter.lng };
       searchNearbySupermarkets(location, mapInstance, searchId);
     }
   }, [autoShowMap, mapInstance, nearbyPlaces.length, searchingNearby, searchNearbySupermarkets]);
+
+  // 2つの位置間の距離を計算（メートル単位）
+  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371e3; // 地球の半径（メートル）
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lng2 - lng1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // メートル単位の距離
+  }, []);
+
+  // マップの操作が完了したときに周辺のスーパーを検索
+  const handleMapIdle = useCallback(() => {
+    if (!mapInstance || !showMap || searchingNearby) return;
+
+    // タイムアウトをクリア
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+    }
+
+    // デバウンス: 500ms後に検索を実行
+    idleTimeoutRef.current = setTimeout(() => {
+      const center = mapInstance.getCenter();
+      if (!center) return;
+
+      const currentLat = center.lat();
+      const currentLng = center.lng();
+
+      // 前回の検索位置と比較
+      if (lastSearchLocationRef.current) {
+        const distance = calculateDistance(
+          lastSearchLocationRef.current.lat,
+          lastSearchLocationRef.current.lng,
+          currentLat,
+          currentLng
+        );
+
+        // 前回の検索位置から一定距離（500m）以上移動していない場合はスキップ
+        const zoom = mapInstance.getZoom() || 11;
+        const minDistance = zoom >= 14 ? 300 : 500; // ズームレベルに応じて最小距離を調整
+        
+        if (distance < minDistance) {
+          return;
+        }
+      }
+
+      // 新しい位置で検索
+      const searchId = `idle-${Date.now()}`;
+      currentSearchRef.current = searchId;
+      setSearchingNearby(true);
+
+      const location = new google.maps.LatLng(currentLat, currentLng);
+      lastSearchLocationRef.current = { lat: currentLat, lng: currentLng };
+      searchNearbySupermarkets(location, mapInstance, searchId);
+    }, 500);
+  }, [mapInstance, showMap, searchingNearby, calculateDistance, searchNearbySupermarkets]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery || !isLoaded) return;
@@ -248,6 +319,9 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
         setMapCenter(newCenter);
         setMapZoom(14);
         setShowMap(true);
+        
+        // 検索位置を記録
+        lastSearchLocationRef.current = { lat: newCenter.lat, lng: newCenter.lng };
         
         // マップインスタンスがあれば、即座に検索
         // なければ、マップが読み込まれるまで保留
@@ -536,6 +610,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                 center={mapCenter}
                 zoom={mapZoom}
                 onLoad={onMapLoad}
+                onIdle={handleMapIdle}
                 options={{
                   streetViewControl: false,
                   mapTypeControl: false,
