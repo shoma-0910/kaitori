@@ -40,6 +40,7 @@ export default function Map() {
         stores={storesWithPositions}
         onStoreSelect={() => {}}
         selectedStore={null}
+        autoShowMap={true}
       />
     </div>
   );

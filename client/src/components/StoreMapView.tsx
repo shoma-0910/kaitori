@@ -65,6 +65,7 @@ interface StoreMapViewProps {
   stores: Store[];
   onStoreSelect: (store: Store) => void;
   selectedStore: Store | null;
+  autoShowMap?: boolean;
 }
 
 const mapContainerStyle = {
@@ -77,13 +78,13 @@ const defaultCenter = {
   lng: 135.5023,
 };
 
-export function StoreMapView({ stores, onStoreSelect, selectedStore }: StoreMapViewProps) {
+export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap = false }: StoreMapViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [mapZoom, setMapZoom] = useState(11);
   const [searchingNearby, setSearchingNearby] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<Store | NearbyPlace | null>(null);
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(autoShowMap);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const currentSearchRef = useRef<string>("");
