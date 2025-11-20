@@ -375,6 +375,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search nearby supermarkets with ranking
+  app.post("/api/search-supermarkets", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      // Log the organization context for this request
+      console.log(`[Supermarket Search] Request from organization: ${req.organizationId}`);
+      
+      const { latitude, longitude, radius } = req.body;
+      
+      if (!latitude || !longitude || !radius) {
+        return res.status(400).json({ error: "Latitude, longitude, and radius are required" });
+      }
+
+      const apiKey = process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=supermarket&language=ja&key=${apiKey}`;
+      const nearbyResponse = await fetch(nearbyUrl);
+      const nearbyData = await nearbyResponse.json();
+
+      if (nearbyData.status !== 'OK' && nearbyData.status !== 'ZERO_RESULTS') {
+        return res.status(500).json({ error: "Failed to fetch nearby supermarkets" });
+      }
+
+      const results = nearbyData.results || [];
+      
+      // Process each supermarket to get demographics and rank
+      const { calculateStoreRank } = await import("./utils/rankCalculator");
+      const { fetchRegionDemographics } = await import("./services/regionDataService");
+      
+      const supermarketsWithRanking = await Promise.all(
+        results.slice(0, 20).map(async (place: any) => {
+          let rank = null;
+          let demographicData = null;
+          let elderlyFemaleRatio = null;
+
+          // Extract city/ward from address components
+          try {
+            let region = null;
+            if (place.vicinity) {
+              const addressParts = place.vicinity.split(/[、,]/);
+              if (addressParts.length > 0) {
+                region = addressParts[0].trim();
+              }
+            }
+
+            if (region) {
+              // Fetch demographic data for the region using direct function call
+              const demographics = await fetchRegionDemographics(region);
+              
+              if (demographics && demographics.region && Object.keys(demographics).length > 1) {
+                demographicData = demographics;
+                
+                // Calculate rank based on demographics
+                const rankingResult = calculateStoreRank(demographics as import("@shared/schema").RegionDemographics);
+                rank = rankingResult.rank;
+                elderlyFemaleRatio = rankingResult.criteria.elderlyFemaleRatio;
+              }
+            }
+          } catch (error) {
+            console.warn(`Failed to get demographics for ${place.name}:`, error);
+          }
+
+          return {
+            placeId: place.place_id,
+            name: place.name,
+            address: place.vicinity || '',
+            latitude: place.geometry.location.lat,
+            longitude: place.geometry.location.lng,
+            phoneNumber: place.formatted_phone_number || null,
+            website: place.website || null,
+            openingHours: place.opening_hours?.weekday_text || [],
+            rank,
+            demographicData: demographicData ? JSON.stringify(demographicData) : null,
+            elderlyFemaleRatio,
+          };
+        })
+      );
+
+      res.json({ supermarkets: supermarketsWithRanking });
+    } catch (error: any) {
+      console.error("Supermarket search error:", error);
+      res.status(500).json({ error: error.message || "Failed to search supermarkets" });
+    }
+  });
+
   // Region Info - Hybrid approach using e-Stat official data + Gemini enrichment
   app.post("/api/region-info", async (req, res) => {
     try {

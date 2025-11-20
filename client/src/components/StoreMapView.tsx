@@ -50,6 +50,9 @@ interface NearbyPlace {
   rating?: number;
   userRatingsTotal?: number;
   hasParking?: boolean;
+  rank?: "S" | "A" | "B" | "C" | "D" | null;
+  demographicData?: any;
+  elderlyFemaleRatio?: number;
 }
 
 interface NearbyFacility {
@@ -149,6 +152,40 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     console.log("Google Maps API Key:", apiKey ? "Set" : "Not set");
   }, [apiKey]);
 
+  const getRankColor = useCallback((rank: "S" | "A" | "B" | "C" | "D" | null | undefined): string => {
+    switch (rank) {
+      case "S":
+        return "#DC2626"; // 赤
+      case "A":
+        return "#EA580C"; // オレンジ
+      case "B":
+        return "#F59E0B"; // 黄色
+      case "C":
+        return "#10B981"; // 緑
+      case "D":
+        return "#6B7280"; // グレー
+      default:
+        return "#9CA3AF"; // デフォルトグレー
+    }
+  }, []);
+
+  const getRankLabel = useCallback((rank: "S" | "A" | "B" | "C" | "D" | null | undefined): string => {
+    switch (rank) {
+      case "S":
+        return "最優先";
+      case "A":
+        return "優先";
+      case "B":
+        return "通常";
+      case "C":
+        return "低優先";
+      case "D":
+        return "対象外";
+      default:
+        return "未評価";
+    }
+  }, []);
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: apiKey || "",
@@ -168,47 +205,54 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     return 50000;                  // 非常に縮小: 50km（最大）
   }, []);
 
-  const searchNearbySupermarkets = useCallback((location: google.maps.LatLng, map: google.maps.Map, searchId: string, radius?: number) => {
-    const service = new google.maps.places.PlacesService(map);
-    
+  const searchNearbySupermarkets = useCallback(async (location: google.maps.LatLng, map: google.maps.Map, searchId: string, radius?: number) => {
     // 半径が指定されていない場合は、現在のズームレベルから計算
     const zoom = map.getZoom() || 11;
     const searchRadius = radius || getSearchRadiusForZoom(zoom);
     
-    const request: google.maps.places.PlaceSearchRequest = {
-      location: location,
-      radius: searchRadius,
-      type: "supermarket",
-      language: "ja",
-    };
+    try {
+      const response = await apiRequest('POST', '/api/search-supermarkets', {
+        latitude: location.lat(),
+        longitude: location.lng(),
+        radius: searchRadius,
+      });
 
-    service.nearbySearch(request, (results, status) => {
       if (searchId !== currentSearchRef.current) {
         return;
       }
 
-      if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-        const places: NearbyPlace[] = results.slice(0, 20).map((place) => ({
-          placeId: place.place_id || "",
-          name: place.name || "",
-          address: place.vicinity || "",
-          position: {
-            lat: place.geometry?.location?.lat() || 0,
-            lng: place.geometry?.location?.lng() || 0,
-          },
-          type: "supermarket" as const,
-        }));
-        
-        setNearbyPlaces(places);
-      } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-        setNearbyPlaces([]);
-      } else if (status !== google.maps.places.PlacesServiceStatus.OK) {
-        setNearbyPlaces([]);
-        console.error("Places API error:", status);
-      }
-      
+      const data = await response.json();
+      const supermarkets = data.supermarkets || [];
+
+      const places: NearbyPlace[] = supermarkets.map((place: any) => ({
+        placeId: place.placeId,
+        name: place.name,
+        address: place.address,
+        position: {
+          lat: place.latitude,
+          lng: place.longitude,
+        },
+        type: "supermarket" as const,
+        phoneNumber: place.phoneNumber || undefined,
+        website: place.website || undefined,
+        openingHours: place.openingHours || [],
+        rank: place.rank,
+        demographicData: place.demographicData ? JSON.parse(place.demographicData) : undefined,
+        elderlyFemaleRatio: place.elderlyFemaleRatio,
+      }));
+
+      setNearbyPlaces(places);
+    } catch (error) {
+      console.error("Supermarket search error:", error);
+      setNearbyPlaces([]);
+      toast({
+        title: "検索に失敗しました",
+        description: "もう一度お試しください。",
+        variant: "destructive",
+      });
+    } finally {
       setSearchingNearby(false);
-    });
+    }
   }, [toast, getSearchRadiusForZoom]);
 
   // マップが読み込まれたら、保留中の検索を実行
@@ -657,7 +701,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                   />
                 ))}
 
-                {/* 周辺のスーパーマーケット（オレンジ色 or 青色） */}
+                {/* 周辺のスーパーマーケット（ランク別色分け） */}
                 {nearbyPlaces.map((place) => {
                   const isRegistered = registeredStores.some(
                     (store) => store.placeId === place.placeId
@@ -670,7 +714,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                       icon={{
                         path: google.maps.SymbolPath.CIRCLE,
                         scale: 8,
-                        fillColor: isRegistered ? "#0891b2" : "#f97316",
+                        fillColor: place.rank ? getRankColor(place.rank) : (isRegistered ? "#0891b2" : "#9CA3AF"),
                         fillOpacity: 0.9,
                         strokeColor: "#ffffff",
                         strokeWeight: 2,
@@ -695,13 +739,31 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                         </p>
                       )}
                       {!isStore(selectedMarker) && (() => {
+                        const place = selectedMarker as NearbyPlace;
                         const isRegistered = registeredStores.some(
-                          (store) => store.placeId === (selectedMarker as NearbyPlace).placeId
+                          (store) => store.placeId === place.placeId
                         );
                         return (
-                          <p className={`text-xs font-medium ${isRegistered ? 'text-cyan-600' : 'text-orange-600'}`}>
-                            {isRegistered ? '登録済み' : '周辺スーパー'}
-                          </p>
+                          <div>
+                            {place.rank && (
+                              <div className="mb-1">
+                                <span className="text-xs font-semibold" style={{ color: getRankColor(place.rank) }}>
+                                  {place.rank}ランク
+                                </span>
+                                <span className="text-xs ml-1">
+                                  ({getRankLabel(place.rank)})
+                                </span>
+                              </div>
+                            )}
+                            {place.elderlyFemaleRatio !== undefined && (
+                              <p className="text-xs">
+                                60歳以上女性: {place.elderlyFemaleRatio.toFixed(1)}%
+                              </p>
+                            )}
+                            <p className={`text-xs font-medium mt-1 ${isRegistered ? 'text-cyan-600' : 'text-gray-600'}`}>
+                              {isRegistered ? '登録済み' : '周辺スーパー'}
+                            </p>
+                          </div>
                         );
                       })()}
                     </div>
@@ -755,23 +817,39 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0 mt-0.5">
-                            <MapPin className={`w-5 h-5 ${isRegistered ? 'text-cyan-600' : 'text-orange-600'}`} />
+                            <MapPin 
+                              className="w-5 h-5" 
+                              style={{ color: place.rank ? getRankColor(place.rank) : (isRegistered ? '#0891b2' : '#f97316') }}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm mb-1" data-testid={`text-nearby-name-${index}`}>
-                              {place.name}
-                            </h4>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-sm" data-testid={`text-nearby-name-${index}`}>
+                                {place.name}
+                              </h4>
+                              {place.rank && (
+                                <Badge 
+                                  className="text-xs font-semibold"
+                                  style={{ 
+                                    backgroundColor: getRankColor(place.rank),
+                                    color: 'white',
+                                    borderColor: getRankColor(place.rank)
+                                  }}
+                                >
+                                  {place.rank}
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground" data-testid={`text-nearby-address-${index}`}>
                               {place.address}
                             </p>
+                            {place.elderlyFemaleRatio !== undefined && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                60歳以上女性: {place.elderlyFemaleRatio.toFixed(1)}%
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-col gap-1 flex-shrink-0">
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${isRegistered ? 'bg-cyan-500/10 border-cyan-600 text-cyan-700 dark:text-cyan-400' : 'bg-orange-500/10 border-orange-500'}`}
-                            >
-                              スーパー
-                            </Badge>
                             {isRegistered && (
                               <Badge 
                                 className="text-xs bg-cyan-600 text-white hover:bg-cyan-700"
