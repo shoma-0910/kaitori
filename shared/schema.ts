@@ -95,6 +95,8 @@ export const registeredStores = pgTable("registered_stores", {
   longitude: real("longitude").notNull(),
   website: text("website"),
   openingHours: text("opening_hours").array(),
+  rank: text("rank"),
+  demographicData: text("demographic_data"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
 });
 
