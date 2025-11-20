@@ -1,313 +1,37 @@
 # 買取催事管理システム (Buyback Event Management System)
 
 ## Overview
-
-A comprehensive data-driven event management system for planning, executing, and analyzing buyback events at retail stores across Japan. The application enables users to identify high-potential store locations, schedule events, track costs, and measure profitability through an AI-enhanced workflow. Built as a modern SaaS application with Japanese language support.
-
-**Core Purpose**: Centralize the entire lifecycle of buyback events - from AI-powered store candidate discovery to post-event profit analysis - enabling data-driven decision making for maximizing event ROI.
-
-**Key Features**:
-- **Multi-tenant architecture** with organization-based data isolation using Supabase
-- **User authentication** with email/password login and role-based access control (admin/member)
-- Dashboard with KPI tracking and store performance analytics
-- Store selection with potential scoring and Google Maps integration
-- Calendar-based event scheduling with Google Calendar sync and in-place event editing
-- Editable event details (manager, dates, cost, notes) with instant UI updates
-- Repeated Google Calendar additions (no duplicate prevention)
-- Comprehensive store database with CRUD operations
-- Subtle neumorphism design for modern, refined appearance while maintaining enterprise formality
-
-## Recent Changes (November 19, 2025)
-
-**Dynamic Map-Based Supermarket Discovery**:
-- Implemented automatic supermarket search based on map viewport
-- Search triggers automatically when user pans or zooms the map
-- Zoom-level-adaptive search radius (500m to 50km)
-- Intelligent search throttling with distance-based and zoom-based triggers
-- 500ms debounce prevents excessive API calls
-- Full-screen map page (`/map`) with auto-load on navigation
-
-**Technical Implementation**:
-- `handleMapIdle` callback triggers on Google Maps `onIdle` event
-- Distance calculation using Haversine formula
-- Zoom change detection (±1 level triggers new search)
-- Pan distance threshold (300m-500m based on zoom level)
-- Tracks last search location and zoom level to prevent redundant queries
-- Search radius adapts to zoom: 16+ (500m), 14-15 (1km), 12-13 (3km), 10-11 (10km), <10 (50km)
-
-**Multi-User Organization Support**:
-- Removed 1:1 organization-user constraint
-- Organizations can now have multiple members with role-based access
-- Implemented member management for super admins in Organization Settings page
-- Added member invitation, role management, and deletion features
-- Each organization member has a role: 'admin' (can manage organization members) or 'member' (regular access)
-
-**API Changes**:
-- GET /api/admin/organizations/:id/members - List organization members (super admin only)
-- POST /api/admin/organizations/:id/members - Add member to organization (super admin only)
-- PATCH /api/admin/organizations/:id/members/:userId - Update member role (super admin only)
-- DELETE /api/admin/organizations/:id/members/:userId - Remove member from organization (super admin only)
-
-**Frontend Changes**:
-- Organization Settings page enhanced with collapsible member management panels
-- Member list displays email, role, and super admin status
-- Add member form with email, password, and role selection
-- Inline role change via Select dropdown (admin ↔ member)
-- Member deletion with confirmation dialog
-- Super admins cannot be deleted from member list
-- Fixed TanStack Query cache key patterns to use full URL strings for proper cache invalidation
-
-**Schema Impact**:
-- user_organizations table supports multiple users per organization
-- Existing is_super_admin column remains for super admin identification
-
-**Previous Changes (November 18, 2025)**:
-
-**Regional Demographics Data Enhancement**:
-- Implemented hybrid data approach: e-Stat official data + Gemini AI enrichment
-- Added comprehensive data citation system with source attribution
-- Implemented graceful degradation: Falls back to Gemini-only when e-Stat unavailable
-- Each data metric now includes source information (name, URL, retrieval date, type)
-- UI distinguishes between official data (公式データ) and AI estimates (AI推定値)
-- Municipality code mapping for major cities/wards (Tokyo 23 wards, major cities)
-- e-Stat API integration requires ESTAT_API_KEY (optional, free registration)
-- System works fully with Gemini-only fallback when e-Stat not configured
-
-**Schema Changes**:
-- Added `RegionDemographics` type with comprehensive metrics structure
-- Added `RegionMetricSource` type for data attribution (name, url, retrievedAt, type)
-- Each demographic metric includes both value and source information
-
-**Backend Services**:
-- `server/services/municipalityCodes.ts` - JIS code mapping for regions
-- `server/services/eStatClient.ts` - Official data retrieval from e-Stat API
-- `server/services/geminiEnrichment.ts` - AI-based data enrichment and fallback
-- POST /api/region-info - Enhanced endpoint with hybrid data pipeline
-
-**Frontend Changes**:
-- Store Selection page displays data source badges
-- Citation URLs shown when available
-- Retrieval timestamp displayed for all metrics
-- Visual distinction between official and AI-estimated data
-
-**Previous Changes (November 17, 2025)**:
-
-**Super Admin Organization Management**:
-- Removed public signup functionality (login-only authentication)
-- Implemented super admin role system with `is_super_admin` flag in user_organizations
-- Created super admin-only organization management (/settings page)
-- Super admins can create, edit, and delete all organizations
-- Each organization = 1 user (1:1 relationship)
-- Admin creates organization accounts and distributes credentials
-- Regular users cannot access organization management
-
-**Schema Changes**:
-- Added `is_super_admin` text column to user_organizations ('true'/'false')
-- admin@example.com set as the first super admin
-
-**API Changes**:
-- GET /api/user/me - Returns user info including isSuperAdmin flag
-- GET /api/admin/organizations - List all organizations (super admin only)
-- POST /api/admin/organizations - Create organization with user account (super admin only)
-- PATCH /api/admin/organizations/:id - Update organization name (super admin only)
-- DELETE /api/admin/organizations/:id - Delete organization and user (super admin only)
-- Removed member management APIs (organizations are now 1:1 with users)
-
-**Frontend Changes**:
-- AuthContext now includes userInfo with isSuperAdmin flag
-- Sidebar shows "会社管理" only for super admins
-- Organization Settings page redesigned for full organization CRUD
-- Removed signup tab from authentication page
-
-**Database Migration Planning** (Postponed):
-- Investigated Supabase PostgreSQL migration
-- Created data backup in migration-data.sql
-- Currently using Replit local Neon PostgreSQL database
-- Supabase migration can be performed later when needed
-
-**Previous Changes (November 16, 2025)**:
-
-**Authentication Flow Fixes**:
-- Configured Supabase client with session persistence (`persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true`)
-- Implemented React Router (wouter) based navigation for login redirect instead of window.location
-- Added useEffect in Auth.tsx to watch AuthContext user state and redirect when authenticated
-- Fixed loading state management to prevent UI blocking during authentication
-- Verified full auth flow: signup → dashboard → logout → login → dashboard
-
-**Architecture Clarification**:
-- Supabase Auth serves as identity provider (users in auth.users table)
-- Local PostgreSQL (via Drizzle ORM) stores domain data (organizations, stores, events)
-- user_organizations table links Supabase user_id to local organization data
-- Backend middleware validates Supabase JWT tokens via supabaseAdmin.auth.getUser()
+A comprehensive, data-driven SaaS application designed to manage the entire lifecycle of buyback events at retail stores across Japan. It enables users to identify high-potential store locations using AI, schedule events, track costs, and analyze profitability. The system centralizes event management from AI-powered store discovery to post-event profit analysis, facilitating data-driven decision-making to maximize ROI. Key capabilities include multi-tenant architecture, user authentication with role-based access, KPI tracking dashboards, store selection with potential scoring, calendar-based event scheduling with Google Calendar sync, and comprehensive store database management.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Frontend Architecture
-
-**Framework**: React 18 with TypeScript, using Vite as the build tool
-
-**Routing**: Wouter for client-side routing - lightweight alternative to React Router
-
-**UI Component System**: 
-- Shadcn/ui components (New York style variant) - unstyled, accessible component library built on Radix UI
-- Tailwind CSS for styling with custom design tokens
-- Component path aliasing: `@/components`, `@/lib`, `@/hooks`
-
-**Design System**:
-- Japanese typography: Noto Sans JP and JetBrains Mono for numerical data
-- Custom color system with light/dark mode support via CSS variables
-- Elevation-based interaction states (hover/active) for modern feel
-- Subtle neumorphism effects with dual-direction shadows for refined appearance
-- Responsive grid layouts optimized for data-heavy displays
-
-**State Management**:
-- TanStack Query (React Query) for server state management and caching
-- Local component state with React hooks
-- No global state management library (Redux, Zustand, etc.)
-
-**Key Design Patterns**:
-- Page-level components in `/client/src/pages`
-- Reusable UI components in `/client/src/components`
-- Custom hooks in `/client/src/hooks`
-- Shared TypeScript types and schemas in `/shared`
+The frontend is built with React 18, TypeScript, and Vite. It uses Wouter for routing and Shadcn/ui components (New York style) with Tailwind CSS for styling. The design system features Japanese typography (Noto Sans JP, JetBrains Mono), custom color schemes with light/dark mode, subtle neumorphism, and responsive grid layouts. State management relies on TanStack Query for server state and React hooks for local component state. Key design patterns include page-level components, reusable UI components, and custom hooks.
 
 ### Backend Architecture
-
-**Runtime**: Node.js with Express.js server
-
-**API Design**: RESTful API with conventional HTTP methods
-- `GET /api/stores` - List all stores
-- `POST /api/stores` - Create store
-- `PATCH /api/stores/:id` - Update store
-- `DELETE /api/stores/:id` - Delete store
-- Similar patterns for `/api/events` and `/api/costs`
-
-**Data Layer**: 
-- Storage abstraction via `IStorage` interface in `server/storage.ts`
-- Concrete implementation: `DbStorage` class using Drizzle ORM
-- Separation allows for easy testing and potential storage backend changes
-
-**Development Mode**:
-- Vite development server integrated as Express middleware
-- HMR (Hot Module Replacement) for rapid development
-- Custom logging for API requests
-
-**Production Build**:
-- Frontend: Vite builds to `dist/public`
-- Backend: esbuild bundles server to `dist/index.js`
-- Static file serving in production mode
+The backend uses Node.js with Express.js, providing a RESTful API. It employs a storage abstraction via an `IStorage` interface, implemented by `DbStorage` using Drizzle ORM. The development setup integrates Vite for HMR, while production builds involve Vite for the frontend and esbuild for the backend.
 
 ### Database Layer
+The system utilizes Supabase PostgreSQL as the database provider, managed via Drizzle ORM for type-safe queries. A multi-tenant architecture is enforced through `organizationId` in all tables and Row Level Security (RLS), ensuring data isolation. The schema defines tables for organizations, user_organizations (for multi-user support with roles), stores, events, and costs, with UUIDs as primary keys. Zod schemas generated from Drizzle tables provide schema validation, and Drizzle Kit manages migrations.
 
-**ORM**: Drizzle ORM - lightweight TypeScript ORM with type-safe queries
+### System Design Choices
+- **Multi-tenant architecture**: Data isolation per organization using Supabase RLS.
+- **Role-Based Access Control**: 'admin' and 'member' roles with 'super_admin' for system-wide management.
+- **AI-Enhanced Workflow**: AI assists in store candidate discovery and demographic data enrichment.
+- **API Usage Tracking**: Comprehensive logging and cost estimation for Google Places and Gemini APIs.
+- **Dynamic Map-Based Supermarket Discovery**: Automatic supermarket search based on map viewport with intelligent throttling.
+- **Regional Demographics Data**: Hybrid approach using e-Stat official data and Google Gemini AI for enrichment, with graceful degradation and source attribution.
+- **Authentication**: Supabase Auth for user management, with `user_organizations` table linking Supabase users to local organization data.
 
-**Database Provider**: Supabase PostgreSQL
-- Managed PostgreSQL with built-in authentication
-- Row Level Security (RLS) for multi-tenant data isolation
-- Configured via `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables
+## External Dependencies
 
-**Multi-Tenant Architecture**:
-- All tables include `organizationId` for data isolation
-- Row Level Security policies ensure users only access their organization's data
-- Helper functions in database to get user's organization from JWT tokens
-
-**Schema Design** (`shared/schema.ts`):
-
-```
-organizations
-- id (UUID, primary key)
-- name (text)
-- createdAt (timestamp)
-
-user_organizations
-- id (UUID, primary key)
-- userId (UUID, foreign key to auth.users)
-- organizationId (UUID, foreign key to organizations)
-- role (text) - 'admin' or 'member'
-- createdAt (timestamp)
-
-stores
-- id (UUID, primary key)
-- organizationId (UUID, foreign key to organizations)
-- name, address (text)
-- population, averageAge (integer)
-- averageIncome, averageRent (real)
-- potentialScore (integer) - AI-calculated viability score
-
-events
-- id (UUID, primary key)
-- organizationId (UUID, foreign key to organizations)
-- storeId (foreign key to stores)
-- manager, status (text)
-- startDate, endDate (timestamp)
-- estimatedCost, actualProfit (integer)
-- googleCalendarEventId (text, optional)
-
-costs
-- id (UUID, primary key)
-- organizationId (UUID, foreign key to organizations)
-- eventId (foreign key to events)
-- category, item (text) - e.g., "固定費", "会場費"
-- amount (integer)
-
-registered_stores
-- id (UUID, primary key)
-- organizationId (UUID, foreign key to organizations)
-- placeId, name, address (text)
-- latitude, longitude (real)
-- phoneNumber, website (text, optional)
-- openingHours (text array)
-- registeredAt (timestamp)
-```
-
-**Schema Validation**: Zod schemas auto-generated from Drizzle tables using `drizzle-zod`
-- Type-safe insert operations
-- Runtime validation on API endpoints
-
-**Migrations**: Drizzle Kit manages schema migrations in `/migrations` directory
-
-### External Dependencies
-
-**AI Service**: Google Gemini API (`@google/genai`)
-- Used for regional demographic analysis and data enrichment
-- Provides fallback when e-Stat official data unavailable
-- Enriches official data with AI-estimated metrics (income, foreigner ratio)
-- Requires `GEMINI_API_KEY` environment variable
-
-**Official Statistics**: e-Stat API (Statistics Bureau of Japan)
-- Primary source for official demographic data
-- Provides population, age distribution, gender ratio
-- Requires `ESTAT_API_KEY` environment variable (optional)
-- Free registration at https://www.e-stat.go.jp/
-- System gracefully degrades to Gemini-only if not configured
-
-**Maps Integration**: Google Maps API (`@react-google-maps/api`)
-- Geocoding for address lookups
-- Store location visualization with interactive markers
-- Nearby store search using Places API
-- Requires `VITE_GOOGLE_MAPS_API_KEY` environment variable
-
-**Calendar Integration**: Google Calendar
-- Event URLs auto-generated for one-click calendar additions
-- Format: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=...`
-- No OAuth - uses public calendar URL scheme
-
-**Data Visualization**: Recharts library
-- Bar charts for store performance analysis
-- Responsive containers for dashboard KPIs
-- Custom styling to match design system
-
-**Date Handling**: 
-- `date-fns` for date formatting and manipulation (Japanese locale support)
-- `react-big-calendar` for calendar view component
-
-**Development Tools**:
-- Replit-specific plugins for runtime error overlay and dev banner
-- TypeScript with strict mode enabled
-- ESLint/Prettier configuration via Tailwind and PostCSS
-
-**Session Management**: `connect-pg-simple` for PostgreSQL-backed session storage (configured but authentication not yet implemented)
+- **AI Service**: Google Gemini API (`@google/genai`) for regional demographic analysis and data enrichment.
+- **Official Statistics**: e-Stat API (Statistics Bureau of Japan) for primary demographic data, with graceful degradation if not configured.
+- **Maps Integration**: Google Maps API (`@react-google-maps/api`) for geocoding, store visualization, and nearby store searches.
+- **Calendar Integration**: Google Calendar for event scheduling via public calendar URLs.
+- **Data Visualization**: Recharts library for dashboard KPIs and store performance analysis.
+- **Date Handling**: `date-fns` for date manipulation and `react-big-calendar` for calendar views.
+- **Database**: Supabase PostgreSQL for managed database services.
