@@ -392,6 +392,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Google Maps API key not configured" });
       }
 
+      // Log API usage
+      const { logApiUsage } = await import("./utils/apiLogger");
+      await logApiUsage(
+        req.organizationId!,
+        "google_places",
+        "nearbysearch",
+        { latitude, longitude, radius }
+      );
+
       const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&type=supermarket&language=ja&key=${apiKey}`;
       const nearbyResponse = await fetch(nearbyUrl);
       const nearbyData = await nearbyResponse.json();
@@ -406,6 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { calculateStoreRank } = await import("./utils/rankCalculator");
       const { fetchRegionDemographics } = await import("./services/regionDataService");
       
+      let geminiCallCount = 0;
       const supermarketsWithRanking = await Promise.all(
         results.slice(0, 20).map(async (place: any) => {
           let rank = null;
@@ -428,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (demographics && demographics.region && Object.keys(demographics).length > 1) {
                 demographicData = demographics;
+                geminiCallCount++;
                 
                 // Calculate rank based on demographics
                 const rankingResult = calculateStoreRank(demographics as import("@shared/schema").RegionDemographics);
@@ -454,6 +465,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
+
+      // Log Gemini API usage
+      if (geminiCallCount > 0) {
+        await logApiUsage(
+          req.organizationId!,
+          "google_gemini",
+          "generateContent",
+          { callCount: geminiCallCount }
+        );
+      }
 
       res.json({ supermarkets: supermarketsWithRanking });
     } catch (error: any) {
