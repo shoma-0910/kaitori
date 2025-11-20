@@ -264,19 +264,8 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     }
   }, [mapInstance, searchNearbySupermarkets]);
 
-  // autoShowMapがtrueの場合、マップロード時に自動的にスーパーを検索
-  useEffect(() => {
-    if (autoShowMap && mapInstance && nearbyPlaces.length === 0 && !searchingNearby) {
-      const searchId = `auto-${Date.now()}`;
-      currentSearchRef.current = searchId;
-      setSearchingNearby(true);
-      
-      const location = new google.maps.LatLng(defaultCenter.lat, defaultCenter.lng);
-      lastSearchLocationRef.current = { lat: defaultCenter.lat, lng: defaultCenter.lng };
-      lastSearchZoomRef.current = mapInstance.getZoom() || 11;
-      searchNearbySupermarkets(location, mapInstance, searchId);
-    }
-  }, [autoShowMap, mapInstance, nearbyPlaces.length, searchingNearby, searchNearbySupermarkets]);
+  // 自動検索は無効化（コスト削減のため）
+  // ユーザーが手動で「この範囲を検索」ボタンをクリックした時のみ検索を実行
 
   // 2つの位置間の距離を計算（メートル単位）
   const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -294,65 +283,11 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     return R * c; // メートル単位の距離
   }, []);
 
-  // マップの操作が完了したときに周辺のスーパーを検索
+  // マップの操作が完了したときの処理（自動検索は無効化）
   const handleMapIdle = useCallback(() => {
-    if (!mapInstance || !showMap || searchingNearby) return;
-
-    // タイムアウトをクリア
-    if (idleTimeoutRef.current) {
-      clearTimeout(idleTimeoutRef.current);
-    }
-
-    // デバウンス: 500ms後に検索を実行
-    idleTimeoutRef.current = setTimeout(() => {
-      const center = mapInstance.getCenter();
-      if (!center) return;
-
-      const currentLat = center.lat();
-      const currentLng = center.lng();
-      const currentZoom = mapInstance.getZoom() || 11;
-
-      let shouldSearch = false;
-
-      // ズームレベルが変わった場合は常に検索
-      if (lastSearchZoomRef.current !== null && Math.abs(currentZoom - lastSearchZoomRef.current) >= 1) {
-        shouldSearch = true;
-      }
-      
-      // ズームが変わっていない場合は、位置の変化をチェック
-      if (!shouldSearch && lastSearchLocationRef.current) {
-        const distance = calculateDistance(
-          lastSearchLocationRef.current.lat,
-          lastSearchLocationRef.current.lng,
-          currentLat,
-          currentLng
-        );
-
-        // 前回の検索位置から一定距離以上移動している場合
-        const minDistance = currentZoom >= 14 ? 300 : 500;
-        if (distance >= minDistance) {
-          shouldSearch = true;
-        }
-      }
-
-      // 初回検索（まだ一度も検索していない場合）
-      if (!lastSearchLocationRef.current || !lastSearchZoomRef.current) {
-        shouldSearch = true;
-      }
-
-      // 検索を実行
-      if (shouldSearch) {
-        const searchId = `idle-${Date.now()}`;
-        currentSearchRef.current = searchId;
-        setSearchingNearby(true);
-
-        const location = new google.maps.LatLng(currentLat, currentLng);
-        lastSearchLocationRef.current = { lat: currentLat, lng: currentLng };
-        lastSearchZoomRef.current = currentZoom;
-        searchNearbySupermarkets(location, mapInstance, searchId);
-      }
-    }, 500);
-  }, [mapInstance, showMap, searchingNearby, calculateDistance, searchNearbySupermarkets]);
+    // 自動検索は無効化（コスト削減のため）
+    // ユーザーが手動で「この範囲を検索」ボタンをクリックした時のみ検索を実行
+  }, []);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery || !isLoaded) return;
