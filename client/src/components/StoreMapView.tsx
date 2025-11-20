@@ -755,7 +755,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                                 </span>
                               </div>
                             )}
-                            {place.elderlyFemaleRatio !== undefined && (
+                            {place.elderlyFemaleRatio != null && (
                               <p className="text-xs">
                                 60歳以上女性: {place.elderlyFemaleRatio.toFixed(1)}%
                               </p>
@@ -843,7 +843,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                             <p className="text-xs text-muted-foreground" data-testid={`text-nearby-address-${index}`}>
                               {place.address}
                             </p>
-                            {place.elderlyFemaleRatio !== undefined && (
+                            {place.elderlyFemaleRatio != null && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 60歳以上女性: {place.elderlyFemaleRatio.toFixed(1)}%
                               </p>
