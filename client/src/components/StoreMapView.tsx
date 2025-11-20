@@ -1,11 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star, Filter, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -15,6 +16,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { RegisteredStore } from "@shared/schema";
@@ -64,11 +70,21 @@ interface NearbyFacility {
   openNow?: boolean;
 }
 
+export interface DemographicFilters {
+  averageAge?: { min: number; max: number };
+  averageIncome?: { min: number; max: number };
+  ageDistribution?: { range: string; minPercentage: number };
+  genderRatio?: { maleMin: number; maleMax: number };
+  populationDensity?: { min: number; max: number };
+}
+
 interface StoreMapViewProps {
   stores: Store[];
   onStoreSelect: (store: Store) => void;
   selectedStore: Store | null;
   autoShowMap?: boolean;
+  demographicFilters?: DemographicFilters;
+  onFiltersChange?: (filters: DemographicFilters) => void;
 }
 
 const mapContainerStyle = {
@@ -81,7 +97,14 @@ const defaultCenter = {
   lng: 135.5023,
 };
 
-export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap = false }: StoreMapViewProps) {
+export function StoreMapView({ 
+  stores, 
+  onStoreSelect, 
+  selectedStore, 
+  autoShowMap = false,
+  demographicFilters = {},
+  onFiltersChange
+}: StoreMapViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [mapZoom, setMapZoom] = useState(11);
@@ -532,6 +555,68 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     return registeredStores.some(store => store.placeId === placeId);
   }, [registeredStores]);
 
+  const filteredNearbyPlaces = useMemo(() => {
+    if (!nearbyPlaces.length) return nearbyPlaces;
+    if (!demographicFilters || Object.keys(demographicFilters).length === 0) return nearbyPlaces;
+
+    return nearbyPlaces.filter(place => {
+      if (!place.demographicData) return true;
+
+      const data = place.demographicData;
+
+      if (demographicFilters.averageAge) {
+        const avgAge = data.averageAge?.value;
+        if (avgAge !== undefined) {
+          if (avgAge < demographicFilters.averageAge.min || avgAge > demographicFilters.averageAge.max) {
+            return false;
+          }
+        }
+      }
+
+      if (demographicFilters.averageIncome) {
+        const avgIncome = data.averageIncome?.value;
+        if (avgIncome !== undefined) {
+          if (avgIncome < demographicFilters.averageIncome.min || avgIncome > demographicFilters.averageIncome.max) {
+            return false;
+          }
+        }
+      }
+
+      if (demographicFilters.ageDistribution) {
+        const distribution = data.ageDistribution?.value;
+        if (distribution && Array.isArray(distribution)) {
+          const targetRange = distribution.find((d: any) => d.range === demographicFilters.ageDistribution!.range);
+          if (targetRange) {
+            if (targetRange.percentage < demographicFilters.ageDistribution.minPercentage) {
+              return false;
+            }
+          }
+        }
+      }
+
+      if (demographicFilters.genderRatio) {
+        const genderRatio = data.genderRatio?.value;
+        if (genderRatio?.male !== undefined) {
+          const malePercentage = genderRatio.male;
+          if (malePercentage < demographicFilters.genderRatio.maleMin || malePercentage > demographicFilters.genderRatio.maleMax) {
+            return false;
+          }
+        }
+      }
+
+      if (demographicFilters.populationDensity) {
+        const population = data.population?.value;
+        if (population !== undefined) {
+          if (population < demographicFilters.populationDensity.min || population > demographicFilters.populationDensity.max) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [nearbyPlaces, demographicFilters]);
+
   if (loadError) {
     return (
       <Card>
@@ -618,6 +703,172 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
         </CardContent>
       </Card>
 
+      {showMap && onFiltersChange && nearbyPlaces.length > 0 && (
+        <Card className="neomorph-card">
+          <Collapsible>
+            <CardHeader className="p-4">
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover-elevate active-elevate-2 p-2 rounded-md" data-testid="button-toggle-filters">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <CardTitle className="text-base">人口統計フィルター</CardTitle>
+                </div>
+                <Badge variant="outline" data-testid="badge-filter-count">
+                  {filteredNearbyPlaces.length} / {nearbyPlaces.length} 件表示
+                </Badge>
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="p-4 pt-0 space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">平均年齢</Label>
+                      {demographicFilters.averageAge && (
+                        <span className="text-xs text-muted-foreground">
+                          {demographicFilters.averageAge.min}歳 - {demographicFilters.averageAge.max}歳
+                        </span>
+                      )}
+                    </div>
+                    <Slider
+                      min={20}
+                      max={100}
+                      step={1}
+                      value={[
+                        demographicFilters.averageAge?.min ?? 20,
+                        demographicFilters.averageAge?.max ?? 100
+                      ]}
+                      onValueChange={([min, max]) => {
+                        onFiltersChange({
+                          ...demographicFilters,
+                          averageAge: { min, max }
+                        });
+                      }}
+                      data-testid="slider-average-age"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">平均年収</Label>
+                      {demographicFilters.averageIncome && (
+                        <span className="text-xs text-muted-foreground">
+                          {demographicFilters.averageIncome.min}万円 - {demographicFilters.averageIncome.max}万円
+                        </span>
+                      )}
+                    </div>
+                    <Slider
+                      min={200}
+                      max={1000}
+                      step={10}
+                      value={[
+                        demographicFilters.averageIncome?.min ?? 200,
+                        demographicFilters.averageIncome?.max ?? 1000
+                      ]}
+                      onValueChange={([min, max]) => {
+                        onFiltersChange({
+                          ...demographicFilters,
+                          averageIncome: { min, max }
+                        });
+                      }}
+                      data-testid="slider-average-income"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">60歳以上人口比率（最低）</Label>
+                      {demographicFilters.ageDistribution && (
+                        <span className="text-xs text-muted-foreground">
+                          {demographicFilters.ageDistribution.minPercentage}%以上
+                        </span>
+                      )}
+                    </div>
+                    <Slider
+                      min={0}
+                      max={50}
+                      step={1}
+                      value={[demographicFilters.ageDistribution?.minPercentage ?? 0]}
+                      onValueChange={([minPercentage]) => {
+                        onFiltersChange({
+                          ...demographicFilters,
+                          ageDistribution: { range: "60+", minPercentage }
+                        });
+                      }}
+                      data-testid="slider-age-distribution"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">男性比率</Label>
+                      {demographicFilters.genderRatio && (
+                        <span className="text-xs text-muted-foreground">
+                          {demographicFilters.genderRatio.maleMin}% - {demographicFilters.genderRatio.maleMax}%
+                        </span>
+                      )}
+                    </div>
+                    <Slider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[
+                        demographicFilters.genderRatio?.maleMin ?? 0,
+                        demographicFilters.genderRatio?.maleMax ?? 100
+                      ]}
+                      onValueChange={([maleMin, maleMax]) => {
+                        onFiltersChange({
+                          ...demographicFilters,
+                          genderRatio: { maleMin, maleMax }
+                        });
+                      }}
+                      data-testid="slider-gender-ratio"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">人口</Label>
+                      {demographicFilters.populationDensity && (
+                        <span className="text-xs text-muted-foreground">
+                          {demographicFilters.populationDensity.min.toLocaleString()}人 - {demographicFilters.populationDensity.max.toLocaleString()}人
+                        </span>
+                      )}
+                    </div>
+                    <Slider
+                      min={0}
+                      max={500000}
+                      step={10000}
+                      value={[
+                        demographicFilters.populationDensity?.min ?? 0,
+                        demographicFilters.populationDensity?.max ?? 500000
+                      ]}
+                      onValueChange={([min, max]) => {
+                        onFiltersChange({
+                          ...demographicFilters,
+                          populationDensity: { min, max }
+                        });
+                      }}
+                      data-testid="slider-population-density"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onFiltersChange({})}
+                  className="w-full"
+                  data-testid="button-clear-filters"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  フィルターをクリア
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      )}
+
       {showMap && (
         <>
           <Card className="neomorph-card">
@@ -679,7 +930,7 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
                 ))}
 
                 {/* 周辺のスーパーマーケット（ランク別色分け） */}
-                {nearbyPlaces.map((place) => {
+                {filteredNearbyPlaces.map((place) => {
                   const isRegistered = registeredStores.some(
                     (store) => store.placeId === place.placeId
                   );
@@ -750,14 +1001,14 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
             </CardContent>
           </Card>
 
-          {nearbyPlaces.length > 0 && (
+          {filteredNearbyPlaces.length > 0 && (
             <Card className="neomorph-card">
               <CardHeader>
                 <CardTitle className="text-lg">周辺スーパー一覧</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2" data-testid="list-nearby-supermarkets">
-                  {nearbyPlaces.map((place, index) => {
+                  {filteredNearbyPlaces.map((place, index) => {
                     const isRegistered = registeredStores.some(
                       (store) => store.placeId === place.placeId
                     );
