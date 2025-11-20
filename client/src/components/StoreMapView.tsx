@@ -289,6 +289,27 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
     // ユーザーが手動で「この範囲を検索」ボタンをクリックした時のみ検索を実行
   }, []);
 
+  // 手動検索: 現在の地図範囲でスーパーを検索
+  const handleManualSearch = useCallback(() => {
+    if (!mapInstance || searchingNearby) return;
+
+    const center = mapInstance.getCenter();
+    if (!center) return;
+
+    const currentLat = center.lat();
+    const currentLng = center.lng();
+    const currentZoom = mapInstance.getZoom() || 11;
+
+    const searchId = `manual-${Date.now()}`;
+    currentSearchRef.current = searchId;
+    setSearchingNearby(true);
+
+    const location = new google.maps.LatLng(currentLat, currentLng);
+    lastSearchLocationRef.current = { lat: currentLat, lng: currentLng };
+    lastSearchZoomRef.current = currentZoom;
+    searchNearbySupermarkets(location, mapInstance, searchId);
+  }, [mapInstance, searchingNearby, searchNearbySupermarkets]);
+
   const handleSearch = useCallback(async () => {
     if (!searchQuery || !isLoaded) return;
 
@@ -600,7 +621,28 @@ export function StoreMapView({ stores, onStoreSelect, selectedStore, autoShowMap
       {showMap && (
         <>
           <Card className="neomorph-card">
-            <CardContent className="p-0 h-[400px] md:h-[600px]">
+            <CardContent className="p-0 h-[400px] md:h-[600px] relative">
+              {/* 手動検索ボタン */}
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+                <Button
+                  onClick={handleManualSearch}
+                  disabled={searchingNearby}
+                  className="shadow-lg"
+                  data-testid="button-manual-search"
+                >
+                  {searchingNearby ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      検索中...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      この範囲を検索
+                    </>
+                  )}
+                </Button>
+              </div>
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}
