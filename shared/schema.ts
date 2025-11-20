@@ -155,3 +155,16 @@ export const regionDemographicsSchema = z.object({
 });
 
 export type RegionDemographics = z.infer<typeof regionDemographicsSchema>;
+
+export const apiUsageLogs = pgTable("api_usage_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  apiType: text("api_type").notNull(),
+  endpoint: text("endpoint").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  metadata: text("metadata"),
+});
+
+export const insertApiUsageLogSchema = createInsertSchema(apiUsageLogs).omit({ id: true, timestamp: true });
+export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
+export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;

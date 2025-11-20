@@ -7,13 +7,16 @@ import {
   type InsertCost,
   type RegisteredStore,
   type InsertRegisteredStore,
+  type ApiUsageLog,
+  type InsertApiUsageLog,
   stores,
   events,
   costs,
   registeredStores,
+  apiUsageLogs,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Stores
@@ -42,6 +45,10 @@ export interface IStorage {
   getRegisteredStoreByPlaceId(placeId: string, organizationId: string): Promise<RegisteredStore | undefined>;
   createRegisteredStore(store: InsertRegisteredStore): Promise<RegisteredStore>;
   deleteRegisteredStore(id: string, organizationId: string): Promise<boolean>;
+
+  // API Usage Logs
+  createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog>;
+  getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -157,6 +164,30 @@ export class DbStorage implements IStorage {
     const result = await db.delete(registeredStores)
       .where(and(eq(registeredStores.id, id), eq(registeredStores.organizationId, organizationId)));
     return result.rowCount! > 0;
+  }
+
+  // API Usage Logs
+  async createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog> {
+    const result = await db.insert(apiUsageLogs).values(log).returning();
+    return result[0];
+  }
+
+  async getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]> {
+    if (startDate && endDate) {
+      return await db.select().from(apiUsageLogs)
+        .where(
+          and(
+            eq(apiUsageLogs.organizationId, organizationId),
+            gte(apiUsageLogs.timestamp, startDate),
+            lte(apiUsageLogs.timestamp, endDate)
+          )
+        )
+        .orderBy(desc(apiUsageLogs.timestamp));
+    }
+    
+    return await db.select().from(apiUsageLogs)
+      .where(eq(apiUsageLogs.organizationId, organizationId))
+      .orderBy(desc(apiUsageLogs.timestamp));
   }
 }
 
