@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Trash2, Pencil, Save, X, UserPlus, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, Trash2, Pencil, Save, X, UserPlus, Users, ChevronDown, ChevronUp, Activity } from "lucide-react";
 
 interface OrganizationWithUser {
   id: string;
@@ -27,12 +27,34 @@ interface OrganizationMember {
   createdAt: string;
 }
 
+interface ApiUsageStats {
+  organizationId: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  usage: {
+    googlePlaces: {
+      callCount: number;
+      estimatedCost: number;
+    };
+    googleGemini: {
+      callCount: number;
+      estimatedCost: number;
+    };
+    total: {
+      estimatedCost: number;
+    };
+  };
+}
+
 function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(org.name);
   const [showMembers, setShowMembers] = useState(false);
   const [showMemberForm, setShowMemberForm] = useState(false);
+  const [showApiUsage, setShowApiUsage] = useState(false);
 
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberPassword, setNewMemberPassword] = useState("");
@@ -41,6 +63,11 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   const { data: members, isLoading: membersLoading } = useQuery<OrganizationMember[]>({
     queryKey: [`/api/admin/organizations/${org.id}/members`],
     enabled: showMembers,
+  });
+
+  const { data: apiUsage, isLoading: apiUsageLoading } = useQuery<ApiUsageStats>({
+    queryKey: [`/api/admin/organizations/${org.id}/api-usage`],
+    enabled: showApiUsage,
   });
 
   const updateOrgMutation = useMutation({
@@ -221,6 +248,16 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
               <Users className="h-4 w-4 mr-2" />
               メンバー管理
               {showMembers ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowApiUsage(!showApiUsage)}
+              data-testid={`button-toggle-api-usage-${org.id}`}
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              API使用状況
+              {showApiUsage ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
             </Button>
             <Button
               size="icon"
@@ -418,6 +455,86 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
           ) : (
             <div className="text-center py-4 text-muted-foreground">
               メンバーがいません
+            </div>
+          )}
+        </div>
+      )}
+
+      {showApiUsage && (
+        <div className="border-t px-4 py-4 bg-muted/30">
+          <div className="flex items-center mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              API使用状況（過去30日間）
+            </h3>
+          </div>
+
+          {apiUsageLoading ? (
+            <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+          ) : apiUsage ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Google Places API
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" data-testid={`text-places-calls-${org.id}`}>
+                      {apiUsage.usage.googlePlaces.callCount.toLocaleString()} 回
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      推定コスト: ¥{apiUsage.usage.googlePlaces.estimatedCost.toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Google Gemini API
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" data-testid={`text-gemini-calls-${org.id}`}>
+                      {apiUsage.usage.googleGemini.callCount.toLocaleString()} 回
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      推定コスト: ¥{apiUsage.usage.googleGemini.estimatedCost.toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      合計推定コスト
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary" data-testid={`text-total-cost-${org.id}`}>
+                      ¥{apiUsage.usage.total.estimatedCost.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(apiUsage.period.start).toLocaleDateString('ja-JP')} 〜 {new Date(apiUsage.period.end).toLocaleDateString('ja-JP')}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-background p-3 rounded-md border">
+                <strong>コスト計算について:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Google Places API: ¥40 / 1,000リクエスト（推定値）</li>
+                  <li>Google Gemini API: ¥0.5 / リクエスト（推定値）</li>
+                  <li>実際の料金は使用状況や契約内容により異なる場合があります</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              使用データがありません
             </div>
           )}
         </div>

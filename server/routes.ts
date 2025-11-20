@@ -1026,6 +1026,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get API usage statistics for an organization
+  app.get("/api/admin/organizations/:id/api-usage", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const organizationId = req.params.id;
+
+      // Get usage logs from the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { apiUsageLogs } = await import("@shared/schema");
+      const { gte } = await import("drizzle-orm");
+      
+      const logs = await db.select()
+        .from(apiUsageLogs)
+        .where(
+          and(
+            eq(apiUsageLogs.organizationId, organizationId),
+            gte(apiUsageLogs.timestamp, thirtyDaysAgo)
+          )
+        )
+        .orderBy(apiUsageLogs.timestamp);
+
+      // Calculate statistics and estimated costs
+      let placesCallCount = 0;
+      let geminiCallCount = 0;
+
+      logs.forEach(log => {
+        if (log.apiType === 'google_places') {
+          placesCallCount++;
+        } else if (log.apiType === 'google_gemini') {
+          const metadata = log.metadata as any;
+          geminiCallCount += metadata?.callCount || 1;
+        }
+      });
+
+      // Cost estimation (in JPY)
+      // Google Places API: ~¥40 per 1000 requests
+      // Gemini API: ~¥0.5 per request (estimated)
+      const placesEstimatedCost = (placesCallCount / 1000) * 40;
+      const geminiEstimatedCost = geminiCallCount * 0.5;
+      const totalEstimatedCost = placesEstimatedCost + geminiEstimatedCost;
+
+      res.json({
+        organizationId,
+        period: {
+          start: thirtyDaysAgo.toISOString(),
+          end: new Date().toISOString(),
+        },
+        usage: {
+          googlePlaces: {
+            callCount: placesCallCount,
+            estimatedCost: Math.round(placesEstimatedCost),
+          },
+          googleGemini: {
+            callCount: geminiCallCount,
+            estimatedCost: Math.round(geminiEstimatedCost),
+          },
+          total: {
+            estimatedCost: Math.round(totalEstimatedCost),
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("Get API usage error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
