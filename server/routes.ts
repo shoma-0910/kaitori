@@ -1033,7 +1033,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Super admin access required" });
       }
 
-      const organizationId = req.params.id;
+      // Verify the requested organization ID matches a valid organization
+      const requestedOrgId = req.params.id;
+      const orgExists = await db.select()
+        .from(organizations)
+        .where(eq(organizations.id, requestedOrgId))
+        .limit(1);
+
+      if (!orgExists || orgExists.length === 0) {
+        return res.status(404).json({ error: "Organization not found" });
+      }
+
+      const organizationId = requestedOrgId;
 
       // Get usage logs from the last 30 days
       const thirtyDaysAgo = new Date();
