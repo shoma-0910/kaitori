@@ -397,11 +397,11 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
               {members.map((member) => (
                 <div
                   key={member.userId}
-                  className="flex items-center justify-between p-3 border rounded-md bg-background"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border rounded-md bg-background gap-3"
                   data-testid={`member-item-${member.userId}`}
                 >
-                  <div className="flex-1">
-                    <div className="font-medium">{member.email || "メールなし"}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{member.email || "メールなし"}</div>
                     <div className="flex gap-2 mt-1">
                       {member.isSuperAdmin && (
                         <Badge variant="destructive">スーパー管理者</Badge>
@@ -409,14 +409,14 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                     </div>
                   </div>
                   {!member.isSuperAdmin && (
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center w-full sm:w-auto flex-shrink-0">
                       <Select 
                         value={member.role} 
                         onValueChange={(value: "admin" | "member") => 
                           updateMemberRoleMutation.mutate({ userId: member.userId, role: value })
                         }
                       >
-                        <SelectTrigger className="w-32" data-testid={`select-role-${member.userId}`}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-32" data-testid={`select-role-${member.userId}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
