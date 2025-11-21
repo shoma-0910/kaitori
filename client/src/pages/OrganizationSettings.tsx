@@ -192,42 +192,44 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
 
   return (
     <div className="border rounded-md" data-testid={`org-item-${org.id}`}>
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-4 flex-1">
-          <Building2 className="h-8 w-8 text-muted-foreground" />
-          <div className="flex-1">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between p-4 gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Building2 className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+          <div className="flex-1 min-w-0">
             {isEditing ? (
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                 <Input
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
-                  className="max-w-md"
+                  className="flex-1 sm:max-w-md"
                   data-testid={`input-edit-org-${org.id}`}
                 />
-                <Button
-                  size="icon"
-                  onClick={handleSaveEdit}
-                  disabled={updateOrgMutation.isPending}
-                  data-testid={`button-save-org-${org.id}`}
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditedName(org.name);
-                  }}
-                  disabled={updateOrgMutation.isPending}
-                  data-testid={`button-cancel-edit-org-${org.id}`}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="icon"
+                    onClick={handleSaveEdit}
+                    disabled={updateOrgMutation.isPending}
+                    data-testid={`button-save-org-${org.id}`}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditedName(org.name);
+                    }}
+                    disabled={updateOrgMutation.isPending}
+                    data-testid={`button-cancel-edit-org-${org.id}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
-                <div className="font-semibold" data-testid={`text-org-name-${org.id}`}>
+                <div className="font-semibold truncate" data-testid={`text-org-name-${org.id}`}>
                   {org.name}
                 </div>
                 <div className="text-sm text-muted-foreground" data-testid={`text-org-email-${org.id}`}>
@@ -238,26 +240,28 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
           </div>
         </div>
         {!isEditing && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowMembers(!showMembers)}
+              className="w-full sm:w-auto"
               data-testid={`button-toggle-members-${org.id}`}
             >
-              <Users className="h-4 w-4 mr-2" />
-              メンバー管理
-              {showMembers ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+              <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">メンバー管理</span>
+              {showMembers ? <ChevronUp className="h-4 w-4 ml-2 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowApiUsage(!showApiUsage)}
+              className="w-full sm:w-auto"
               data-testid={`button-toggle-api-usage-${org.id}`}
             >
-              <Activity className="h-4 w-4 mr-2" />
-              API使用状況
-              {showApiUsage ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+              <Activity className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="truncate">API使用状況</span>
+              {showApiUsage ? <ChevronUp className="h-4 w-4 ml-2 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />}
             </Button>
             <Button
               size="icon"
