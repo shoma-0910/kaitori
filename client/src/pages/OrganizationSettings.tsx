@@ -616,14 +616,15 @@ export default function OrganizationSettings() {
       </div>
 
       <Card data-testid="card-add-organization">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <div>
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1">
             <CardTitle>新規組織の作成</CardTitle>
             <CardDescription>新しい組織アカウントを作成します</CardDescription>
           </div>
           {!showAddForm && (
             <Button
               onClick={() => setShowAddForm(true)}
+              className="w-full md:w-auto"
               data-testid="button-show-add-form"
             >
               <UserPlus className="h-4 w-4 mr-2" />
