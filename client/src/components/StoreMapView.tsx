@@ -705,167 +705,163 @@ export function StoreMapView({
 
       {showMap && onFiltersChange && nearbyPlaces.length > 0 && (
         <Card className="neomorph-card">
-          <Collapsible>
-            <CardHeader className="p-4">
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover-elevate active-elevate-2 p-2 rounded-md" data-testid="button-toggle-filters">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  <CardTitle className="text-base">人口統計フィルター</CardTitle>
+          <CardHeader className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <CardTitle className="text-base">人口統計フィルター</CardTitle>
+              </div>
+              <Badge variant="outline" data-testid="badge-filter-count">
+                {filteredNearbyPlaces.length} / {nearbyPlaces.length} 件表示
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">平均年齢</Label>
+                  {demographicFilters.averageAge && (
+                    <span className="text-xs text-muted-foreground">
+                      {demographicFilters.averageAge.min}歳 - {demographicFilters.averageAge.max}歳
+                    </span>
+                  )}
                 </div>
-                <Badge variant="outline" data-testid="badge-filter-count">
-                  {filteredNearbyPlaces.length} / {nearbyPlaces.length} 件表示
-                </Badge>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">平均年齢</Label>
-                      {demographicFilters.averageAge && (
-                        <span className="text-xs text-muted-foreground">
-                          {demographicFilters.averageAge.min}歳 - {demographicFilters.averageAge.max}歳
-                        </span>
-                      )}
-                    </div>
-                    <Slider
-                      min={20}
-                      max={100}
-                      step={1}
-                      value={[
-                        demographicFilters.averageAge?.min ?? 20,
-                        demographicFilters.averageAge?.max ?? 100
-                      ]}
-                      onValueChange={([min, max]) => {
-                        onFiltersChange({
-                          ...demographicFilters,
-                          averageAge: { min, max }
-                        });
-                      }}
-                      data-testid="slider-average-age"
-                    />
-                  </div>
+                <Slider
+                  min={20}
+                  max={100}
+                  step={1}
+                  value={[
+                    demographicFilters.averageAge?.min ?? 20,
+                    demographicFilters.averageAge?.max ?? 100
+                  ]}
+                  onValueChange={([min, max]) => {
+                    onFiltersChange({
+                      ...demographicFilters,
+                      averageAge: { min, max }
+                    });
+                  }}
+                  data-testid="slider-average-age"
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">平均年収</Label>
-                      {demographicFilters.averageIncome && (
-                        <span className="text-xs text-muted-foreground">
-                          {demographicFilters.averageIncome.min}万円 - {demographicFilters.averageIncome.max}万円
-                        </span>
-                      )}
-                    </div>
-                    <Slider
-                      min={200}
-                      max={1000}
-                      step={10}
-                      value={[
-                        demographicFilters.averageIncome?.min ?? 200,
-                        demographicFilters.averageIncome?.max ?? 1000
-                      ]}
-                      onValueChange={([min, max]) => {
-                        onFiltersChange({
-                          ...demographicFilters,
-                          averageIncome: { min, max }
-                        });
-                      }}
-                      data-testid="slider-average-income"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">60歳以上人口比率（最低）</Label>
-                      {demographicFilters.ageDistribution && (
-                        <span className="text-xs text-muted-foreground">
-                          {demographicFilters.ageDistribution.minPercentage}%以上
-                        </span>
-                      )}
-                    </div>
-                    <Slider
-                      min={0}
-                      max={50}
-                      step={1}
-                      value={[demographicFilters.ageDistribution?.minPercentage ?? 0]}
-                      onValueChange={([minPercentage]) => {
-                        onFiltersChange({
-                          ...demographicFilters,
-                          ageDistribution: { range: "60+", minPercentage }
-                        });
-                      }}
-                      data-testid="slider-age-distribution"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">男性比率</Label>
-                      {demographicFilters.genderRatio && (
-                        <span className="text-xs text-muted-foreground">
-                          {demographicFilters.genderRatio.maleMin}% - {demographicFilters.genderRatio.maleMax}%
-                        </span>
-                      )}
-                    </div>
-                    <Slider
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={[
-                        demographicFilters.genderRatio?.maleMin ?? 0,
-                        demographicFilters.genderRatio?.maleMax ?? 100
-                      ]}
-                      onValueChange={([maleMin, maleMax]) => {
-                        onFiltersChange({
-                          ...demographicFilters,
-                          genderRatio: { maleMin, maleMax }
-                        });
-                      }}
-                      data-testid="slider-gender-ratio"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">人口</Label>
-                      {demographicFilters.populationDensity && (
-                        <span className="text-xs text-muted-foreground">
-                          {demographicFilters.populationDensity.min.toLocaleString()}人 - {demographicFilters.populationDensity.max.toLocaleString()}人
-                        </span>
-                      )}
-                    </div>
-                    <Slider
-                      min={0}
-                      max={500000}
-                      step={10000}
-                      value={[
-                        demographicFilters.populationDensity?.min ?? 0,
-                        demographicFilters.populationDensity?.max ?? 500000
-                      ]}
-                      onValueChange={([min, max]) => {
-                        onFiltersChange({
-                          ...demographicFilters,
-                          populationDensity: { min, max }
-                        });
-                      }}
-                      data-testid="slider-population-density"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">平均年収</Label>
+                  {demographicFilters.averageIncome && (
+                    <span className="text-xs text-muted-foreground">
+                      {demographicFilters.averageIncome.min}万円 - {demographicFilters.averageIncome.max}万円
+                    </span>
+                  )}
                 </div>
+                <Slider
+                  min={200}
+                  max={1000}
+                  step={10}
+                  value={[
+                    demographicFilters.averageIncome?.min ?? 200,
+                    demographicFilters.averageIncome?.max ?? 1000
+                  ]}
+                  onValueChange={([min, max]) => {
+                    onFiltersChange({
+                      ...demographicFilters,
+                      averageIncome: { min, max }
+                    });
+                  }}
+                  data-testid="slider-average-income"
+                />
+              </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onFiltersChange({})}
-                  className="w-full"
-                  data-testid="button-clear-filters"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  フィルターをクリア
-                </Button>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">60歳以上人口比率（最低）</Label>
+                  {demographicFilters.ageDistribution && (
+                    <span className="text-xs text-muted-foreground">
+                      {demographicFilters.ageDistribution.minPercentage}%以上
+                    </span>
+                  )}
+                </div>
+                <Slider
+                  min={0}
+                  max={50}
+                  step={1}
+                  value={[demographicFilters.ageDistribution?.minPercentage ?? 0]}
+                  onValueChange={([minPercentage]) => {
+                    onFiltersChange({
+                      ...demographicFilters,
+                      ageDistribution: { range: "60+", minPercentage }
+                    });
+                  }}
+                  data-testid="slider-age-distribution"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">男性比率</Label>
+                  {demographicFilters.genderRatio && (
+                    <span className="text-xs text-muted-foreground">
+                      {demographicFilters.genderRatio.maleMin}% - {demographicFilters.genderRatio.maleMax}%
+                    </span>
+                  )}
+                </div>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[
+                    demographicFilters.genderRatio?.maleMin ?? 0,
+                    demographicFilters.genderRatio?.maleMax ?? 100
+                  ]}
+                  onValueChange={([maleMin, maleMax]) => {
+                    onFiltersChange({
+                      ...demographicFilters,
+                      genderRatio: { maleMin, maleMax }
+                    });
+                  }}
+                  data-testid="slider-gender-ratio"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">人口</Label>
+                  {demographicFilters.populationDensity && (
+                    <span className="text-xs text-muted-foreground">
+                      {demographicFilters.populationDensity.min.toLocaleString()}人 - {demographicFilters.populationDensity.max.toLocaleString()}人
+                    </span>
+                  )}
+                </div>
+                <Slider
+                  min={0}
+                  max={500000}
+                  step={10000}
+                  value={[
+                    demographicFilters.populationDensity?.min ?? 0,
+                    demographicFilters.populationDensity?.max ?? 500000
+                  ]}
+                  onValueChange={([min, max]) => {
+                    onFiltersChange({
+                      ...demographicFilters,
+                      populationDensity: { min, max }
+                    });
+                  }}
+                  data-testid="slider-population-density"
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onFiltersChange({})}
+              className="w-full"
+              data-testid="button-clear-filters"
+            >
+              <X className="mr-2 h-4 w-4" />
+              フィルターをクリア
+            </Button>
+          </CardContent>
         </Card>
       )}
 
