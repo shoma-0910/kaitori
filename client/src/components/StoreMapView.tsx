@@ -661,7 +661,7 @@ export function StoreMapView({
     <div className="space-y-4">
       {showMap && onFiltersChange && (
         <Card className="neomorph-card">
-          <CardHeader className="p-4">
+          <CardHeader className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
@@ -674,9 +674,9 @@ export function StoreMapView({
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
+          <CardContent className="p-3 pt-0 space-y-2">
+            <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">平均年齢</Label>
                   {demographicFilters.averageAge && (
@@ -703,7 +703,7 @@ export function StoreMapView({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">平均年収</Label>
                   {demographicFilters.averageIncome && (
@@ -730,7 +730,7 @@ export function StoreMapView({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">60歳以上人口比率（最低）</Label>
                   {demographicFilters.ageDistribution && (
@@ -754,7 +754,7 @@ export function StoreMapView({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">男性比率</Label>
                   {demographicFilters.genderRatio && (
@@ -781,7 +781,7 @@ export function StoreMapView({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">人口</Label>
                   {demographicFilters.populationDensity && (
@@ -813,7 +813,7 @@ export function StoreMapView({
               variant="outline"
               size="sm"
               onClick={() => onFiltersChange({})}
-              className="w-full"
+              className="w-full mt-1"
               data-testid="button-clear-filters"
             >
               <X className="mr-2 h-4 w-4" />
