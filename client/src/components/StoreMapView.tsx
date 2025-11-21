@@ -703,7 +703,7 @@ export function StoreMapView({
         </CardContent>
       </Card>
 
-      {showMap && onFiltersChange && nearbyPlaces.length > 0 && (
+      {showMap && onFiltersChange && (
         <Card className="neomorph-card">
           <CardHeader className="p-4">
             <div className="flex items-center justify-between">
@@ -711,9 +711,11 @@ export function StoreMapView({
                 <Filter className="w-4 h-4" />
                 <CardTitle className="text-base">人口統計フィルター</CardTitle>
               </div>
-              <Badge variant="outline" data-testid="badge-filter-count">
-                {filteredNearbyPlaces.length} / {nearbyPlaces.length} 件表示
-              </Badge>
+              {nearbyPlaces.length > 0 && (
+                <Badge variant="outline" data-testid="badge-filter-count">
+                  {filteredNearbyPlaces.length} / {nearbyPlaces.length} 件表示
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
