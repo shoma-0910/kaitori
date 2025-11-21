@@ -659,50 +659,6 @@ export function StoreMapView({
 
   return (
     <div className="space-y-4">
-      <Card className="neomorph-card">
-        <CardContent className="p-4">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Label htmlFor="search-location" className="sr-only">
-                地域を検索
-              </Label>
-              <Input
-                id="search-location"
-                placeholder="地域を検索（例：大阪市淀川区）"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                data-testid="input-map-search"
-              />
-            </div>
-            <Button
-              onClick={handleSearch}
-              disabled={!searchQuery || searchingNearby}
-              data-testid="button-map-search"
-            >
-              {searchingNearby ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  検索中
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  検索
-                </>
-              )}
-            </Button>
-          </div>
-          {showMap && nearbyPlaces.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline" className="bg-orange-500/10 border-orange-500" data-testid="badge-nearby-count">
-                周辺スーパー: {nearbyPlaces.length}件
-              </Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {showMap && onFiltersChange && (
         <Card className="neomorph-card">
           <CardHeader className="p-4">
