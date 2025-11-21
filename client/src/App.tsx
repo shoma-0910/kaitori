@@ -116,7 +116,7 @@ function AppContent() {
               <UserMenu />
             </div>
           </header>
-          <main className={`flex-1 overflow-auto ${isMapPage ? '' : 'p-8 md:p-8 p-4'}`}>
+          <main className={`flex-1 overflow-auto ${isMapPage ? '' : 'p-4 md:p-8'}`}>
             <Router />
           </main>
         </div>

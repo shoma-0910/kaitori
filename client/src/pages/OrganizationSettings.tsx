@@ -596,7 +596,7 @@ export default function OrganizationSettings() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div>
         <div className="animate-pulse">
           <div className="h-8 bg-muted rounded w-48 mb-6"></div>
           <div className="space-y-4">
@@ -609,7 +609,7 @@ export default function OrganizationSettings() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">会社管理</h1>
         <p className="text-muted-foreground">すべての組織アカウントとメンバーを管理します</p>
