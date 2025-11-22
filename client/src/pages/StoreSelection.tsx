@@ -378,7 +378,7 @@ export default function StoreSelection() {
               }
             }}
             selectedStore={selectedStore}
-            autoShowMap={true}
+            autoShowMap={false}
           />
         </CardContent>
       </Card>

@@ -659,6 +659,42 @@ export function StoreMapView({
 
   return (
     <div className="space-y-4">
+      {!showMap && (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="地域名を入力（例：大阪市）"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
+              data-testid="input-location-search"
+            />
+            <Button 
+              onClick={handleSearch} 
+              disabled={searchingNearby || !searchQuery.trim()}
+              data-testid="button-search-location"
+            >
+              {searchingNearby ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  検索中...
+                </>
+              ) : (
+                <>
+                  <Search className="mr-2 h-4 w-4" />
+                  検索
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {showMap && onFiltersChange && (
         <Card className="glass-card border-white/20 dark:border-white/10">
           <CardHeader className="p-3">
