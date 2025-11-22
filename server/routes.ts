@@ -473,7 +473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessibilityScore: score,
         nearestStationInfo: JSON.stringify(stationData),
         accessibilityCalculatedAt: new Date(),
-      });
+      } as any);
 
       res.json({
         accessibilityScore: score,

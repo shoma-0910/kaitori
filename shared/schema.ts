@@ -104,11 +104,15 @@ export const registeredStores = pgTable("registered_stores", {
   nearestStationInfo: text("nearest_station_info"),
   accessibilityCalculatedAt: timestamp("accessibility_calculated_at"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
+  // Note: accessibility_score, nearest_station_info, accessibility_calculated_at columns are nullable for backward compatibility
 });
 
 export const insertRegisteredStoreSchema = createInsertSchema(registeredStores).omit({ 
   id: true, 
-  registeredAt: true 
+  registeredAt: true,
+  accessibilityScore: true,
+  nearestStationInfo: true,
+  accessibilityCalculatedAt: true,
 }).extend({
   latitude: z.coerce.number(),
   longitude: z.coerce.number(),
