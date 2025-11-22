@@ -8,6 +8,7 @@ import { z } from "zod";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { findNearestStations, calculateAccessibilityScore } from "./stations-data";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -434,6 +435,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("[POST /api/registered-stores/:id/analyze-parking] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Calculate Accessibility Score
+  app.post("/api/registered-stores/:id/calculate-accessibility", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const store = await storage.getRegisteredStore(id, req.organizationId!);
+      
+      if (!store) {
+        return res.status(404).json({ error: "Store not found" });
+      }
+
+      // Find nearest stations
+      const nearestStations = findNearestStations(store.latitude, store.longitude, 1);
+      
+      if (nearestStations.length === 0) {
+        return res.status(500).json({ error: "Could not find nearby stations" });
+      }
+
+      const nearestStation = nearestStations[0];
+      const stationInfo = {
+        name: nearestStation.name,
+        distance: Math.round(nearestStation.distance * 100) / 100, // Round to 2 decimal places
+      };
+
+      // Determine if store has parking
+      const hasParking = store.parkingStatus === "あり";
+
+      // Calculate accessibility score
+      const { score, stationInfo: stationData } = calculateAccessibilityScore(stationInfo, hasParking);
+
+      // Update store with accessibility score
+      await storage.updateRegisteredStore(id, req.organizationId!, {
+        accessibilityScore: score,
+        nearestStationInfo: JSON.stringify(stationData),
+        accessibilityCalculatedAt: new Date(),
+      });
+
+      res.json({
+        accessibilityScore: score,
+        nearestStationInfo: stationData,
+        calculatedAt: new Date(),
+      });
+
+    } catch (error: any) {
+      console.error("[POST /api/registered-stores/:id/calculate-accessibility] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

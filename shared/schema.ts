@@ -100,6 +100,9 @@ export const registeredStores = pgTable("registered_stores", {
   parkingStatus: text("parking_status"),
   parkingConfidence: integer("parking_confidence"),
   parkingAnalyzedAt: timestamp("parking_analyzed_at"),
+  accessibilityScore: integer("accessibility_score"),
+  nearestStationInfo: text("nearest_station_info"),
+  accessibilityCalculatedAt: timestamp("accessibility_calculated_at"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
 });
 

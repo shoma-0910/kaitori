@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -28,11 +29,14 @@ import {
   Clock,
   Star,
   ExternalLink,
+  Train,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import type { RegisteredStore } from "@shared/schema";
 import { EventReservationData } from "./EventReservationModal";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface NearbyFacility {
   name: string;
@@ -58,6 +62,7 @@ export function RegisteredStoreDetailModal({
   onSubmit,
   isPending = false,
 }: RegisteredStoreDetailModalProps) {
+  const { toast } = useToast();
   const [manager, setManager] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -71,10 +76,44 @@ export function RegisteredStoreDetailModal({
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const mapInitTimerRef = useRef<number | null>(null);
   const isOpenRef = useRef(open);
+  const [storeWithScore, setStoreWithScore] = useState<RegisteredStore | null>(store);
 
   useEffect(() => {
     isOpenRef.current = open;
   }, [open]);
+
+  useEffect(() => {
+    setStoreWithScore(store);
+  }, [store]);
+
+  const calculateAccessibilityMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      const res = await apiRequest("POST", `/api/registered-stores/${storeId}/calculate-accessibility`);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
+      if (store) {
+        setStoreWithScore({
+          ...store,
+          accessibilityScore: data.accessibilityScore,
+          nearestStationInfo: JSON.stringify(data.nearestStationInfo),
+          accessibilityCalculatedAt: new Date(data.calculatedAt),
+        });
+      }
+      toast({
+        title: "到達性スコアを計算しました",
+        description: `スコア: ${data.accessibilityScore}点`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "計算に失敗しました",
+        description: "もう一度お試しください。",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!open || !store) {
@@ -287,6 +326,80 @@ export function RegisteredStoreDetailModal({
                   </div>
                 </div>
               )}
+
+              {/* Parking Status */}
+              {storeWithScore?.parkingStatus && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">駐車場判定</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={storeWithScore.parkingStatus === "あり" ? "default" : "secondary"} data-testid="badge-parking-status">
+                      {storeWithScore.parkingStatus === "あり" ? `✅ あり (${storeWithScore.parkingConfidence || 0}%)` : `❌ なし (${storeWithScore.parkingConfidence || 0}%)`}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Accessibility Score */}
+              <Card className="border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Train className="w-4 h-4 text-muted-foreground" />
+                        <p className="text-sm font-medium">到達性スコア</p>
+                      </div>
+                      {storeWithScore?.accessibilityScore !== null && storeWithScore?.accessibilityScore !== undefined ? (
+                        <Badge className="text-lg px-3 py-1" data-testid="badge-accessibility-score">
+                          {storeWithScore.accessibilityScore}点
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">未計算</span>
+                      )}
+                    </div>
+
+                    {storeWithScore?.nearestStationInfo && (
+                      <div className="pt-2 border-t border-border/50">
+                        {(() => {
+                          try {
+                            const stationInfo = typeof storeWithScore.nearestStationInfo === 'string' 
+                              ? JSON.parse(storeWithScore.nearestStationInfo)
+                              : storeWithScore.nearestStationInfo;
+                            return (
+                              <div className="space-y-1 text-sm">
+                                <p className="text-muted-foreground">最寄り駅: <span className="font-medium text-foreground">{stationInfo.name}</span></p>
+                                <p className="text-muted-foreground">距離: <span className="font-medium text-foreground">{stationInfo.distance}km</span></p>
+                              </div>
+                            );
+                          } catch (e) {
+                            return null;
+                          }
+                        })()}
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() => storeWithScore?.id && calculateAccessibilityMutation.mutate(storeWithScore.id)}
+                      disabled={calculateAccessibilityMutation.isPending}
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-2"
+                      data-testid="button-calculate-accessibility"
+                    >
+                      {calculateAccessibilityMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          計算中...
+                        </>
+                      ) : (
+                        <>
+                          <Train className="w-4 h-4 mr-2" />
+                          到達性スコアを計算
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
