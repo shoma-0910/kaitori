@@ -421,7 +421,9 @@ export function StoreMapView({
             "opening_hours",
             "types",
             "rating",
-            "user_ratings_total"
+            "user_ratings_total",
+            "wheelchair_accessible_entrance",
+            "business_status"
           ],
           language: "ja",
         },
@@ -448,10 +450,50 @@ export function StoreMapView({
     const details = await fetchPlaceDetails(place.placeId);
     
     if (details) {
-      // 駐車場情報の判定（typesに"parking"が含まれているか確認）
-      const hasParking = details.types?.some(type => 
+      // 駐車場情報の判定を強化
+      let hasParking = false;
+      
+      // 1. typesに"parking"が含まれているか確認
+      if (details.types?.some(type => 
         type.includes('parking') || type === 'parking'
-      ) || false;
+      )) {
+        hasParking = true;
+      }
+      
+      // 2. 周辺100m以内に駐車場施設があるか自動検索
+      if (!hasParking && mapInstance) {
+        try {
+          const parkingNearby = await new Promise<boolean>((resolve) => {
+            const service = new google.maps.places.PlacesService(mapInstance);
+            const location = new google.maps.LatLng(
+              place.position.lat,
+              place.position.lng
+            );
+            
+            service.nearbySearch(
+              {
+                location: location,
+                radius: 100,
+                type: 'parking',
+                language: "ja",
+              },
+              (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                  resolve(true);
+                } else {
+                  resolve(false);
+                }
+              }
+            );
+          });
+          
+          if (parkingNearby) {
+            hasParking = true;
+          }
+        } catch (error) {
+          console.warn("駐車場検索でエラーが発生しました:", error);
+        }
+      }
 
       const detailedPlace: NearbyPlace = {
         ...place,
@@ -473,7 +515,7 @@ export function StoreMapView({
         variant: "destructive",
       });
     }
-  }, [fetchPlaceDetails, toast]);
+  }, [fetchPlaceDetails, mapInstance, toast]);
 
   const searchNearbyFacilities = useCallback(() => {
     if (!selectedPlaceDetails || !mapInstance) return;
@@ -659,41 +701,39 @@ export function StoreMapView({
 
   return (
     <div className="space-y-4">
-      {!showMap && (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="地域名を入力（例：大阪市）"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
-              }}
-              data-testid="input-location-search"
-            />
-            <Button 
-              onClick={handleSearch} 
-              disabled={searchingNearby || !searchQuery.trim()}
-              data-testid="button-search-location"
-            >
-              {searchingNearby ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  検索中...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  検索
-                </>
-              )}
-            </Button>
-          </div>
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="地域名を入力（例：大阪市）"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              }
+            }}
+            data-testid="input-location-search"
+          />
+          <Button 
+            onClick={handleSearch} 
+            disabled={searchingNearby || !searchQuery.trim()}
+            data-testid="button-search-location"
+          >
+            {searchingNearby ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                検索中...
+              </>
+            ) : (
+              <>
+                <Search className="mr-2 h-4 w-4" />
+                検索
+              </>
+            )}
+          </Button>
         </div>
-      )}
+      </div>
       
       {showMap && onFiltersChange && (
         <Card className="glass-card border-white/20 dark:border-white/10">
