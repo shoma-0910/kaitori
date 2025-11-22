@@ -161,10 +161,10 @@ export default function StoreDataPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="fade-in space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold mb-2">店舗データ</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-bold gradient-text mb-2">店舗データ</h1>
+        <p className="text-lg text-muted-foreground">
           店舗のマスターデータを管理できます
         </p>
       </div>

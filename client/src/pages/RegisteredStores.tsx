@@ -173,16 +173,16 @@ export default function RegisteredStores() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="fade-in space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold mb-2" data-testid="title-registered-stores">登録店舗</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-bold gradient-text mb-2" data-testid="title-registered-stores">登録店舗</h1>
+        <p className="text-lg text-muted-foreground">
           登録済みのスーパーマーケット一覧
         </p>
       </div>
 
       {stores.length > 0 && (
-        <Card className="neomorph-card">
+        <Card className="glass-card border-white/20 dark:border-white/10">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <label htmlFor="prefecture-filter" className="text-sm font-medium">
@@ -216,7 +216,7 @@ export default function RegisteredStores() {
       )}
 
       {stores.length === 0 ? (
-        <Card className="neomorph-card">
+        <Card className="glass-card border-white/20 dark:border-white/10">
           <CardContent className="p-12 text-center">
             <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground" data-testid="text-no-stores">
@@ -228,7 +228,7 @@ export default function RegisteredStores() {
           </CardContent>
         </Card>
       ) : filteredStores.length === 0 ? (
-        <Card className="neomorph-card">
+        <Card className="glass-card border-white/20 dark:border-white/10">
           <CardContent className="p-12 text-center">
             <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
@@ -240,7 +240,7 @@ export default function RegisteredStores() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="neomorph-card">
+        <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>

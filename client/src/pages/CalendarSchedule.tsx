@@ -213,10 +213,10 @@ export default function CalendarSchedule() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="fade-in space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold mb-2">カレンダー・スケジュール</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-bold gradient-text mb-2">カレンダー・スケジュール</h1>
+        <p className="text-lg text-muted-foreground">
           催事スケジュールの確認と実績粗利の入力ができます
         </p>
       </div>

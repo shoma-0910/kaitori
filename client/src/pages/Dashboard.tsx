@@ -75,10 +75,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">ダッシュボード</h1>
-        <p className="text-muted-foreground">
+    <div className="fade-in space-y-12">
+      <div className="space-y-3">
+        <h1 className="text-4xl font-bold gradient-text">ダッシュボード</h1>
+        <p className="text-lg text-muted-foreground">
           買取催事の全体状況と主要業績指標を確認できます
         </p>
       </div>

@@ -660,12 +660,12 @@ export function StoreMapView({
   return (
     <div className="space-y-4">
       {showMap && onFiltersChange && (
-        <Card className="neomorph-card">
+        <Card className="glass-card border-white/20 dark:border-white/10">
           <CardHeader className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <CardTitle className="text-base">人口統計フィルター</CardTitle>
+                <CardTitle className="text-base gradient-text">人口統計フィルター</CardTitle>
               </div>
               {nearbyPlaces.length > 0 && (
                 <Badge variant="outline" data-testid="badge-filter-count">
@@ -825,7 +825,7 @@ export function StoreMapView({
 
       {showMap && (
         <>
-          <Card className="neomorph-card">
+          <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
             <CardContent className="p-0 h-[400px] md:h-[600px] relative">
               {/* 手動検索ボタン */}
               <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -956,9 +956,9 @@ export function StoreMapView({
           </Card>
 
           {filteredNearbyPlaces.length > 0 && (
-            <Card className="neomorph-card">
+            <Card className="glass-card border-white/20 dark:border-white/10">
               <CardHeader>
-                <CardTitle className="text-lg">周辺スーパー一覧</CardTitle>
+                <CardTitle className="text-xl gradient-text">周辺スーパー一覧</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2" data-testid="list-nearby-supermarkets">

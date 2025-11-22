@@ -155,18 +155,20 @@ export default function StoreSelection() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">店舗選定・予約</h1>
-        <p className="text-muted-foreground">
+    <div className="fade-in space-y-8">
+      <div className="space-y-3">
+        <h1 className="text-4xl font-bold gradient-text">店舗選定・予約</h1>
+        <p className="text-lg text-muted-foreground">
           マップで地域を検索し、近隣のスーパーを確認できます
         </p>
       </div>
 
-      <Card>
+      <Card className="glass-card-strong border-white/20 dark:border-white/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[hsl(var(--accent))] to-[hsl(var(--accent-end))] flex items-center justify-center">
+              <Search className="w-5 h-5 text-white" />
+            </div>
             地域情報検索
           </CardTitle>
         </CardHeader>
@@ -205,7 +207,7 @@ export default function StoreSelection() {
 
           {regionInfo && (
             <div className="space-y-4 sm:space-y-6 mt-4" data-testid="region-info-results">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 rounded-md bg-muted/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-6 rounded-lg glass-card border-white/10">
                 {regionInfo.population && (
                   <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -217,7 +219,7 @@ export default function StoreSelection() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-2xl font-bold font-mono" data-testid="text-population">
+                    <p className="text-2xl font-bold font-mono gradient-text" data-testid="text-population">
                       {regionInfo.population.value.toLocaleString()}人
                     </p>
                   </div>
@@ -233,7 +235,7 @@ export default function StoreSelection() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-2xl font-bold font-mono" data-testid="text-average-age">
+                    <p className="text-2xl font-bold font-mono gradient-text" data-testid="text-average-age">
                       {regionInfo.averageAge.value}歳
                     </p>
                   </div>
@@ -249,7 +251,7 @@ export default function StoreSelection() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-2xl font-bold font-mono" data-testid="text-average-income">
+                    <p className="text-2xl font-bold font-mono gradient-text" data-testid="text-average-income">
                       {regionInfo.averageIncome.value.toLocaleString()}万円
                     </p>
                   </div>
@@ -265,7 +267,7 @@ export default function StoreSelection() {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-2xl font-bold font-mono" data-testid="text-foreigner-ratio">
+                    <p className="text-2xl font-bold font-mono gradient-text" data-testid="text-foreigner-ratio">
                       {regionInfo.foreignerRatio.value.toFixed(1)}%
                     </p>
                   </div>
@@ -362,9 +364,9 @@ export default function StoreSelection() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="glass-card-strong border-white/20 dark:border-white/10">
         <CardHeader>
-          <CardTitle>店舗検索</CardTitle>
+          <CardTitle className="text-xl gradient-text">店舗検索</CardTitle>
         </CardHeader>
         <CardContent>
           <StoreMapView

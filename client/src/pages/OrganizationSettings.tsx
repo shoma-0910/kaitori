@@ -478,14 +478,14 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
           ) : apiUsage ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
+                <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       Google Places API
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold" data-testid={`text-places-calls-${org.id}`}>
+                    <div className="text-2xl font-bold gradient-text" data-testid={`text-places-calls-${org.id}`}>
                       {apiUsage.usage.googlePlaces.callCount.toLocaleString()} 回
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -494,14 +494,14 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       Google Gemini API
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold" data-testid={`text-gemini-calls-${org.id}`}>
+                    <div className="text-2xl font-bold gradient-text" data-testid={`text-gemini-calls-${org.id}`}>
                       {apiUsage.usage.googleGemini.callCount.toLocaleString()} 回
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -510,14 +510,14 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
                       合計推定コスト
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-primary" data-testid={`text-total-cost-${org.id}`}>
+                    <div className="text-2xl font-bold gradient-text" data-testid={`text-total-cost-${org.id}`}>
                       ¥{apiUsage.usage.total.estimatedCost.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -609,16 +609,16 @@ export default function OrganizationSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="fade-in space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-2">会社管理</h1>
-        <p className="text-muted-foreground">すべての組織アカウントとメンバーを管理します</p>
+        <h1 className="text-4xl font-bold gradient-text mb-2">会社管理</h1>
+        <p className="text-lg text-muted-foreground">すべての組織アカウントとメンバーを管理します</p>
       </div>
 
-      <Card data-testid="card-add-organization">
+      <Card className="glass-card border-white/20 dark:border-white/10" data-testid="card-add-organization">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex-1">
-            <CardTitle>新規組織の作成</CardTitle>
+            <CardTitle className="text-2xl gradient-text">新規組織の作成</CardTitle>
             <CardDescription>新しい組織アカウントを作成します</CardDescription>
           </div>
           {!showAddForm && (

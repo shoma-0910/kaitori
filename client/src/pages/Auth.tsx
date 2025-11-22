@@ -53,22 +53,26 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       {loading ? (
-        <div className="text-center">
+        <div className="scale-pop text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">ログイン中...</p>
         </div>
       ) : (
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">買取催事管理システム</CardTitle>
-          <CardDescription>
+      <Card className="w-full max-w-md scale-pop glass-card-strong border-white/20 dark:border-white/10 shadow-2xl">
+        <CardHeader className="space-y-3 text-center">
+          <CardTitle className="text-4xl font-bold gradient-text">
+            買取催事管理システム
+          </CardTitle>
+          <CardDescription className="text-base">
             アカウントにログインしてください
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="login-email">メールアドレス</Label>
+              <Label htmlFor="login-email" className="text-sm font-medium">
+                メールアドレス
+              </Label>
               <Input
                 id="login-email"
                 type="email"
@@ -77,10 +81,13 @@ export default function Auth() {
                 onChange={(e) => setLoginEmail(e.target.value)}
                 required
                 data-testid="input-login-email"
+                className="glass-card border-white/20 focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 transition-all"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="login-password">パスワード</Label>
+              <Label htmlFor="login-password" className="text-sm font-medium">
+                パスワード
+              </Label>
               <Input
                 id="login-password"
                 type="password"
@@ -88,11 +95,12 @@ export default function Auth() {
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
                 data-testid="input-login-password"
+                className="glass-card border-white/20 focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 transition-all"
               />
             </div>
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--primary-end))] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 btn-active"
               disabled={loading}
               data-testid="button-login-submit"
             >
