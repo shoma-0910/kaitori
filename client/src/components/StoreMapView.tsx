@@ -55,7 +55,11 @@ interface NearbyPlace {
   types?: string[];
   rating?: number;
   userRatingsTotal?: number;
-  hasParking?: boolean;
+  parkingStatus?: "available" | "unavailable" | "unknown" | "analyzing" | null;
+  parkingConfidence?: number;
+  parkingReason?: string;
+  parkingAnalyzedAt?: string;
+  registeredStoreId?: string;
   rank?: "S" | "A" | "B" | "C" | "D" | null;
   demographicData?: any;
   elderlyFemaleRatio?: number;
@@ -440,62 +444,22 @@ export function StoreMapView({
     });
   }, [mapInstance]);
 
+  const analyzeParkingMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      const res = await apiRequest("POST", `/api/registered-stores/${storeId}/analyze-parking`);
+      return await res.json();
+    },
+  });
+
   const handlePlaceClick = useCallback(async (place: NearbyPlace) => {
-    // ダイアログを先に開いてローディング状態を表示
     setSelectedPlaceDetails(place);
     setDetailsDialogOpen(true);
     setNearbyFacilities([]);
     
-    // 詳細情報を取得
     const details = await fetchPlaceDetails(place.placeId);
     
     if (details) {
-      // 駐車場情報の判定を強化
-      let hasParking = false;
-      
-      // 1. typesに"parking"が含まれているか確認
-      if (details.types?.some(type => 
-        type.includes('parking') || type === 'parking'
-      )) {
-        hasParking = true;
-      }
-      
-      // 2. 周辺100m以内に駐車場施設があるか自動検索
-      if (!hasParking && mapInstance) {
-        try {
-          const parkingNearby = await new Promise<boolean>((resolve) => {
-            const service = new google.maps.places.PlacesService(mapInstance);
-            const location = new google.maps.LatLng(
-              place.position.lat,
-              place.position.lng
-            );
-            
-            service.nearbySearch(
-              {
-                location: location,
-                radius: 100,
-                type: 'parking',
-                language: "ja",
-              },
-              (results, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-                  resolve(true);
-                } else {
-                  resolve(false);
-                }
-              }
-            );
-          });
-          
-          if (parkingNearby) {
-            hasParking = true;
-          }
-        } catch (error) {
-          console.warn("駐車場検索でエラーが発生しました:", error);
-        }
-      }
-
-      const detailedPlace: NearbyPlace = {
+      let detailedPlace: NearbyPlace = {
         ...place,
         name: details.name || place.name,
         address: details.formatted_address || place.address,
@@ -505,9 +469,91 @@ export function StoreMapView({
         types: details.types,
         rating: details.rating,
         userRatingsTotal: details.user_ratings_total,
-        hasParking,
+        parkingStatus: "analyzing",
       };
       setSelectedPlaceDetails(detailedPlace);
+
+      try {
+        let registeredStore: RegisteredStore | null = null;
+        
+        const checkRes = await fetch(`/api/registered-stores/place/${place.placeId}`);
+        if (checkRes.ok) {
+          registeredStore = await checkRes.json();
+        } else {
+          try {
+            const createRes = await fetch('/api/registered-stores', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                placeId: place.placeId,
+                name: detailedPlace.name,
+                address: detailedPlace.address,
+                phoneNumber: detailedPlace.phoneNumber || null,
+                latitude: place.position.lat,
+                longitude: place.position.lng,
+                website: detailedPlace.website || null,
+                openingHours: detailedPlace.openingHours || null,
+              }),
+            });
+            
+            if (createRes.ok) {
+              registeredStore = await createRes.json();
+            }
+          } catch (registerError) {
+            console.warn("店舗登録エラー:", registerError);
+          }
+        }
+
+        if (registeredStore) {
+          try {
+            const analysisResult = await analyzeParkingMutation.mutateAsync(registeredStore.id);
+            
+            if (!analysisResult.parkingStatus) {
+              throw new Error("Invalid response: missing parkingStatus");
+            }
+            
+            detailedPlace = {
+              ...detailedPlace,
+              registeredStoreId: registeredStore.id,
+              parkingStatus: analysisResult.parkingStatus,
+              parkingConfidence: analysisResult.parkingConfidence,
+              parkingReason: analysisResult.parkingReason,
+              parkingAnalyzedAt: analysisResult.analyzedAt,
+            };
+            setSelectedPlaceDetails(detailedPlace);
+          } catch (analysisError) {
+            console.error("駐車場解析エラー:", analysisError);
+            detailedPlace = {
+              ...detailedPlace,
+              parkingStatus: "unknown",
+            };
+            setSelectedPlaceDetails(detailedPlace);
+            toast({
+              title: "駐車場解析に失敗しました",
+              description: "駐車場情報を取得できませんでした。",
+              variant: "destructive",
+            });
+          }
+        } else {
+          detailedPlace = {
+            ...detailedPlace,
+            parkingStatus: "unknown",
+          };
+          setSelectedPlaceDetails(detailedPlace);
+        }
+      } catch (error) {
+        console.error("駐車場解析エラー:", error);
+        detailedPlace = {
+          ...detailedPlace,
+          parkingStatus: "unknown",
+        };
+        setSelectedPlaceDetails(detailedPlace);
+        toast({
+          title: "エラーが発生しました",
+          description: "駐車場情報の取得中にエラーが発生しました。",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "詳細情報の取得に失敗しました",
@@ -515,7 +561,7 @@ export function StoreMapView({
         variant: "destructive",
       });
     }
-  }, [fetchPlaceDetails, mapInstance, toast]);
+  }, [fetchPlaceDetails, analyzeParkingMutation, toast]);
 
   const searchNearbyFacilities = useCallback(() => {
     if (!selectedPlaceDetails || !mapInstance) return;
@@ -1214,11 +1260,50 @@ export function StoreMapView({
                   <Car className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-1">駐車場</p>
-                    <div data-testid="detail-parking">
-                      {selectedPlaceDetails.hasParking ? (
-                        <Badge variant="default" className="bg-green-600">駐車場あり</Badge>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">駐車場情報なし</p>
+                    <div data-testid="detail-parking" className="space-y-2">
+                      {selectedPlaceDetails.parkingStatus === "analyzing" && (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">解析中...</span>
+                        </div>
+                      )}
+                      {selectedPlaceDetails.parkingStatus === "available" && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default" className="bg-green-600">✅ 駐車場あり</Badge>
+                            {selectedPlaceDetails.parkingConfidence !== undefined && (
+                              <span className="text-xs text-muted-foreground">
+                                確信度: {selectedPlaceDetails.parkingConfidence}%
+                              </span>
+                            )}
+                          </div>
+                          {selectedPlaceDetails.parkingReason && (
+                            <p className="text-xs text-muted-foreground">{selectedPlaceDetails.parkingReason}</p>
+                          )}
+                        </div>
+                      )}
+                      {selectedPlaceDetails.parkingStatus === "unavailable" && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="destructive">❌ 駐車場なし</Badge>
+                            {selectedPlaceDetails.parkingConfidence !== undefined && (
+                              <span className="text-xs text-muted-foreground">
+                                確信度: {selectedPlaceDetails.parkingConfidence}%
+                              </span>
+                            )}
+                          </div>
+                          {selectedPlaceDetails.parkingReason && (
+                            <p className="text-xs text-muted-foreground">{selectedPlaceDetails.parkingReason}</p>
+                          )}
+                        </div>
+                      )}
+                      {(selectedPlaceDetails.parkingStatus === "unknown" || !selectedPlaceDetails.parkingStatus) && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">❓ 情報なし</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            店舗未登録のため判定不可
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

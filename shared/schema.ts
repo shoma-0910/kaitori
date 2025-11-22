@@ -97,6 +97,9 @@ export const registeredStores = pgTable("registered_stores", {
   openingHours: text("opening_hours").array(),
   rank: text("rank"),
   demographicData: text("demographic_data"),
+  parkingStatus: text("parking_status"),
+  parkingConfidence: integer("parking_confidence"),
+  parkingAnalyzedAt: timestamp("parking_analyzed_at"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
 });
 

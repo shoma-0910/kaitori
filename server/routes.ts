@@ -7,7 +7,7 @@ import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -318,6 +318,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(204).send();
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/registered-stores/:id/analyze-parking", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      
+      const store = await storage.getRegisteredStore(id, req.organizationId!);
+      if (!store) {
+        return res.status(404).json({ error: "Registered store not found" });
+      }
+
+      if (store.parkingStatus && store.parkingAnalyzedAt) {
+        const daysSinceAnalysis = (Date.now() - new Date(store.parkingAnalyzedAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceAnalysis < 30) {
+          return res.json({
+            parkingStatus: store.parkingStatus,
+            parkingConfidence: store.parkingConfidence,
+            parkingReason: "キャッシュされた結果",
+            analyzedAt: store.parkingAnalyzedAt,
+            cached: true
+          });
+        }
+      }
+
+      const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!googleMapsApiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${store.latitude},${store.longitude}&fov=120&key=${googleMapsApiKey}`;
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: geminiApiKey });
+
+      const imageResponse = await fetch(streetViewUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(imageBuffer).toString('base64');
+
+      const prompt = `この店舗の周辺画像を分析して、駐車場の有無を判定してください。
+
+判定基準：
+- 建物の前や横に駐車スペースが見えるか
+- 駐車場の標識や看板が見えるか
+- 車が停まっているスペースがあるか
+- 舗装された駐車エリアがあるか
+
+以下のJSON形式で回答してください：
+{
+  "status": "available" または "unavailable" または "unknown",
+  "confidence": 0-100の整数（確信度）,
+  "reason": "判定理由を日本語で簡潔に"
+}`;
+
+      const result = await client.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  data: base64Image,
+                  mimeType: "image/jpeg"
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      const responseText = result.text || "";
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Failed to parse Gemini response");
+      }
+
+      const analysis = JSON.parse(jsonMatch[0]);
+
+      await storage.updateRegisteredStore(id, req.organizationId!, {
+        parkingStatus: analysis.status,
+        parkingConfidence: analysis.confidence,
+        parkingAnalyzedAt: new Date()
+      });
+
+      await storage.logApiUsage({
+        organizationId: req.organizationId!,
+        apiType: "google_street_view",
+        endpoint: "/maps/api/streetview",
+        metadata: JSON.stringify({ storeId: id, storeName: store.name })
+      });
+
+      await storage.logApiUsage({
+        organizationId: req.organizationId!,
+        apiType: "gemini_vision",
+        endpoint: "generateContent",
+        metadata: JSON.stringify({ model: "gemini-1.5-flash", storeId: id })
+      });
+
+      res.json({
+        parkingStatus: analysis.status,
+        parkingConfidence: analysis.confidence,
+        parkingReason: analysis.reason,
+        analyzedAt: new Date(),
+        cached: false
+      });
+
+    } catch (error: any) {
+      console.error("[POST /api/registered-stores/:id/analyze-parking] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

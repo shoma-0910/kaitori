@@ -44,10 +44,12 @@ export interface IStorage {
   getRegisteredStore(id: string, organizationId: string): Promise<RegisteredStore | undefined>;
   getRegisteredStoreByPlaceId(placeId: string, organizationId: string): Promise<RegisteredStore | undefined>;
   createRegisteredStore(store: InsertRegisteredStore): Promise<RegisteredStore>;
+  updateRegisteredStore(id: string, organizationId: string, store: Partial<InsertRegisteredStore>): Promise<RegisteredStore | undefined>;
   deleteRegisteredStore(id: string, organizationId: string): Promise<boolean>;
 
   // API Usage Logs
   createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog>;
+  logApiUsage(log: InsertApiUsageLog): Promise<void>;
   getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
 }
 
@@ -160,6 +162,14 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async updateRegisteredStore(id: string, organizationId: string, store: Partial<InsertRegisteredStore>): Promise<RegisteredStore | undefined> {
+    const result = await db.update(registeredStores)
+      .set(store)
+      .where(and(eq(registeredStores.id, id), eq(registeredStores.organizationId, organizationId)))
+      .returning();
+    return result[0];
+  }
+
   async deleteRegisteredStore(id: string, organizationId: string): Promise<boolean> {
     const result = await db.delete(registeredStores)
       .where(and(eq(registeredStores.id, id), eq(registeredStores.organizationId, organizationId)));
@@ -170,6 +180,10 @@ export class DbStorage implements IStorage {
   async createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog> {
     const result = await db.insert(apiUsageLogs).values(log).returning();
     return result[0];
+  }
+
+  async logApiUsage(log: InsertApiUsageLog): Promise<void> {
+    await db.insert(apiUsageLogs).values(log);
   }
 
   async getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]> {
