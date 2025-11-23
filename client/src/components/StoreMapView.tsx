@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star, Filter, X } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star, Filter, X, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
@@ -783,7 +783,7 @@ export function StoreMapView({
       
       {showMap && onFiltersChange && (
         <Card className="glass-card border-white/20 dark:border-white/10">
-          <CardHeader className="p-3">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
@@ -796,16 +796,91 @@ export function StoreMapView({
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-3 pt-0 space-y-2">
+          <CardContent className="p-3 pt-2 space-y-3">
+            {/* プリセットボタン */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onFiltersChange({
+                    ageDistribution: { range: "60+", minPercentage: 30 },
+                    averageAge: { min: 55, max: 100 }
+                  });
+                }}
+                className="text-xs"
+                data-testid="button-preset-elderly"
+              >
+                高齢層向け
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onFiltersChange({
+                    averageAge: { min: 20, max: 40 },
+                    averageIncome: { min: 400, max: 900 }
+                  });
+                }}
+                className="text-xs"
+                data-testid="button-preset-young"
+              >
+                若年層向け
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onFiltersChange({
+                    averageIncome: { min: 600, max: 1000 }
+                  });
+                }}
+                className="text-xs"
+                data-testid="button-preset-high-income"
+              >
+                高収入層向け
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onFiltersChange({})}
+                className="text-xs"
+                data-testid="button-preset-all"
+              >
+                すべて表示
+              </Button>
+            </div>
+
+            <div className="border-t pt-2" />
+
+            {/* フィルタースライダー */}
             <div className="space-y-2">
+              {/* 平均年齢 */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Label className="text-sm font-medium">平均年齢</Label>
-                  {demographicFilters.averageAge && (
-                    <span className="text-xs text-muted-foreground">
-                      {demographicFilters.averageAge.min}歳 - {demographicFilters.averageAge.max}歳
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {demographicFilters.averageAge && (
+                      <>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          {demographicFilters.averageAge.min}～{demographicFilters.averageAge.max}歳
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => {
+                            const newFilters = { ...demographicFilters };
+                            delete newFilters.averageAge;
+                            onFiltersChange(newFilters);
+                          }}
+                          data-testid="button-reset-age"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Slider
                   min={20}
@@ -825,14 +900,32 @@ export function StoreMapView({
                 />
               </div>
 
+              {/* 平均年収 */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Label className="text-sm font-medium">平均年収</Label>
-                  {demographicFilters.averageIncome && (
-                    <span className="text-xs text-muted-foreground">
-                      {demographicFilters.averageIncome.min}万円 - {demographicFilters.averageIncome.max}万円
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {demographicFilters.averageIncome && (
+                      <>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          {demographicFilters.averageIncome.min}～{demographicFilters.averageIncome.max}万円
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => {
+                            const newFilters = { ...demographicFilters };
+                            delete newFilters.averageIncome;
+                            onFiltersChange(newFilters);
+                          }}
+                          data-testid="button-reset-income"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Slider
                   min={200}
@@ -852,14 +945,32 @@ export function StoreMapView({
                 />
               </div>
 
+              {/* 60歳以上人口比率 */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">60歳以上人口比率（最低）</Label>
-                  {demographicFilters.ageDistribution && (
-                    <span className="text-xs text-muted-foreground">
-                      {demographicFilters.ageDistribution.minPercentage}%以上
-                    </span>
-                  )}
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-sm font-medium">60歳以上比率</Label>
+                  <div className="flex items-center gap-1">
+                    {demographicFilters.ageDistribution && (
+                      <>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          {demographicFilters.ageDistribution.minPercentage}%以上
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => {
+                            const newFilters = { ...demographicFilters };
+                            delete newFilters.ageDistribution;
+                            onFiltersChange(newFilters);
+                          }}
+                          data-testid="button-reset-age-dist"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Slider
                   min={0}
@@ -876,14 +987,32 @@ export function StoreMapView({
                 />
               </div>
 
+              {/* 男性比率 */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Label className="text-sm font-medium">男性比率</Label>
-                  {demographicFilters.genderRatio && (
-                    <span className="text-xs text-muted-foreground">
-                      {demographicFilters.genderRatio.maleMin}% - {demographicFilters.genderRatio.maleMax}%
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {demographicFilters.genderRatio && (
+                      <>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          {demographicFilters.genderRatio.maleMin}～{demographicFilters.genderRatio.maleMax}%
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => {
+                            const newFilters = { ...demographicFilters };
+                            delete newFilters.genderRatio;
+                            onFiltersChange(newFilters);
+                          }}
+                          data-testid="button-reset-gender"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Slider
                   min={0}
@@ -903,14 +1032,32 @@ export function StoreMapView({
                 />
               </div>
 
+              {/* 人口 */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Label className="text-sm font-medium">人口</Label>
-                  {demographicFilters.populationDensity && (
-                    <span className="text-xs text-muted-foreground">
-                      {demographicFilters.populationDensity.min.toLocaleString()}人 - {demographicFilters.populationDensity.max.toLocaleString()}人
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {demographicFilters.populationDensity && (
+                      <>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          {(demographicFilters.populationDensity.min / 10000).toFixed(0)}～{(demographicFilters.populationDensity.max / 10000).toFixed(0)}万人
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => {
+                            const newFilters = { ...demographicFilters };
+                            delete newFilters.populationDensity;
+                            onFiltersChange(newFilters);
+                          }}
+                          data-testid="button-reset-population"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <Slider
                   min={0}
@@ -931,15 +1078,16 @@ export function StoreMapView({
               </div>
             </div>
 
+            {/* 全クリアボタン */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => onFiltersChange({})}
-              className="w-full mt-1"
+              className="w-full"
               data-testid="button-clear-filters"
             >
               <X className="mr-2 h-4 w-4" />
-              フィルターをクリア
+              すべてのフィルターをクリア
             </Button>
           </CardContent>
         </Card>
