@@ -94,6 +94,41 @@ export default function RegisteredStores() {
     queryKey: ['/api/registered-stores'],
   });
 
+  // 各店舗の売上データを取得
+  const { data: storeSalesMap = {} } = useQuery({
+    queryKey: ['/api/sales-summary'],
+    queryFn: async () => {
+      const salesMap: Record<string, { total: number; latest: string; count: number }> = {};
+      
+      for (const store of stores) {
+        try {
+          const res = await apiRequest('GET', `/api/registered-stores/${store.id}/sales`);
+          const sales = Array.isArray(res) ? res : [];
+          
+          if (sales.length > 0) {
+            const total = sales.reduce((sum, s) => sum + s.revenue, 0);
+            const latest = new Date(sales[0].saleDate).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            });
+            
+            salesMap[store.id] = {
+              total,
+              latest,
+              count: sales.length,
+            };
+          }
+        } catch (error) {
+          // Silently ignore errors for individual stores
+        }
+      }
+      
+      return salesMap;
+    },
+    enabled: stores.length > 0,
+  });
+
   // 都道府県リストを取得（ユニーク）
   const prefectures = useMemo(() => {
     const prefs = new Set<string>();
@@ -136,14 +171,6 @@ export default function RegisteredStores() {
     },
   });
 
-  const { data: storeSalesMap = {} } = useQuery({
-    queryKey: ['/api/registered-stores'],
-    select: (data: RegisteredStore[]) => {
-      const map: Record<string, StoreSale[]> = {};
-      // Will be populated on demand
-      return map;
-    }
-  });
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventReservationData) => {
@@ -340,11 +367,12 @@ export default function RegisteredStores() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[30%] min-w-[200px]">店舗名</TableHead>
-                    <TableHead className="w-[35%] min-w-[200px] hidden md:table-cell">住所</TableHead>
-                    <TableHead className="w-[15%] min-w-[120px] hidden lg:table-cell">電話番号</TableHead>
-                    <TableHead className="w-[12%] min-w-[100px] hidden xl:table-cell">登録日</TableHead>
-                    <TableHead className="w-[8%] text-right">操作</TableHead>
+                    <TableHead className="w-[25%] min-w-[180px]">店舗名</TableHead>
+                    <TableHead className="w-[30%] min-w-[180px] hidden md:table-cell">住所</TableHead>
+                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">売上合計</TableHead>
+                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">最新売上</TableHead>
+                    <TableHead className="w-[12%] min-w-[100px] hidden lg:table-cell">電話番号</TableHead>
+                    <TableHead className="w-[9%] text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,6 +411,24 @@ export default function RegisteredStores() {
                             {store.address}
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {storeSalesMap[store.id] ? (
+                          <span className="text-sm font-semibold" data-testid={`text-sales-total-${store.id}`}>
+                            ¥{storeSalesMap[store.id].total.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {storeSalesMap[store.id] ? (
+                          <span className="text-sm" data-testid={`text-sales-latest-${store.id}`}>
+                            {storeSalesMap[store.id].latest}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         {store.phoneNumber ? (

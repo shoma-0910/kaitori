@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, Map } from "lucide-react";
+import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, Map, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -35,6 +35,12 @@ const menuItems = [
     title: "カレンダー・スケジュール",
     url: "/calendar",
     icon: Calendar,
+    superAdminOnly: false,
+  },
+  {
+    title: "売上分析",
+    url: "/sales",
+    icon: TrendingUp,
     superAdminOnly: false,
   },
   {
