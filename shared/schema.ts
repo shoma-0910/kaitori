@@ -171,3 +171,24 @@ export const apiUsageLogs = pgTable("api_usage_logs", {
 export const insertApiUsageLogSchema = createInsertSchema(apiUsageLogs).omit({ id: true, timestamp: true });
 export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
 export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
+
+export const storeSales = pgTable("store_sales", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  registeredStoreId: varchar("registered_store_id").notNull().references(() => registeredStores.id, { onDelete: "cascade" }),
+  saleDate: timestamp("sale_date").notNull(),
+  revenue: integer("revenue").notNull(),
+  itemsSold: integer("items_sold").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStoreSaleSchema = createInsertSchema(storeSales).omit({ 
+  id: true,
+  createdAt: true,
+}).extend({
+  revenue: z.coerce.number(),
+  itemsSold: z.coerce.number(),
+});
+export type InsertStoreSale = z.infer<typeof insertStoreSaleSchema>;
+export type StoreSale = typeof storeSales.$inferSelect;

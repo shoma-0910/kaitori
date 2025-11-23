@@ -9,11 +9,14 @@ import {
   type InsertRegisteredStore,
   type ApiUsageLog,
   type InsertApiUsageLog,
+  type StoreSale,
+  type InsertStoreSale,
   stores,
   events,
   costs,
   registeredStores,
   apiUsageLogs,
+  storeSales,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
@@ -51,6 +54,12 @@ export interface IStorage {
   createApiUsageLog(log: InsertApiUsageLog): Promise<ApiUsageLog>;
   logApiUsage(log: InsertApiUsageLog): Promise<void>;
   getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
+
+  // Store Sales
+  getSalesByStore(registeredStoreId: string, organizationId: string): Promise<StoreSale[]>;
+  createSale(sale: InsertStoreSale): Promise<StoreSale>;
+  updateSale(id: string, organizationId: string, sale: Partial<InsertStoreSale>): Promise<StoreSale | undefined>;
+  deleteSale(id: string, organizationId: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -202,6 +211,31 @@ export class DbStorage implements IStorage {
     return await db.select().from(apiUsageLogs)
       .where(eq(apiUsageLogs.organizationId, organizationId))
       .orderBy(desc(apiUsageLogs.timestamp));
+  }
+
+  // Store Sales
+  async getSalesByStore(registeredStoreId: string, organizationId: string): Promise<StoreSale[]> {
+    return await db.select().from(storeSales)
+      .where(and(eq(storeSales.registeredStoreId, registeredStoreId), eq(storeSales.organizationId, organizationId)))
+      .orderBy(desc(storeSales.saleDate));
+  }
+
+  async createSale(sale: InsertStoreSale): Promise<StoreSale> {
+    const result = await db.insert(storeSales).values(sale).returning();
+    return result[0];
+  }
+
+  async updateSale(id: string, organizationId: string, sale: Partial<InsertStoreSale>): Promise<StoreSale | undefined> {
+    const result = await db.update(storeSales).set(sale)
+      .where(and(eq(storeSales.id, id), eq(storeSales.organizationId, organizationId)))
+      .returning();
+    return result[0];
+  }
+
+  async deleteSale(id: string, organizationId: string): Promise<boolean> {
+    const result = await db.delete(storeSales)
+      .where(and(eq(storeSales.id, id), eq(storeSales.organizationId, organizationId)));
+    return result.rowCount! > 0;
   }
 }
 

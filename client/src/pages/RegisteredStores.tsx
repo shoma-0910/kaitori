@@ -2,10 +2,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock, Calendar } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { RegisteredStore } from "@shared/schema";
+import type { RegisteredStore, StoreSale } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { RegisteredStoreDetailModal } from "@/components/RegisteredStoreDetailModal";
 import { EventReservationData } from "@/components/EventReservationModal";
 import { useState, useMemo } from "react";
@@ -56,6 +66,13 @@ function extractPrefecture(address: string): string {
   return "その他";
 }
 
+interface SaleFormState {
+  saleDate: string;
+  revenue: string;
+  itemsSold: string;
+  notes: string;
+}
+
 export default function RegisteredStores() {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,6 +80,15 @@ export default function RegisteredStores() {
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
+  const [expandedStoreId, setExpandedStoreId] = useState<string | null>(null);
+  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [selectedStoreForSale, setSelectedStoreForSale] = useState<RegisteredStore | null>(null);
+  const [saleForm, setSaleForm] = useState<SaleFormState>({
+    saleDate: new Date().toISOString().split('T')[0],
+    revenue: '',
+    itemsSold: '',
+    notes: '',
+  });
 
   const { data: stores = [], isLoading } = useQuery<RegisteredStore[]>({
     queryKey: ['/api/registered-stores'],
@@ -108,6 +134,15 @@ export default function RegisteredStores() {
         variant: "destructive",
       });
     },
+  });
+
+  const { data: storeSalesMap = {} } = useQuery({
+    queryKey: ['/api/registered-stores'],
+    select: (data: RegisteredStore[]) => {
+      const map: Record<string, StoreSale[]> = {};
+      // Will be populated on demand
+      return map;
+    }
   });
 
   const createEventMutation = useMutation({
@@ -162,6 +197,65 @@ export default function RegisteredStores() {
 
   const handleReservationSubmit = (data: EventReservationData) => {
     createEventMutation.mutate(data);
+  };
+
+  const createSaleMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      const res = await apiRequest("POST", `/api/registered-stores/${storeId}/sales`, {
+        saleDate: new Date(saleForm.saleDate).toISOString(),
+        revenue: parseInt(saleForm.revenue),
+        itemsSold: parseInt(saleForm.itemsSold),
+        notes: saleForm.notes || null,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "売上を登録しました",
+        description: "売上データが保存されました。",
+      });
+      setSaleDialogOpen(false);
+      setSaleForm({
+        saleDate: new Date().toISOString().split('T')[0],
+        revenue: '',
+        itemsSold: '',
+        notes: '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
+      if (selectedStoreForSale?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/registered-stores/${selectedStoreForSale.id}/sales`] });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "登録に失敗しました",
+        description: error.message || "もう一度お試しください。",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOpenSaleDialog = (store: RegisteredStore) => {
+    setSelectedStoreForSale(store);
+    setSaleDialogOpen(true);
+    setSaleForm({
+      saleDate: new Date().toISOString().split('T')[0],
+      revenue: '',
+      itemsSold: '',
+      notes: '',
+    });
+  };
+
+  const handleSaveSale = () => {
+    if (!selectedStoreForSale || !saleForm.revenue || !saleForm.itemsSold) {
+      toast({
+        title: "入力が不足しています",
+        description: "売上と買取品目数を入力してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+    createSaleMutation.mutate(selectedStoreForSale.id);
   };
 
   if (isLoading) {
@@ -318,17 +412,31 @@ export default function RegisteredStores() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(store);
-                          }}
-                          data-testid={`button-delete-${store.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenSaleDialog(store);
+                            }}
+                            title="売上を追加"
+                            data-testid={`button-add-sale-${store.id}`}
+                          >
+                            <Plus className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(store);
+                            }}
+                            data-testid={`button-delete-${store.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -338,6 +446,89 @@ export default function RegisteredStores() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
+        <DialogContent data-testid="dialog-add-sale">
+          <DialogHeader>
+            <DialogTitle>売上を追加</DialogTitle>
+            <DialogDescription>
+              {selectedStoreForSale?.name} の売上情報を記録します
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="sale-date">売上日</Label>
+              <Input
+                id="sale-date"
+                type="date"
+                value={saleForm.saleDate}
+                onChange={(e) => setSaleForm({ ...saleForm, saleDate: e.target.value })}
+                data-testid="input-sale-date"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-revenue">売上金額（円）</Label>
+              <Input
+                id="sale-revenue"
+                type="number"
+                placeholder="0"
+                value={saleForm.revenue}
+                onChange={(e) => setSaleForm({ ...saleForm, revenue: e.target.value })}
+                data-testid="input-sale-revenue"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-items">買取品目数</Label>
+              <Input
+                id="sale-items"
+                type="number"
+                placeholder="0"
+                value={saleForm.itemsSold}
+                onChange={(e) => setSaleForm({ ...saleForm, itemsSold: e.target.value })}
+                data-testid="input-sale-items"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-notes">備考（オプション）</Label>
+              <Input
+                id="sale-notes"
+                placeholder="特記事項など"
+                value={saleForm.notes}
+                onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                data-testid="input-sale-notes"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSaleDialogOpen(false)}
+              data-testid="button-cancel-sale"
+            >
+              キャンセル
+            </Button>
+            <Button
+              onClick={handleSaveSale}
+              disabled={createSaleMutation.isPending}
+              data-testid="button-save-sale"
+            >
+              {createSaleMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                "保存"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete-confirm">

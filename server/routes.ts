@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, organizations, userOrganizations } from "@shared/schema";
+import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, insertStoreSaleSchema, organizations, userOrganizations } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
 import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
@@ -434,6 +434,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("[POST /api/registered-stores/:id/analyze-parking] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Store Sales
+  app.get("/api/registered-stores/:id/sales", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const sales = await storage.getSalesByStore(req.params.id, req.organizationId!);
+      res.json(sales);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/registered-stores/:id/sales", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const store = await storage.getRegisteredStore(req.params.id, req.organizationId!);
+      if (!store) {
+        return res.status(404).json({ error: "Registered store not found" });
+      }
+
+      const data = insertStoreSaleSchema.parse({
+        ...req.body,
+        organizationId: req.organizationId,
+        registeredStoreId: req.params.id,
+        saleDate: new Date(req.body.saleDate),
+      });
+
+      const sale = await storage.createSale(data);
+      res.status(201).json(sale);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/store-sales/:id", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const success = await storage.deleteSale(req.params.id, req.organizationId!);
+      if (!success) {
+        return res.status(404).json({ error: "Sale not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
