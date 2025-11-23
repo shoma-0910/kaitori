@@ -19,7 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { MapPin, Phone, Clock, Calendar, User, DollarSign, FileText, Pencil, X, Save } from "lucide-react";
+import { MapPin, Phone, Clock, Calendar, User, DollarSign, FileText, Pencil, X, Save, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useForm } from "react-hook-form";
@@ -63,6 +63,7 @@ interface EventDetailModalProps {
   isAddingToCalendar?: boolean;
   onSave?: (eventId: string, data: Partial<EventEditFormData>) => void;
   isSaving?: boolean;
+  onOpenSaleDialog?: () => void;
 }
 
 export function EventDetailModal({
@@ -74,6 +75,7 @@ export function EventDetailModal({
   isAddingToCalendar = false,
   onSave,
   isSaving = false,
+  onOpenSaleDialog,
 }: EventDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -406,6 +408,24 @@ export function EventDetailModal({
               </Form>
             )}
           </div>
+
+          {/* 売上登録ボタン */}
+          {!isEditing && onOpenSaleDialog && (
+            <>
+              <Separator />
+              <div className="flex justify-center">
+                <Button
+                  onClick={onOpenSaleDialog}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  data-testid="button-open-sale-dialog"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  売上を追加
+                </Button>
+              </div>
+            </>
+          )}
 
           {/* Googleカレンダーに追加ボタン */}
           {!isEditing && onAddToGoogleCalendar && (

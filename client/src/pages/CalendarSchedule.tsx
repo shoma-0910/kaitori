@@ -5,9 +5,13 @@ import { ScheduleTable, ScheduleItem } from "@/components/ScheduleTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { EventDetailModal } from "@/components/EventDetailModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Event {
   id: string;
@@ -37,11 +41,26 @@ interface RegisteredStore {
   registeredAt: string;
 }
 
+interface SaleForm {
+  saleDate: string;
+  revenue: string;
+  itemsSold: string;
+  notes: string;
+}
+
 export default function CalendarSchedule() {
   const { toast } = useToast();
   const [eventDetailModalOpen, setEventDetailModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedStore, setSelectedStore] = useState<RegisteredStore | null>(null);
+  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [selectedStoreForSale, setSelectedStoreForSale] = useState<RegisteredStore | null>(null);
+  const [saleForm, setSaleForm] = useState<SaleForm>({
+    saleDate: new Date().toISOString().split('T')[0],
+    revenue: '',
+    itemsSold: '',
+    notes: '',
+  });
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -174,6 +193,65 @@ export default function CalendarSchedule() {
     console.log("Slot selected:", slotInfo);
   };
 
+  const createSaleMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      const res = await apiRequest("POST", `/api/registered-stores/${storeId}/sales`, {
+        saleDate: new Date(saleForm.saleDate).toISOString(),
+        revenue: parseInt(saleForm.revenue),
+        itemsSold: parseInt(saleForm.itemsSold),
+        notes: saleForm.notes || null,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "売上を登録しました",
+        description: "売上データが保存されました。",
+      });
+      setSaleDialogOpen(false);
+      setSaleForm({
+        saleDate: new Date().toISOString().split('T')[0],
+        revenue: '',
+        itemsSold: '',
+        notes: '',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
+      if (selectedStoreForSale?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/registered-stores/${selectedStoreForSale.id}/sales`] });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "登録に失敗しました",
+        description: error.message || "もう一度お試しください。",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleOpenSaleDialog = (store: RegisteredStore) => {
+    setSelectedStoreForSale(store);
+    setSaleDialogOpen(true);
+    setSaleForm({
+      saleDate: new Date().toISOString().split('T')[0],
+      revenue: '',
+      itemsSold: '',
+      notes: '',
+    });
+  };
+
+  const handleSaveSale = () => {
+    if (!selectedStoreForSale || !saleForm.revenue || !saleForm.itemsSold) {
+      toast({
+        title: "入力が不足しています",
+        description: "売上と買取品目数を入力してください。",
+        variant: "destructive",
+      });
+      return;
+    }
+    createSaleMutation.mutate(selectedStoreForSale.id);
+  };
+
   const getStoreName = (storeId: string) => {
     const store = stores.find((s) => s.id === storeId);
     if (store) return store.name;
@@ -258,7 +336,95 @@ export default function CalendarSchedule() {
         isAddingToCalendar={addToCalendarMutation.isPending}
         onSave={handleSaveEvent}
         isSaving={updateEventMutation.isPending}
+        onOpenSaleDialog={() => {
+          if (selectedStore) {
+            handleOpenSaleDialog(selectedStore);
+          }
+        }}
       />
+
+      <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
+        <DialogContent data-testid="dialog-add-sale-calendar">
+          <DialogHeader>
+            <DialogTitle>売上を追加</DialogTitle>
+            <DialogDescription>
+              {selectedStoreForSale?.name} の売上情報を記録します
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="sale-date-cal">売上日</Label>
+              <Input
+                id="sale-date-cal"
+                type="date"
+                value={saleForm.saleDate}
+                onChange={(e) => setSaleForm({ ...saleForm, saleDate: e.target.value })}
+                data-testid="input-sale-date-calendar"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-revenue-cal">売上金額（円）</Label>
+              <Input
+                id="sale-revenue-cal"
+                type="number"
+                placeholder="0"
+                value={saleForm.revenue}
+                onChange={(e) => setSaleForm({ ...saleForm, revenue: e.target.value })}
+                data-testid="input-sale-revenue-calendar"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-items-cal">買取品目数</Label>
+              <Input
+                id="sale-items-cal"
+                type="number"
+                placeholder="0"
+                value={saleForm.itemsSold}
+                onChange={(e) => setSaleForm({ ...saleForm, itemsSold: e.target.value })}
+                data-testid="input-sale-items-calendar"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale-notes-cal">備考（オプション）</Label>
+              <Input
+                id="sale-notes-cal"
+                placeholder="特記事項など"
+                value={saleForm.notes}
+                onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                data-testid="input-sale-notes-calendar"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSaleDialogOpen(false)}
+              data-testid="button-cancel-sale-calendar"
+            >
+              キャンセル
+            </Button>
+            <Button
+              onClick={handleSaveSale}
+              disabled={createSaleMutation.isPending}
+              data-testid="button-save-sale-calendar"
+            >
+              {createSaleMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                "保存"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
