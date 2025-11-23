@@ -216,6 +216,7 @@ export default function CalendarSchedule() {
         notes: '',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-summary'] });
       if (selectedStoreForSale?.id) {
         queryClient.invalidateQueries({ queryKey: [`/api/registered-stores/${selectedStoreForSale.id}/sales`] });
       }
