@@ -455,16 +455,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Registered store not found" });
       }
 
-      const data = insertStoreSaleSchema.parse({
-        ...req.body,
+      // Parse and validate the sale data
+      const saleData = {
         organizationId: req.organizationId,
         registeredStoreId: req.params.id,
         saleDate: new Date(req.body.saleDate),
-      });
+        revenue: parseInt(req.body.revenue, 10),
+        itemsSold: parseInt(req.body.itemsSold, 10),
+        notes: req.body.notes || null,
+      };
 
+      const data = insertStoreSaleSchema.parse(saleData);
       const sale = await storage.createSale(data);
       res.status(201).json(sale);
     } catch (error: any) {
+      console.error("Sales creation error:", error);
       res.status(400).json({ error: error.message });
     }
   });
