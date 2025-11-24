@@ -56,6 +56,7 @@ export interface IStorage {
   getApiUsageLogs(organizationId: string, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
 
   // Store Sales
+  getAllStoreSales(organizationId: string): Promise<StoreSale[]>;
   getSalesByStore(registeredStoreId: string, organizationId: string): Promise<StoreSale[]>;
   createSale(sale: InsertStoreSale): Promise<StoreSale>;
   updateSale(id: string, organizationId: string, sale: Partial<InsertStoreSale>): Promise<StoreSale | undefined>;
@@ -214,6 +215,29 @@ export class DbStorage implements IStorage {
   }
 
   // Store Sales
+  async getAllStoreSales(organizationId: string): Promise<StoreSale[]> {
+    const result = await db.select({
+      id: storeSales.id,
+      organizationId: storeSales.organizationId,
+      registeredStoreId: storeSales.registeredStoreId,
+      saleDate: storeSales.saleDate,
+      revenue: storeSales.revenue,
+      itemsSold: storeSales.itemsSold,
+      notes: storeSales.notes,
+      storeName: registeredStores.name,
+      storeAddress: registeredStores.address,
+    })
+      .from(storeSales)
+      .innerJoin(registeredStores, and(
+        eq(storeSales.registeredStoreId, registeredStores.id),
+        eq(registeredStores.organizationId, organizationId)
+      ))
+      .where(eq(storeSales.organizationId, organizationId))
+      .orderBy(desc(storeSales.saleDate));
+    
+    return result as any;
+  }
+
   async getSalesByStore(registeredStoreId: string, organizationId: string): Promise<StoreSale[]> {
     return await db.select().from(storeSales)
       .where(and(eq(storeSales.registeredStoreId, registeredStoreId), eq(storeSales.organizationId, organizationId)))

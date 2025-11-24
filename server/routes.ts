@@ -439,6 +439,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Store Sales
+  app.get("/api/sales-analytics", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const salesWithStoreInfo = await storage.getAllStoreSales(req.organizationId!);
+      res.json(salesWithStoreInfo);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/registered-stores/:id/sales", requireAuth, async (req: AuthRequest, res) => {
     try {
       const sales = await storage.getSalesByStore(req.params.id, req.organizationId!);
