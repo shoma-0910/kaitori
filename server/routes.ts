@@ -354,44 +354,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Gemini API key not configured" });
       }
 
-      const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${store.latitude},${store.longitude}&fov=120&key=${googleMapsApiKey}`;
-
       const { GoogleGenAI } = await import("@google/genai");
       const client = new GoogleGenAI({ apiKey: geminiApiKey });
 
-      const imageResponse = await fetch(streetViewUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64Image = Buffer.from(imageBuffer).toString('base64');
+      // 複数角度からのStreet View画像を取得（北、東、南、西）
+      const headings = [0, 90, 180, 270];
+      const imagePromises = headings.map(async (heading) => {
+        const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=400x300&location=${store.latitude},${store.longitude}&heading=${heading}&fov=90&pitch=0&key=${googleMapsApiKey}`;
+        try {
+          const imageResponse = await fetch(streetViewUrl);
+          const imageBuffer = await imageResponse.arrayBuffer();
+          return Buffer.from(imageBuffer).toString('base64');
+        } catch (error) {
+          console.warn(`Failed to fetch Street View image for heading ${heading}`);
+          return null;
+        }
+      });
 
-      const prompt = `この店舗の周辺画像を分析して、駐車場の有無を判定してください。
+      const images = await Promise.all(imagePromises);
+      const validImages = images.filter((img): img is string => img !== null);
 
-判定基準：
-- 建物の前や横に駐車スペースが見えるか
-- 駐車場の標識や看板が見えるか
-- 車が停まっているスペースがあるか
-- 舗装された駐車エリアがあるか
+      if (validImages.length === 0) {
+        throw new Error("Failed to fetch Street View images");
+      }
 
-以下のJSON形式で回答してください：
+      // 複数角度の画像を一度に分析（精度向上）
+      const prompt = `この店舗の周辺画像（複数の角度から撮影）を総合的に分析して、駐車場の有無を判定してください。
+
+判定基準（重要度順）：
+1. 駐車スペース：建物の前、横、裏に駐車スペースの有無
+2. 駐車場標識：駐車場の看板、マーク、白線、境界線の有無
+3. 営業形態から推定される駐車場：商業施設の前で駐車が必要か
+4. 路上駐車の可能性：店舗前の街道に駐車スペースがあるか
+
+複数の画像から総合的に判断し、以下のJSON形式で回答してください。信頼度は0-100の整数値で、複数角度の分析結果から最も確実な判定を示してください：
+
 {
-  "status": "available" または "unavailable" または "unknown",
-  "confidence": 0-100の整数（確信度）,
-  "reason": "判定理由を日本語で簡潔に"
+  "status": "available" | "unavailable" | "unknown",
+  "confidence": 0-100の整数（複数角度分析による確信度）,
+  "reason": "判定根拠を詳しく日本語で",
+  "details": {
+    "hasMarkedSpaces": true|false,
+    "hasUnmarkedSpaces": true|false,
+    "hasStreetParking": true|false
+  }
 }`;
+
+      const parts: any = [{ text: prompt }];
+      validImages.forEach((base64Image, index) => {
+        parts.push({
+          inlineData: {
+            data: base64Image,
+            mimeType: "image/jpeg"
+          }
+        });
+      });
 
       const result = await client.models.generateContent({
         model: "gemini-1.5-flash",
         contents: [
           {
             role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  data: base64Image,
-                  mimeType: "image/jpeg"
-                }
-              }
-            ]
+            parts: parts
           }
         ]
       });
@@ -414,20 +438,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationId: req.organizationId!,
         apiType: "google_street_view",
         endpoint: "/maps/api/streetview",
-        metadata: JSON.stringify({ storeId: id, storeName: store.name })
+        metadata: JSON.stringify({ storeId: id, storeName: store.name, angleCount: validImages.length })
       });
 
       await storage.logApiUsage({
         organizationId: req.organizationId!,
         apiType: "gemini_vision",
         endpoint: "generateContent",
-        metadata: JSON.stringify({ model: "gemini-1.5-flash", storeId: id })
+        metadata: JSON.stringify({ model: "gemini-1.5-flash", storeId: id, imageCount: validImages.length })
       });
 
       res.json({
         parkingStatus: analysis.status,
         parkingConfidence: analysis.confidence,
         parkingReason: analysis.reason,
+        parkingDetails: analysis.details,
         analyzedAt: new Date(),
         cached: false
       });
@@ -623,6 +648,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.warn(`Failed to get demographics for ${place.name}:`, error);
           }
 
+          // Google レーティングを考慮したランク計算の改善
+          // rating: 店舗評価、userRatingsTotal: レビュー数を活用
+          let enhancedRank = rank;
+          if (place.rating && place.rating > 0) {
+            // レーティングが高い場合はランクを上げる（3.8以上でA、4.5以上でS）
+            const ratingBonus = place.rating >= 4.5 ? 2 : place.rating >= 3.8 ? 1 : 0;
+            if (ratingBonus > 0 && rank) {
+              const rankMap: { [key: string]: number } = { "D": 0, "C": 1, "B": 2, "A": 3, "S": 4 };
+              const rankValues = ["D", "C", "B", "A", "S"];
+              const currentRankValue = rankMap[rank] || 2;
+              enhancedRank = rankValues[Math.min(currentRankValue + ratingBonus, 4)] || rank;
+            }
+            // レビュー数が多い場合はランクを微調整
+            if (place.user_ratings_total && place.user_ratings_total >= 100) {
+              // 信頼性が高い（多くのレビューがある）→ ランク維持
+            }
+          }
+
           return {
             placeId: place.place_id,
             name: place.name,
@@ -632,9 +675,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             phoneNumber: place.formatted_phone_number || null,
             website: place.website || null,
             openingHours: place.opening_hours?.weekday_text || [],
-            rank,
+            rank: enhancedRank,
             demographicData: demographicData ? JSON.stringify(demographicData) : null,
             elderlyFemaleRatio,
+            rating: place.rating || null,
+            userRatingsTotal: place.user_ratings_total || null,
           };
         })
       );

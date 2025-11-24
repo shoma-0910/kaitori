@@ -58,6 +58,11 @@ interface NearbyPlace {
   parkingStatus?: "available" | "unavailable" | "unknown" | "analyzing" | null;
   parkingConfidence?: number;
   parkingReason?: string;
+  parkingDetails?: {
+    hasMarkedSpaces?: boolean;
+    hasUnmarkedSpaces?: boolean;
+    hasStreetParking?: boolean;
+  };
   parkingAnalyzedAt?: string;
   registeredStoreId?: string;
   rank?: "S" | "A" | "B" | "C" | "D" | null;
@@ -1416,7 +1421,7 @@ export function StoreMapView({
                         </div>
                       )}
                       {selectedPlaceDetails.parkingStatus === "available" && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="default" className="bg-green-600">✅ 駐車場あり</Badge>
                             {selectedPlaceDetails.parkingConfidence !== undefined && (
@@ -1428,10 +1433,25 @@ export function StoreMapView({
                           {selectedPlaceDetails.parkingReason && (
                             <p className="text-xs text-muted-foreground">{selectedPlaceDetails.parkingReason}</p>
                           )}
+                          {selectedPlaceDetails.parkingDetails && (
+                            <div className="space-y-1 bg-green-50 dark:bg-green-900/20 p-2 rounded text-xs">
+                              <div className="flex items-center gap-2">
+                                {selectedPlaceDetails.parkingDetails.hasMarkedSpaces && (
+                                  <Badge variant="outline" className="text-xs">線引きあり</Badge>
+                                )}
+                                {selectedPlaceDetails.parkingDetails.hasUnmarkedSpaces && (
+                                  <Badge variant="outline" className="text-xs">スペースあり</Badge>
+                                )}
+                                {selectedPlaceDetails.parkingDetails.hasStreetParking && (
+                                  <Badge variant="outline" className="text-xs">路上駐車可</Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {selectedPlaceDetails.parkingStatus === "unavailable" && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="destructive">❌ 駐車場なし</Badge>
                             {selectedPlaceDetails.parkingConfidence !== undefined && (
@@ -1442,6 +1462,23 @@ export function StoreMapView({
                           </div>
                           {selectedPlaceDetails.parkingReason && (
                             <p className="text-xs text-muted-foreground">{selectedPlaceDetails.parkingReason}</p>
+                          )}
+                          {selectedPlaceDetails.parkingDetails && (
+                            <div className="space-y-1 bg-red-50 dark:bg-red-900/20 p-2 rounded text-xs">
+                              <p className="text-muted-foreground">駐車場の特徴：</p>
+                              {!selectedPlaceDetails.parkingDetails.hasMarkedSpaces && !selectedPlaceDetails.parkingDetails.hasUnmarkedSpaces ? (
+                                <span>駐車スペースが見つかりませんでした</span>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  {selectedPlaceDetails.parkingDetails.hasMarkedSpaces && (
+                                    <Badge variant="outline" className="text-xs">限定的な駐車</Badge>
+                                  )}
+                                  {selectedPlaceDetails.parkingDetails.hasStreetParking && (
+                                    <Badge variant="outline" className="text-xs">路上駐車のみ</Badge>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
