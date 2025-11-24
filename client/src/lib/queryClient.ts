@@ -16,11 +16,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     headers["Authorization"] = `Bearer ${session.access_token}`;
   }
   
-  const selectedOrgId = localStorage.getItem("selectedOrganizationId");
-  if (selectedOrgId) {
-    headers["X-Organization-Id"] = selectedOrgId;
-  }
-  
   return headers;
 }
 

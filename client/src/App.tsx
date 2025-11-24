@@ -8,15 +8,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuTrigger, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator 
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown, Check } from "lucide-react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/Dashboard";
 import StoreSelection from "@/pages/StoreSelection";
@@ -98,57 +89,6 @@ function Router() {
   );
 }
 
-function OrganizationSwitcher() {
-  const { userInfo, organizations, switchOrganization } = useAuth();
-
-  if (!userInfo || organizations.length <= 1) {
-    return userInfo?.organizationName ? (
-      <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
-        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-        <span className="text-sm font-medium text-foreground" data-testid="text-organization-name">
-          {userInfo.organizationName}
-        </span>
-      </div>
-    ) : null;
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="hidden sm:flex gap-2 hover-elevate active-elevate-2"
-          data-testid="button-organization-switcher"
-        >
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-sm font-medium">{userInfo.organizationName}</span>
-          <ChevronDown className="w-4 h-4 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>組織を切り替え</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {organizations.map((org) => (
-          <DropdownMenuItem
-            key={org.id}
-            onClick={() => switchOrganization(org.id)}
-            className="cursor-pointer"
-            data-testid={`menuitem-org-${org.id}`}
-          >
-            <div className="flex items-center gap-2 w-full">
-              <div className={`w-2 h-2 rounded-full ${org.id === userInfo.organizationId ? 'bg-green-500' : 'bg-muted'}`}></div>
-              <span className="flex-1">{org.name}</span>
-              {org.id === userInfo.organizationId && (
-                <Check className="w-4 h-4" />
-              )}
-            </div>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function AppContent() {
   const { user, userInfo, loading } = useAuth();
   const [location] = useLocation();
@@ -172,7 +112,14 @@ function AppContent() {
           <header className="flex items-center justify-between p-4 border-b gap-4">
             <HamburgerButton />
             <div className="flex items-center gap-4 flex-1 justify-end">
-              <OrganizationSwitcher />
+              {userInfo?.organizationName && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-foreground" data-testid="text-organization-name">
+                    {userInfo.organizationName}
+                  </span>
+                </div>
+              )}
               <ThemeToggle />
               <UserMenu />
             </div>
