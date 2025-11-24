@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star, Filter, X, RotateCcw } from "lucide-react";
+import { Search, Loader2, MapPin, Phone, MapPinned, Check, Car, Star, Filter, X, RotateCcw, Globe, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
@@ -1388,6 +1388,26 @@ export function StoreMapView({
                     </div>
                   </div>
                 )}
+
+                {selectedPlaceDetails.website ? (
+                  <div className="flex items-start gap-3">
+                    <Globe className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground mb-1">ホームページ</p>
+                      <p className="text-sm font-medium" data-testid="detail-website">
+                        <a 
+                          href={selectedPlaceDetails.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          <span className="truncate">{selectedPlaceDetails.website}</span>
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
 
                 {selectedPlaceDetails.rating !== undefined && (
                   <div className="flex items-start gap-3">
