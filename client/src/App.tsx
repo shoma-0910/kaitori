@@ -90,7 +90,7 @@ function Router() {
 }
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, userInfo, loading } = useAuth();
   const [location] = useLocation();
   const isMapPage = location === "/map";
   
@@ -109,9 +109,17 @@ function AppContent() {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-4 border-b">
+          <header className="flex items-center justify-between p-4 border-b gap-4">
             <HamburgerButton />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4 flex-1 justify-end">
+              {userInfo?.organizationName && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium text-foreground" data-testid="text-organization-name">
+                    {userInfo.organizationName}
+                  </span>
+                </div>
+              )}
               <ThemeToggle />
               <UserMenu />
             </div>

@@ -872,10 +872,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(req.userId!);
       
+      // Get organization details
+      const org = await db.select()
+        .from(organizations)
+        .where(eq(organizations.id, req.organizationId!))
+        .limit(1);
+      
       res.json({
         userId: req.userId,
         email: userData?.user?.email || null,
         organizationId: req.organizationId,
+        organizationName: org[0]?.name || null,
         role: req.userRole,
         isSuperAdmin: req.isSuperAdmin,
       });

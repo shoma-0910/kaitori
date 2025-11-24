@@ -6,6 +6,7 @@ interface UserInfo {
   userId: string;
   email: string;
   organizationId: string;
+  organizationName: string;
   role: string;
   isSuperAdmin: boolean;
 }
