@@ -251,6 +251,7 @@ export default function RegisteredStores() {
       // Invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
       queryClient.invalidateQueries({ queryKey: ['/api/sales-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-analytics'] });
       if (selectedStoreForSale?.id) {
         queryClient.invalidateQueries({ queryKey: [`/api/registered-stores/${selectedStoreForSale.id}/sales`] });
       }
