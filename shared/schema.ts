@@ -58,6 +58,8 @@ export const events = pgTable("events", {
   status: text("status").notNull(),
   estimatedCost: integer("estimated_cost").notNull(),
   actualProfit: integer("actual_profit"),
+  actualRevenue: integer("actual_revenue"),
+  itemsPurchased: integer("items_purchased"),
   googleCalendarEventId: text("google_calendar_event_id"),
   notes: text("notes"),
 });
@@ -65,6 +67,8 @@ export const events = pgTable("events", {
 export const insertEventSchema = createInsertSchema(events).omit({ id: true }).extend({
   estimatedCost: z.coerce.number(),
   actualProfit: z.coerce.number().optional().nullable(),
+  actualRevenue: z.coerce.number().optional().nullable(),
+  itemsPurchased: z.coerce.number().optional().nullable(),
 });
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
