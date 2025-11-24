@@ -416,13 +416,23 @@ export default function RegisteredStores() {
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {storeSalesMap[store.id] ? (
-                          <span className="text-sm font-semibold" data-testid={`text-sales-total-${store.id}`}>
-                            ¥{storeSalesMap[store.id].total.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenSaleDialog(store);
+                          }}
+                          className="flex items-center gap-2 hover:underline cursor-pointer group"
+                          data-testid={`button-sales-total-${store.id}`}
+                        >
+                          {storeSalesMap[store.id] ? (
+                            <span className="text-sm font-semibold" data-testid={`text-sales-total-${store.id}`}>
+                              ¥{storeSalesMap[store.id].total.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                          <Plus className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {storeSalesMap[store.id] ? (
@@ -462,18 +472,6 @@ export default function RegisteredStores() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenSaleDialog(store);
-                            }}
-                            title="売上を追加"
-                            data-testid={`button-add-sale-${store.id}`}
-                          >
-                            <Plus className="h-4 w-4 text-primary" />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
