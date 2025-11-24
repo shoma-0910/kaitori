@@ -413,74 +413,78 @@ export default function SalesAnalytics() {
   const eventsInitialLoad = eventsLoading && events.length === 0;
 
   return (
-    <div className="fade-in space-y-6">
+    <div className="fade-in space-y-6 px-2 sm:px-0">
       <div>
-        <h1 className="text-4xl font-bold gradient-text mb-2">売上分析</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">売上分析</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
           店舗別・催事別の売上データを管理・分析
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalyticsTab)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="events" data-testid="tab-event-sales">催事別売上</TabsTrigger>
           <TabsTrigger value="stores" data-testid="tab-store-sales">店舗別売上</TabsTrigger>
         </TabsList>
 
         <div className="mt-6 space-y-6">
           {/* KPI サマリー */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card className="glass-card border-white/20 dark:border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-green-500" />
-                  総売上
+              <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                  <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                  <span className="hidden sm:inline">総売上</span>
+                  <span className="sm:hidden">売上</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-total-revenue">
+              <CardContent className="px-3 py-2 sm:px-6 sm:py-4">
+                <div className="text-lg sm:text-2xl font-bold" data-testid="text-total-revenue">
                   ¥{totals.revenue.toLocaleString()}
                 </div>
               </CardContent>
             </Card>
 
             <Card className="glass-card border-white/20 dark:border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-blue-500" />
-                  買取品目数
+              <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                  <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+                  <span className="hidden sm:inline">買取品目数</span>
+                  <span className="sm:hidden">品目</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-total-items">
+              <CardContent className="px-3 py-2 sm:px-6 sm:py-4">
+                <div className="text-lg sm:text-2xl font-bold" data-testid="text-total-items">
                   {totals.items.toLocaleString()}個
                 </div>
               </CardContent>
             </Card>
 
             <Card className="glass-card border-white/20 dark:border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4 text-purple-500" />
-                  {activeTab === 'stores' ? '売上件数' : '催事件数'}
+              <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                  <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500" />
+                  <span className="hidden sm:inline">{activeTab === 'stores' ? '売上件数' : '催事件数'}</span>
+                  <span className="sm:hidden">件数</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-total-count">
+              <CardContent className="px-3 py-2 sm:px-6 sm:py-4">
+                <div className="text-lg sm:text-2xl font-bold" data-testid="text-total-count">
                   {totals.count}件
                 </div>
               </CardContent>
             </Card>
 
             <Card className="glass-card border-white/20 dark:border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-orange-500" />
-                  平均売上/回
+              <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
+                <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+                  <span className="hidden sm:inline">平均売上/回</span>
+                  <span className="sm:hidden">平均</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="text-avg-revenue">
+              <CardContent className="px-3 py-2 sm:px-6 sm:py-4">
+                <div className="text-lg sm:text-2xl font-bold" data-testid="text-avg-revenue">
                   ¥{totals.avgRevenue.toLocaleString()}
                 </div>
               </CardContent>
@@ -511,22 +515,22 @@ export default function SalesAnalytics() {
               </Card>
             ) : (
               <Card className="glass-card border-white/20 dark:border-white/10">
-                <CardHeader>
-                  <CardTitle>スケジュールされた催事</CardTitle>
+                <CardHeader className="px-3 sm:px-6">
+                  <CardTitle className="text-lg sm:text-xl">スケジュールされた催事</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="min-w-[120px]">開催日</TableHead>
-                          <TableHead className="min-w-[180px]">店舗名</TableHead>
-                          <TableHead className="min-w-[100px]">担当者</TableHead>
-                          <TableHead className="text-right min-w-[120px]">売上金額</TableHead>
-                          <TableHead className="text-right min-w-[100px]">品目数</TableHead>
-                          <TableHead className="text-right min-w-[120px]">利益</TableHead>
-                          <TableHead className="min-w-[200px]">備考</TableHead>
-                          <TableHead className="min-w-[80px]">操作</TableHead>
+                          <TableHead className="min-w-[90px] sm:min-w-[120px] px-2 sm:px-4">開催日</TableHead>
+                          <TableHead className="min-w-[120px] sm:min-w-[180px] px-2 sm:px-4 hidden sm:table-cell">店舗名</TableHead>
+                          <TableHead className="min-w-[80px] sm:min-w-[100px] px-2 sm:px-4 hidden md:table-cell">担当者</TableHead>
+                          <TableHead className="text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4">売上</TableHead>
+                          <TableHead className="text-right min-w-[80px] sm:min-w-[100px] px-2 sm:px-4">品目</TableHead>
+                          <TableHead className="text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4 hidden lg:table-cell">利益</TableHead>
+                          <TableHead className="min-w-[120px] sm:min-w-[200px] px-2 sm:px-4 hidden lg:table-cell">備考</TableHead>
+                          <TableHead className="min-w-[60px] sm:min-w-[80px] px-2 sm:px-4">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -538,7 +542,7 @@ export default function SalesAnalytics() {
                               className="hover-elevate"
                               data-testid={`row-event-${index}`}
                             >
-                              <TableCell className="font-medium" data-testid={`text-event-date-${index}`}>
+                              <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-event-date-${index}`}>
                                 {format(new Date(event.startDate), 'yyyy/MM/dd', { locale: ja })}
                                 {event.startDate !== event.endDate && (
                                   <span className="text-xs text-muted-foreground block">
@@ -546,18 +550,18 @@ export default function SalesAnalytics() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell data-testid={`text-event-store-${index}`}>
+                              <TableCell className="px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell" data-testid={`text-event-store-${index}`}>
                                 <div className="font-medium">{event.storeName || '未設定'}</div>
                                 {event.storeAddress && (
-                                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  <div className="text-xs text-muted-foreground truncate max-w-[150px]">
                                     {event.storeAddress}
                                   </div>
                                 )}
                               </TableCell>
-                              <TableCell data-testid={`text-event-manager-${index}`}>
+                              <TableCell className="px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell" data-testid={`text-event-manager-${index}`}>
                                 {event.manager}
                               </TableCell>
-                              <TableCell className="text-right" data-testid={`text-event-revenue-${index}`}>
+                              <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-event-revenue-${index}`}>
                                 {isEditing ? (
                                   <Input
                                     type="number"
@@ -574,13 +578,13 @@ export default function SalesAnalytics() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right" data-testid={`text-event-items-${index}`}>
+                              <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-event-items-${index}`}>
                                 {isEditing ? (
                                   <Input
                                     type="number"
                                     value={editFormData.itemsPurchased}
                                     onChange={(e) => setEditFormData({ ...editFormData, itemsPurchased: e.target.value })}
-                                    className="w-20 text-right"
+                                    className="w-16 sm:w-20 text-right text-xs sm:text-sm"
                                     placeholder="0"
                                     disabled={updateEventMutation.isPending}
                                     data-testid="input-event-items"
@@ -589,13 +593,13 @@ export default function SalesAnalytics() {
                                   <span>{event.itemsPurchased ? `${event.itemsPurchased}個` : '-'}</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right" data-testid={`text-event-profit-${index}`}>
+                              <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm hidden lg:table-cell" data-testid={`text-event-profit-${index}`}>
                                 {isEditing ? (
                                   <Input
                                     type="number"
                                     value={editFormData.actualProfit}
                                     onChange={(e) => setEditFormData({ ...editFormData, actualProfit: e.target.value })}
-                                    className="w-28 text-right"
+                                    className="w-20 sm:w-28 text-right text-xs sm:text-sm"
                                     placeholder="0"
                                     disabled={updateEventMutation.isPending}
                                     data-testid="input-event-profit"
@@ -606,12 +610,12 @@ export default function SalesAnalytics() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-sm text-muted-foreground" data-testid={`text-event-notes-${index}`}>
+                              <TableCell className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-4 hidden lg:table-cell" data-testid={`text-event-notes-${index}`}>
                                 {isEditing ? (
                                   <Input
                                     value={editFormData.notes}
                                     onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
-                                    className="w-full"
+                                    className="w-full text-xs sm:text-sm"
                                     placeholder="備考"
                                     disabled={updateEventMutation.isPending}
                                     data-testid="input-event-notes"
@@ -667,38 +671,40 @@ export default function SalesAnalytics() {
           {/* 店舗別売上タブ */}
           <TabsContent value="stores" className="space-y-6 mt-0">
             <Card className="glass-card border-white/20 dark:border-white/10">
-              <CardContent className="p-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="店舗名や備考で検索..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                      data-testid="input-search"
-                    />
+              <CardContent className="p-2 sm:p-4">
+                <div className="flex flex-col gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="店舗名や備考で検索..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 text-sm"
+                        data-testid="input-search"
+                      />
+                    </div>
+                    
+                    <Select value={selectedStore} onValueChange={setSelectedStore}>
+                      <SelectTrigger className="w-full sm:w-[180px] text-sm" data-testid="select-store-filter">
+                        <SelectValue placeholder="店舗を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全店舗</SelectItem>
+                        {registeredStores.map(store => (
+                          <SelectItem key={store.id} value={store.id}>
+                            {store.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <Select value={selectedStore} onValueChange={setSelectedStore}>
-                    <SelectTrigger className="w-full lg:w-[200px]" data-testid="select-store-filter">
-                      <SelectValue placeholder="店舗を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">全店舗</SelectItem>
-                      {registeredStores.map(store => (
-                        <SelectItem key={store.id} value={store.id}>
-                          {store.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
 
-                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full lg:w-auto">
-                    <TabsList className="grid w-full lg:w-auto grid-cols-3">
-                      <TabsTrigger value="all" data-testid="tab-all">全期間</TabsTrigger>
-                      <TabsTrigger value="monthly" data-testid="tab-monthly">月別</TabsTrigger>
-                      <TabsTrigger value="weekly" data-testid="tab-weekly">週別</TabsTrigger>
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="all" className="text-xs sm:text-sm" data-testid="tab-all">全期間</TabsTrigger>
+                      <TabsTrigger value="monthly" className="text-xs sm:text-sm" data-testid="tab-monthly">月別</TabsTrigger>
+                      <TabsTrigger value="weekly" className="text-xs sm:text-sm" data-testid="tab-weekly">週別</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
@@ -715,14 +721,14 @@ export default function SalesAnalytics() {
               <div className="space-y-6">
                 {groupedSales.map((group, groupIndex) => (
                   <Card key={groupIndex} className="glass-card border-white/20 dark:border-white/10">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <CardTitle className="text-lg">{group.label}</CardTitle>
-                        <div className="flex items-center gap-4 text-sm">
-                          <Badge variant="outline" className="bg-green-500/10 border-green-500">
+                    <CardHeader className="pb-2 sm:pb-3 px-2 sm:px-6 py-3 sm:py-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <CardTitle className="text-base sm:text-lg">{group.label}</CardTitle>
+                        <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                          <Badge variant="outline" className="bg-green-500/10 border-green-500 text-xs sm:text-sm">
                             売上: ¥{group.totalRevenue.toLocaleString()}
                           </Badge>
-                          <Badge variant="outline" className="bg-blue-500/10 border-blue-500">
+                          <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs sm:text-sm">
                             品目: {group.totalItems}個
                           </Badge>
                         </div>
@@ -734,34 +740,34 @@ export default function SalesAnalytics() {
                           <TableHeader>
                             <TableRow className="bg-muted/50">
                               <TableHead 
-                                className={viewMode === 'all' ? "cursor-pointer hover-elevate min-w-[120px]" : "min-w-[120px]"}
+                                className={`${viewMode === 'all' ? "cursor-pointer hover-elevate" : ""} min-w-[90px] sm:min-w-[120px] px-2 sm:px-4 text-xs sm:text-sm`}
                                 onClick={() => handleSort('date')}
                                 data-testid="th-date"
                               >
                                 日付 <SortIcon field="date" />
                               </TableHead>
                               <TableHead 
-                                className={viewMode === 'all' ? "cursor-pointer hover-elevate min-w-[180px]" : "min-w-[180px]"}
+                                className={`${viewMode === 'all' ? "cursor-pointer hover-elevate" : ""} min-w-[120px] sm:min-w-[180px] px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell`}
                                 onClick={() => handleSort('store')}
                                 data-testid="th-store"
                               >
                                 店舗名 <SortIcon field="store" />
                               </TableHead>
                               <TableHead 
-                                className={viewMode === 'all' ? "cursor-pointer hover-elevate text-right min-w-[120px]" : "text-right min-w-[120px]"}
+                                className={`${viewMode === 'all' ? "cursor-pointer hover-elevate" : ""} text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4 text-xs sm:text-sm`}
                                 onClick={() => handleSort('revenue')}
                                 data-testid="th-revenue"
                               >
-                                売上金額 <SortIcon field="revenue" />
+                                売上 <SortIcon field="revenue" />
                               </TableHead>
                               <TableHead 
-                                className={viewMode === 'all' ? "cursor-pointer hover-elevate text-right min-w-[100px]" : "text-right min-w-[100px]"}
+                                className={`${viewMode === 'all' ? "cursor-pointer hover-elevate" : ""} text-right min-w-[80px] sm:min-w-[100px] px-2 sm:px-4 text-xs sm:text-sm`}
                                 onClick={() => handleSort('items')}
                                 data-testid="th-items"
                               >
-                                品目数 <SortIcon field="items" />
+                                品目 <SortIcon field="items" />
                               </TableHead>
-                              <TableHead className="min-w-[200px]">備考</TableHead>
+                              <TableHead className="min-w-[100px] sm:min-w-[200px] px-2 sm:px-4 text-xs sm:text-sm hidden lg:table-cell">備考</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -771,37 +777,37 @@ export default function SalesAnalytics() {
                                 className="hover-elevate"
                                 data-testid={`row-sale-${index}`}
                               >
-                                <TableCell className="font-medium" data-testid={`text-date-${index}`}>
+                                <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-date-${index}`}>
                                   {format(new Date(sale.saleDate), 'yyyy/MM/dd (E)', { locale: ja })}
                                 </TableCell>
-                                <TableCell data-testid={`text-store-${index}`}>
+                                <TableCell className="px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell" data-testid={`text-store-${index}`}>
                                   <div className="font-medium">{sale.storeName}</div>
-                                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                  <div className="text-xs text-muted-foreground truncate max-w-[150px]">
                                     {sale.storeAddress}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right font-semibold" data-testid={`text-revenue-${index}`}>
+                                <TableCell className="text-right font-semibold px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-revenue-${index}`}>
                                   ¥{sale.revenue.toLocaleString()}
                                 </TableCell>
-                                <TableCell className="text-right" data-testid={`text-items-${index}`}>
+                                <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-items-${index}`}>
                                   {sale.itemsSold}個
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground" data-testid={`text-notes-${index}`}>
+                                <TableCell className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-4 hidden lg:table-cell" data-testid={`text-notes-${index}`}>
                                   {sale.notes || '-'}
                                 </TableCell>
                               </TableRow>
                             ))}
                             <TableRow className="bg-muted/30 font-bold border-t-2">
-                              <TableCell colSpan={2} className="text-right">
+                              <TableCell colSpan={2} className="text-right px-2 sm:px-4 text-xs sm:text-sm">
                                 小計
                               </TableCell>
-                              <TableCell className="text-right" data-testid={`text-subtotal-revenue-${groupIndex}`}>
+                              <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-subtotal-revenue-${groupIndex}`}>
                                 ¥{group.totalRevenue.toLocaleString()}
                               </TableCell>
-                              <TableCell className="text-right" data-testid={`text-subtotal-items-${groupIndex}`}>
+                              <TableCell className="text-right px-2 sm:px-4 text-xs sm:text-sm" data-testid={`text-subtotal-items-${groupIndex}`}>
                                 {group.totalItems}個
                               </TableCell>
-                              <TableCell></TableCell>
+                              <TableCell className="hidden lg:table-cell"></TableCell>
                             </TableRow>
                           </TableBody>
                         </Table>
