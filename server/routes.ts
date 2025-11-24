@@ -892,6 +892,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all organizations the user belongs to
+  app.get("/api/user/organizations", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const userOrgs = await db.select({
+        organizationId: userOrganizations.organizationId,
+        role: userOrganizations.role,
+        isSuperAdmin: userOrganizations.isSuperAdmin,
+      })
+        .from(userOrganizations)
+        .where(eq(userOrganizations.userId, req.userId!));
+
+      const orgsWithDetails = await Promise.all(
+        userOrgs.map(async (userOrg) => {
+          const org = await db.select()
+            .from(organizations)
+            .where(eq(organizations.id, userOrg.organizationId))
+            .limit(1);
+
+          return {
+            id: userOrg.organizationId,
+            name: org[0]?.name || null,
+            role: userOrg.role,
+            isSuperAdmin: userOrg.isSuperAdmin === "true",
+          };
+        })
+      );
+
+      res.json(orgsWithDetails);
+    } catch (error: any) {
+      console.error("Get user organizations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Super Admin Only: Organization Management
   app.get("/api/admin/organizations", requireAuth, async (req: AuthRequest, res) => {
     try {

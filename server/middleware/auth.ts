@@ -34,21 +34,38 @@ export async function requireAuth(
 
     console.log("[Auth] User authenticated:", user.email, "User ID:", user.id);
 
-    const userOrgResult = await db.select({
+    // Check if user wants to use a specific organization
+    const requestedOrgId = req.headers['x-organization-id'] as string;
+    
+    // Get all organizations the user belongs to
+    const userOrgResults = await db.select({
       organizationId: userOrganizations.organizationId,
       role: userOrganizations.role,
       isSuperAdmin: userOrganizations.isSuperAdmin,
     })
       .from(userOrganizations)
-      .where(eq(userOrganizations.userId, user.id))
-      .limit(1);
+      .where(eq(userOrganizations.userId, user.id));
 
-    if (!userOrgResult || userOrgResult.length === 0) {
+    if (!userOrgResults || userOrgResults.length === 0) {
       console.log("[Auth] No organization found for user:", user.email);
       return res.status(403).json({ error: "No organization found" });
     }
 
-    const userOrg = userOrgResult[0];
+    // Find the requested organization or use the first one
+    let userOrg = userOrgResults[0];
+    
+    if (requestedOrgId) {
+      const requestedOrg = userOrgResults.find(
+        org => org.organizationId === requestedOrgId
+      );
+      
+      if (requestedOrg) {
+        userOrg = requestedOrg;
+        console.log("[Auth] Using requested organization:", requestedOrgId);
+      } else {
+        console.log("[Auth] Requested organization not found, using default:", userOrg.organizationId);
+      }
+    }
     
     console.log("[Auth] Organization found:", userOrg.organizationId, "Role:", userOrg.role, "SuperAdmin:", userOrg.isSuperAdmin);
 
