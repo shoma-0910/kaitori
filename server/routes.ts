@@ -174,14 +174,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 催事別売上が入力された場合、店舗別売上に反映
-      if ((updateData.actualRevenue || event.actualRevenue) && (updateData.itemsPurchased || event.itemsPurchased)) {
+      if (updateData.actualRevenue !== undefined || updateData.itemsPurchased !== undefined) {
         try {
           const revenue = updateData.actualRevenue ?? event.actualRevenue ?? 0;
           const itemsSold = updateData.itemsPurchased ?? event.itemsPurchased ?? 0;
           
-          // RegisteredStoreかどうかを確認
+          console.log(`[PATCH /api/events] Syncing to store sales - eventId: ${event.id}, revenue: ${revenue}, items: ${itemsSold}, storeId: ${event.storeId}`);
+          
+          // RegisteredStoreを確認
           const registeredStore = await storage.getRegisteredStore(event.storeId, req.organizationId!);
+          
           if (registeredStore) {
+            console.log(`[PATCH /api/events] Found RegisteredStore: ${registeredStore.id}`);
+            
             // 同じ日のレコードを確認して、存在しなければ作成、存在すれば更新
             const existingSales = await storage.getSalesByStore(registeredStore.id, req.organizationId!);
             const saleDate = event.startDate;
@@ -191,13 +196,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             if (sameDaySale) {
               // 既存レコードを更新
+              console.log(`[PATCH /api/events] Updating existing sale: ${sameDaySale.id}`);
               await storage.updateSale(sameDaySale.id, req.organizationId!, {
-                revenue: revenue + (sameDaySale.revenue || 0),
-                itemsSold: itemsSold + (sameDaySale.itemsSold || 0),
-                notes: `${sameDaySale.notes || ''}${sameDaySale.notes ? '\n' : ''}イベント: ${event.id}`,
+                revenue: revenue,
+                itemsSold: itemsSold,
+                notes: `イベント: ${event.id}`,
               });
             } else {
               // 新規レコードを作成
+              console.log(`[PATCH /api/events] Creating new sale record`);
               await storage.createSale({
                 organizationId: req.organizationId!,
                 registeredStoreId: registeredStore.id,
@@ -207,9 +214,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 notes: `イベント: ${event.id}`,
               });
             }
+          } else {
+            console.log(`[PATCH /api/events] RegisteredStore not found for storeId: ${event.storeId}`);
           }
         } catch (syncError: any) {
-          console.error('[PATCH /api/events/:id] Failed to sync to store sales:', syncError.message);
+          console.error('[PATCH /api/events] Failed to sync to store sales:', syncError.message, syncError.stack);
         }
       }
 
