@@ -219,6 +219,43 @@ export function EventCalendar({
             font-size: 1rem;
           }
         }
+        .rbc-month-view .rbc-event {
+          padding: 2px 3px;
+          font-size: 0.65rem;
+          line-height: 1.1;
+          max-height: none;
+          overflow: visible;
+          white-space: normal;
+          word-break: break-word;
+          display: block !important;
+          visibility: visible !important;
+        }
+        @media (min-width: 375px) {
+          .rbc-month-view .rbc-event {
+            font-size: 0.7rem;
+          }
+        }
+        @media (min-width: 640px) {
+          .rbc-month-view .rbc-event {
+            padding: 3px 5px;
+            font-size: 0.8rem;
+            line-height: 1.2;
+          }
+        }
+        @media (min-width: 768px) {
+          .rbc-month-view .rbc-event {
+            padding: 3px 6px;
+            font-size: 0.875rem;
+          }
+        }
+        .rbc-month-view .rbc-day-bg {
+          padding: 2px;
+        }
+        @media (min-width: 640px) {
+          .rbc-month-view .rbc-day-bg {
+            padding: 3px;
+          }
+        }
         .rbc-day-slot .rbc-time-slot {
           border-top: 1px solid hsl(var(--border));
         }
