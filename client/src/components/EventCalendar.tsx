@@ -83,7 +83,7 @@ export function EventCalendar({
   };
 
   return (
-    <Card className="p-2 sm:p-4 md:p-6 glass-card border-white/20 dark:border-white/10 w-full">
+    <Card className="pl-0 pr-2 sm:pl-0 sm:pr-4 md:pr-6 py-2 sm:py-4 md:py-6 glass-card border-white/20 dark:border-white/10 w-full">
       <style>{`
         .rbc-calendar {
           font-family: var(--font-sans);
@@ -275,7 +275,7 @@ export function EventCalendar({
           }
         }
       `}</style>
-      <div className="h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] relative z-10">
+      <div className="h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] relative z-10 pl-2 sm:pl-4 md:pl-6">
         <Calendar
           localizer={localizer}
           events={events}
