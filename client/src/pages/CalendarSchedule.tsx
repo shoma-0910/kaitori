@@ -293,21 +293,21 @@ export default function CalendarSchedule() {
   }
 
   return (
-    <div className="fade-in space-y-8">
+    <div className="fade-in space-y-6 sm:space-y-8 px-2 sm:px-0">
       <div>
-        <h1 className="text-4xl font-bold gradient-text mb-2">カレンダー・スケジュール</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-1 sm:mb-2">カレンダー・スケジュール</h1>
+        <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">
           催事スケジュールの確認と実績粗利の入力ができます
         </p>
       </div>
 
       <Tabs defaultValue="calendar" className="w-full">
-        <TabsList>
-          <TabsTrigger value="calendar" data-testid="tab-calendar">
-            カレンダー表示
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="calendar" data-testid="tab-calendar" className="text-xs sm:text-sm">
+            カレンダー
           </TabsTrigger>
-          <TabsTrigger value="list" data-testid="tab-list">
-            一覧表示
+          <TabsTrigger value="list" data-testid="tab-list" className="text-xs sm:text-sm">
+            一覧
           </TabsTrigger>
         </TabsList>
 
