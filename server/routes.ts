@@ -172,6 +172,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
+
+      // 催事別売上が入力された場合、店舗別売上に反映
+      if ((updateData.actualRevenue || event.actualRevenue) && (updateData.itemsPurchased || event.itemsPurchased)) {
+        try {
+          const revenue = updateData.actualRevenue ?? event.actualRevenue ?? 0;
+          const itemsSold = updateData.itemsPurchased ?? event.itemsPurchased ?? 0;
+          
+          // RegisteredStoreかどうかを確認
+          const registeredStore = await storage.getRegisteredStore(event.storeId, req.organizationId!);
+          if (registeredStore) {
+            // 同じ日のレコードを確認して、存在しなければ作成、存在すれば更新
+            const existingSales = await storage.getSalesByStore(registeredStore.id, req.organizationId!);
+            const saleDate = event.startDate;
+            const sameDaySale = existingSales.find(s => 
+              new Date(s.saleDate).toDateString() === new Date(saleDate).toDateString()
+            );
+            
+            if (sameDaySale) {
+              // 既存レコードを更新
+              await storage.updateSale(sameDaySale.id, req.organizationId!, {
+                revenue: revenue + (sameDaySale.revenue || 0),
+                itemsSold: itemsSold + (sameDaySale.itemsSold || 0),
+                notes: `${sameDaySale.notes || ''}${sameDaySale.notes ? '\n' : ''}イベント: ${event.id}`,
+              });
+            } else {
+              // 新規レコードを作成
+              await storage.createSale({
+                organizationId: req.organizationId!,
+                registeredStoreId: registeredStore.id,
+                saleDate: saleDate,
+                revenue: revenue,
+                itemsSold: itemsSold,
+                notes: `イベント: ${event.id}`,
+              });
+            }
+          }
+        } catch (syncError: any) {
+          console.error('[PATCH /api/events/:id] Failed to sync to store sales:', syncError.message);
+        }
+      }
+
       res.json(event);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
