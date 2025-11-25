@@ -87,6 +87,8 @@ export function EventCalendar({
       <style>{`
         .rbc-calendar {
           font-family: var(--font-sans);
+          position: relative;
+          z-index: 10;
         }
         .rbc-header {
           padding: 8px 2px;
@@ -273,7 +275,7 @@ export function EventCalendar({
           }
         }
       `}</style>
-      <div className="h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px]">
+      <div className="h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] relative z-10">
         <Calendar
           localizer={localizer}
           events={events}
