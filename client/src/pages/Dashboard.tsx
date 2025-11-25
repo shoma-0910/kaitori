@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Store, Calendar, DollarSign, TrendingUp, Loader2 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { StoreAnalysisChart } from "@/components/StoreAnalysisChart";
+import { SalesBreakdownChart } from "@/components/SalesBreakdownChart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface Event {
   id: string;
@@ -9,6 +12,8 @@ interface Event {
   status: string;
   estimatedCost: number;
   actualProfit?: number;
+  actualRevenue?: number;
+  itemsPurchased?: number;
 }
 
 interface StoreData {
@@ -17,8 +22,12 @@ interface StoreData {
   potentialScore: number;
 }
 
-interface Cost {
-  amount: number;
+interface StoreSale {
+  id: string;
+  registeredStoreId: string;
+  revenue: number;
+  itemsSold: number;
+  storeName?: string;
 }
 
 export default function Dashboard() {
@@ -28,6 +37,10 @@ export default function Dashboard() {
 
   const { data: stores = [], isLoading: storesLoading } = useQuery<StoreData[]>({
     queryKey: ["/api/stores"],
+  });
+
+  const { data: salesData = [], isLoading: salesLoading } = useQuery<StoreSale[]>({
+    queryKey: ["/api/sales-analytics"],
   });
 
   const totalStores = stores.length;
@@ -51,7 +64,29 @@ export default function Dashboard() {
     };
   });
 
-  if (eventsLoading || storesLoading) {
+  // 催事別売上の円グラフデータ
+  const eventSalesData = events
+    .filter((e) => e.actualRevenue && e.actualRevenue > 0)
+    .slice(0, 8)
+    .map((e, idx) => ({
+      name: `催事${idx + 1}`,
+      value: e.actualRevenue || 0,
+    }));
+
+  // 店舗別売上の円グラフデータ
+  const storeSalesGrouped: { [key: string]: number } = {};
+  salesData.forEach((sale) => {
+    storeSalesGrouped[sale.storeName || '不明'] = (storeSalesGrouped[sale.storeName || '不明'] || 0) + sale.revenue;
+  });
+
+  const storeSalesPieData = Object.entries(storeSalesGrouped)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8)
+    .map(([name, value]) => ({ name, value }));
+
+  const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1)/0.6)", "hsl(var(--chart-2)/0.6)", "hsl(var(--chart-3)/0.6)"];
+
+  if (eventsLoading || storesLoading || salesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -75,7 +110,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="fade-in space-y-12">
+    <div className="fade-in space-y-8">
       <div className="space-y-3">
         <h1 className="text-4xl font-bold gradient-text">ダッシュボード</h1>
         <p className="text-lg text-muted-foreground">
@@ -90,6 +125,72 @@ export default function Dashboard() {
       </div>
 
       {chartData.length > 0 && <StoreAnalysisChart data={chartData} />}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 催事別売上の円グラフ */}
+        {eventSalesData.length > 0 && (
+          <Card className="glass-card border-white/20 dark:border-white/10">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">催事別売上分布</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={eventSalesData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.value.toLocaleString()}円`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {eventSalesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `¥${(value as number).toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 店舗別売上の円グラフ */}
+        {storeSalesPieData.length > 0 && (
+          <Card className="glass-card border-white/20 dark:border-white/10">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">店舗別売上分布</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={storeSalesPieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {storeSalesPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `¥${(value as number).toLocaleString()}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {salesData.length > 0 && <SalesBreakdownChart data={salesData} />}
     </div>
   );
 }
