@@ -124,6 +124,7 @@ export function EventCalendar({
           margin-bottom: 12px;
           display: flex;
           flex-wrap: wrap;
+          align-items: center;
           gap: 4px;
         }
         @media (min-width: 640px) {
@@ -134,17 +135,26 @@ export function EventCalendar({
           }
         }
         .rbc-toolbar-label {
-          flex: 1 1 100%;
+          flex: 1;
           text-align: center;
           font-weight: 600;
           font-size: 0.875rem;
-          margin-bottom: 6px;
+          order: -1;
+          margin-right: auto;
         }
         @media (min-width: 640px) {
           .rbc-toolbar-label {
-            flex: 1 1 auto;
-            margin-bottom: 0;
             font-size: 1rem;
+          }
+        }
+        .rbc-btn-group {
+          display: flex;
+          gap: 2px;
+          flex-wrap: wrap;
+        }
+        @media (min-width: 640px) {
+          .rbc-btn-group {
+            gap: 4px;
           }
         }
         .rbc-toolbar button {
