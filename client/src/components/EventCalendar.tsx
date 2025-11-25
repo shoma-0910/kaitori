@@ -110,13 +110,30 @@ export function EventCalendar({
           background-color: hsl(var(--muted) / 0.2);
         }
         .rbc-event {
-          padding: 1px 2px;
-          font-size: 0.75rem;
+          padding: 2px 4px;
+          font-size: 0.65rem;
+          line-height: 1.2;
+          overflow: visible;
+          white-space: normal;
+          word-break: break-word;
+        }
+        @media (min-width: 375px) {
+          .rbc-event {
+            font-size: 0.7rem;
+            padding: 2px 4px;
+          }
         }
         @media (min-width: 640px) {
           .rbc-event {
-            padding: 2px 4px;
+            padding: 3px 6px;
             font-size: 0.875rem;
+            line-height: 1.3;
+          }
+        }
+        @media (min-width: 768px) {
+          .rbc-event {
+            padding: 4px 8px;
+            font-size: 1rem;
           }
         }
         .rbc-toolbar {
