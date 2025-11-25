@@ -302,11 +302,11 @@ export default function CalendarSchedule() {
       </div>
 
       <Tabs defaultValue="calendar" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calendar" data-testid="tab-calendar" className="text-xs sm:text-sm">
+        <TabsList className="grid w-full grid-cols-2 gap-0 p-1">
+          <TabsTrigger value="calendar" data-testid="tab-calendar" className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2">
             カレンダー
           </TabsTrigger>
-          <TabsTrigger value="list" data-testid="tab-list" className="text-xs sm:text-sm">
+          <TabsTrigger value="list" data-testid="tab-list" className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2">
             一覧
           </TabsTrigger>
         </TabsList>
