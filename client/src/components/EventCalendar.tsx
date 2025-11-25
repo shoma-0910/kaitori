@@ -299,6 +299,11 @@ export function EventCalendar({
           selectable
           eventPropGetter={eventStyleGetter}
           views={window.innerWidth < 768 ? ['month', 'agenda'] : ['month', 'week', 'day', 'agenda']}
+          formats={{
+            monthHeaderFormat: (date) => format(date, 'yyyy/MM', { locale: ja }),
+            dayHeaderFormat: (date) => format(date, 'eee dd', { locale: ja }),
+            dayRangeHeaderFormat: ({ start, end }) => `${format(start, 'yyyy/MM/dd', { locale: ja })} ~ ${format(end, 'yyyy/MM/dd', { locale: ja })}`,
+          }}
           messages={{
             next: "次",
             previous: "前",
