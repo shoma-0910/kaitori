@@ -251,6 +251,19 @@ export function EventCalendar({
         .rbc-month-view .rbc-day-bg {
           padding: 0;
           padding-top: 0;
+          overflow: visible;
+        }
+        @media (max-width: 639px) {
+          .rbc-month-view {
+            overflow: visible !important;
+          }
+          .rbc-month-row {
+            overflow: visible !important;
+          }
+          .rbc-month-view .rbc-day-bg {
+            overflow: visible !important;
+            min-height: auto;
+          }
         }
         @media (min-width: 640px) {
           .rbc-month-view .rbc-day-bg {
