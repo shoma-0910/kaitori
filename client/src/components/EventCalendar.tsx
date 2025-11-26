@@ -339,7 +339,7 @@ export function EventCalendar({
           }
         }
       `}</style>
-      <div className="h-[400px] sm:h-[500px] md:h-[600px] lg:h-[700px] relative z-10 pl-2 sm:pl-4 md:pl-6">
+      <div className="h-[550px] sm:h-[600px] md:h-[700px] lg:h-[800px] relative z-10 pl-2 sm:pl-4 md:pl-6">
         <Calendar
           localizer={localizer}
           events={events}
