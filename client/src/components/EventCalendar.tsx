@@ -249,12 +249,26 @@ export function EventCalendar({
           }
         }
         .rbc-month-view .rbc-day-bg {
-          padding: 2px;
+          padding: 0;
+          padding-top: 0;
         }
         @media (min-width: 640px) {
           .rbc-month-view .rbc-day-bg {
-            padding: 3px;
+            padding: 0;
+            padding-top: 0;
           }
+        }
+        .rbc-date-cell {
+          padding-top: 2px;
+          padding-bottom: 0;
+        }
+        @media (min-width: 640px) {
+          .rbc-date-cell {
+            padding-top: 3px;
+          }
+        }
+        .rbc-month-view .rbc-events-container {
+          margin-top: 1px;
         }
         .rbc-day-slot .rbc-time-slot {
           border-top: 1px solid hsl(var(--border));
