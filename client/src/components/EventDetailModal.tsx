@@ -409,20 +409,59 @@ export function EventDetailModal({
             )}
           </div>
 
-          {/* 売上登録ボタン */}
+          {/* 売上登録セクション */}
           {!isEditing && onOpenSaleDialog && (
             <>
               <Separator />
-              <div className="flex justify-center">
-                <Button
-                  onClick={onOpenSaleDialog}
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  data-testid="button-open-sale-dialog"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  売上を追加
-                </Button>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">売上情報</h3>
+                {event.actualProfit !== undefined && event.actualProfit !== null && event.actualProfit > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium mb-1">売上金額</p>
+                        <p className="text-sm font-mono" data-testid="text-sale-revenue">
+                          ¥{event.actualProfit.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    {event.itemsPurchased !== undefined && event.itemsPurchased !== null && (
+                      <div className="flex items-start gap-3">
+                        <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium mb-1">買取品目数</p>
+                          <p className="text-sm font-mono" data-testid="text-sale-items">
+                            {event.itemsPurchased}個
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={onOpenSaleDialog}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        data-testid="button-edit-sale"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        編集
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={onOpenSaleDialog}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      data-testid="button-open-sale-dialog"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      売上を登録
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}
