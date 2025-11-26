@@ -17,7 +17,7 @@ export function KPICard({ title, value, trend }: KPICardProps) {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
             {title}
           </p>
-          <p className="text-5xl sm:text-6xl font-mono font-bold gradient-text">
+          <p className="text-2xl sm:text-3xl font-mono font-bold gradient-text">
             {value}
           </p>
           {trend && (
