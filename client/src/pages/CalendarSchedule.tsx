@@ -235,12 +235,14 @@ export default function CalendarSchedule() {
   const handleOpenSaleDialog = (store: RegisteredStore) => {
     setSelectedStoreForSale(store);
     setSaleDialogOpen(true);
-    setSaleForm({
-      saleDate: new Date().toISOString().split('T')[0],
-      revenue: '',
-      itemsSold: '',
-      notes: '',
-    });
+    // 入力内容を保持する場合は何もしない
+    // クリアしたい場合は以下をコメント解除
+    // setSaleForm({
+    //   saleDate: new Date().toISOString().split('T')[0],
+    //   revenue: '',
+    //   itemsSold: '',
+    //   notes: '',
+    // });
   };
 
   const handleSaveSale = () => {
@@ -349,7 +351,7 @@ export default function CalendarSchedule() {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent data-testid="dialog-add-sale-calendar">
           <DialogHeader>
-            <DialogTitle>売上を追加</DialogTitle>
+            <DialogTitle>売上を登録</DialogTitle>
             <DialogDescription>
               {selectedStoreForSale?.name} の売上情報を記録します
             </DialogDescription>
