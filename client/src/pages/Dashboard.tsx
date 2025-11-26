@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Store, Calendar, DollarSign, TrendingUp, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { KPICard } from "@/components/KPICard";
 import { StoreAnalysisChart } from "@/components/StoreAnalysisChart";
 import { SalesBreakdownChart } from "@/components/SalesBreakdownChart";
@@ -95,17 +95,15 @@ export default function Dashboard() {
   }
 
   const kpiData = [
-    { title: "対象店舗数", value: totalStores, icon: Store },
-    { title: "予定催事件数", value: scheduledEvents, icon: Calendar },
+    { title: "対象店舗数", value: totalStores },
+    { title: "予定催事件数", value: scheduledEvents },
     {
       title: "総実績粗利",
       value: `¥${(totalActualProfit / 10000).toFixed(1)}M`,
-      icon: DollarSign,
     },
     {
       title: "総概算コスト",
       value: `¥${(totalEstimatedCost / 10000).toFixed(1)}M`,
-      icon: TrendingUp,
     },
   ];
 
