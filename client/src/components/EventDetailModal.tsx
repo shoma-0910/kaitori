@@ -48,6 +48,8 @@ interface EventDetailModalProps {
     status: "予定" | "実施中" | "終了" | "キャンセル";
     estimatedCost: number;
     actualProfit?: number;
+    actualRevenue?: number;
+    itemsPurchased?: number;
     notes?: string;
     googleCalendarEventId?: string;
   } | null;
@@ -415,17 +417,20 @@ export function EventDetailModal({
               <Separator />
               <div>
                 <h3 className="text-lg font-semibold mb-4">売上情報</h3>
-                {event.actualProfit !== undefined && event.actualProfit !== null && event.actualProfit > 0 ? (
+                {(event.actualRevenue !== undefined && event.actualRevenue !== null && event.actualRevenue > 0) || 
+                 (event.itemsPurchased !== undefined && event.itemsPurchased !== null && event.itemsPurchased > 0) ? (
                   <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium mb-1">売上金額</p>
-                        <p className="text-sm font-mono" data-testid="text-sale-revenue">
-                          ¥{event.actualProfit.toLocaleString()}
-                        </p>
+                    {event.actualRevenue !== undefined && event.actualRevenue !== null && (
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium mb-1">売上金額</p>
+                          <p className="text-sm font-mono" data-testid="text-sale-revenue">
+                            ¥{event.actualRevenue.toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {event.itemsPurchased !== undefined && event.itemsPurchased !== null && (
                       <div className="flex items-start gap-3">
                         <FileText className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />

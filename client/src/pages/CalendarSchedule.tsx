@@ -22,6 +22,8 @@ interface Event {
   status: "予定" | "実施中" | "終了" | "キャンセル";
   estimatedCost: number;
   actualProfit?: number;
+  actualRevenue?: number;
+  itemsPurchased?: number;
   notes?: string;
   googleCalendarEventId?: string;
 }
@@ -193,13 +195,12 @@ export default function CalendarSchedule() {
     console.log("Slot selected:", slotInfo);
   };
 
-  const createSaleMutation = useMutation({
-    mutationFn: async (storeId: string) => {
-      const res = await apiRequest("POST", `/api/registered-stores/${storeId}/sales`, {
-        saleDate: new Date(saleForm.saleDate).toISOString(),
-        revenue: parseInt(saleForm.revenue),
-        itemsSold: parseInt(saleForm.itemsSold),
-        notes: saleForm.notes || null,
+  const updateEventSaleMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await apiRequest("PATCH", `/api/events/${eventId}`, {
+        actualRevenue: parseInt(saleForm.revenue),
+        itemsPurchased: parseInt(saleForm.itemsSold),
+        actualProfit: parseInt(saleForm.revenue),
       });
       return await res.json();
     },
@@ -215,13 +216,8 @@ export default function CalendarSchedule() {
         itemsSold: '',
         notes: '',
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/registered-stores'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sales-summary'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/sales-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-      if (selectedStoreForSale?.id) {
-        queryClient.invalidateQueries({ queryKey: [`/api/registered-stores/${selectedStoreForSale.id}/sales`] });
-      }
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-analytics'] });
     },
     onError: (error: any) => {
       toast({
@@ -235,18 +231,19 @@ export default function CalendarSchedule() {
   const handleOpenSaleDialog = (store: RegisteredStore) => {
     setSelectedStoreForSale(store);
     setSaleDialogOpen(true);
-    // 入力内容を保持する場合は何もしない
-    // クリアしたい場合は以下をコメント解除
-    // setSaleForm({
-    //   saleDate: new Date().toISOString().split('T')[0],
-    //   revenue: '',
-    //   itemsSold: '',
-    //   notes: '',
-    // });
+    // 選択中のイベントから既存の売上データを読み込む
+    if (selectedEvent) {
+      setSaleForm({
+        saleDate: new Date().toISOString().split('T')[0],
+        revenue: selectedEvent.actualRevenue?.toString() || '',
+        itemsSold: selectedEvent.itemsPurchased?.toString() || '',
+        notes: '',
+      });
+    }
   };
 
   const handleSaveSale = () => {
-    if (!selectedStoreForSale || !saleForm.revenue || !saleForm.itemsSold) {
+    if (!selectedEvent || !saleForm.revenue || !saleForm.itemsSold) {
       toast({
         title: "入力が不足しています",
         description: "売上と買取品目数を入力してください。",
@@ -254,7 +251,7 @@ export default function CalendarSchedule() {
       });
       return;
     }
-    createSaleMutation.mutate(selectedStoreForSale.id);
+    updateEventSaleMutation.mutate(selectedEvent.id);
   };
 
   const getStoreName = (storeId: string) => {
@@ -415,10 +412,10 @@ export default function CalendarSchedule() {
             </Button>
             <Button
               onClick={handleSaveSale}
-              disabled={createSaleMutation.isPending}
+              disabled={updateEventSaleMutation.isPending}
               data-testid="button-save-sale-calendar"
             >
-              {createSaleMutation.isPending ? (
+              {updateEventSaleMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   保存中...
