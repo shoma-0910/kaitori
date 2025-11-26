@@ -99,11 +99,11 @@ export default function Dashboard() {
     { title: "予定催事件数", value: scheduledEvents },
     {
       title: "総実績粗利",
-      value: `¥${(totalActualProfit / 10000).toFixed(1)}M`,
+      value: `¥${(totalActualProfit / 10000).toFixed(2)}万円`,
     },
     {
       title: "総概算コスト",
-      value: `¥${(totalEstimatedCost / 10000).toFixed(1)}M`,
+      value: `¥${(totalEstimatedCost / 10000).toFixed(2)}万円`,
     },
   ];
 
