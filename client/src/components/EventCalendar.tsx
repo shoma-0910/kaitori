@@ -37,7 +37,7 @@ export function EventCalendar({
   onSelectSlot,
 }: EventCalendarProps) {
   const [view, setView] = useState<View>(() => {
-    return window.innerWidth < 768 ? "agenda" : "month";
+    return "month";
   });
 
   useEffect(() => {
