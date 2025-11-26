@@ -118,7 +118,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {kpiData.map((kpi) => (
           <KPICard key={kpi.title} {...kpi} />
         ))}
