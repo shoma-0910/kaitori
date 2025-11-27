@@ -415,7 +415,7 @@ export default function SalesAnalytics() {
   return (
     <div className="fade-in space-y-6 px-2 sm:px-0">
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">売上分析</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">売上管理</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
           店舗別・催事別の売上データを管理・分析
         </p>
