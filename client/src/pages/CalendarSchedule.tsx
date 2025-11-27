@@ -346,17 +346,17 @@ export default function CalendarSchedule() {
       />
 
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
-        <DialogContent data-testid="dialog-add-sale-calendar">
+        <DialogContent className="w-[95vw] sm:w-full" data-testid="dialog-add-sale-calendar">
           <DialogHeader>
-            <DialogTitle>売上を登録</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">売上を登録</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               {selectedStoreForSale?.name} の売上情報を記録します
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sale-date-cal">売上日</Label>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="sale-date-cal" className="text-sm sm:text-base">売上日</Label>
               <Input
                 id="sale-date-cal"
                 type="date"
@@ -366,8 +366,8 @@ export default function CalendarSchedule() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sale-revenue-cal">売上金額（円）</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="sale-revenue-cal" className="text-sm sm:text-base">売上金額（円）</Label>
               <Input
                 id="sale-revenue-cal"
                 type="number"
@@ -375,11 +375,12 @@ export default function CalendarSchedule() {
                 value={saleForm.revenue}
                 onChange={(e) => setSaleForm({ ...saleForm, revenue: e.target.value })}
                 data-testid="input-sale-revenue-calendar"
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sale-items-cal">買取品目数</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="sale-items-cal" className="text-sm sm:text-base">買取品目数</Label>
               <Input
                 id="sale-items-cal"
                 type="number"
@@ -387,26 +388,29 @@ export default function CalendarSchedule() {
                 value={saleForm.itemsSold}
                 onChange={(e) => setSaleForm({ ...saleForm, itemsSold: e.target.value })}
                 data-testid="input-sale-items-calendar"
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sale-notes-cal">備考（オプション）</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="sale-notes-cal" className="text-sm sm:text-base">備考（オプション）</Label>
               <Input
                 id="sale-notes-cal"
                 placeholder="特記事項など"
                 value={saleForm.notes}
                 onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
                 data-testid="input-sale-notes-calendar"
+                className="text-sm sm:text-base"
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setSaleDialogOpen(false)}
               data-testid="button-cancel-sale-calendar"
+              className="text-sm sm:text-base"
             >
               キャンセル
             </Button>
@@ -414,6 +418,7 @@ export default function CalendarSchedule() {
               onClick={handleSaveSale}
               disabled={updateEventSaleMutation.isPending}
               data-testid="button-save-sale-calendar"
+              className="text-sm sm:text-base"
             >
               {updateEventSaleMutation.isPending ? (
                 <>
