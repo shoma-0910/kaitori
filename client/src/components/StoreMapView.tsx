@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -131,6 +131,7 @@ export function StoreMapView({
   const [searchingFacilities, setSearchingFacilities] = useState(false);
   const lastSearchLocationRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastSearchZoomRef = useRef<number | null>(null);
+  const lastSearchRadiusRef = useRef<number | null>(null);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
@@ -274,6 +275,8 @@ export function StoreMapView({
       }));
 
       setNearbyPlaces(places);
+      // 検索範囲を記録
+      lastSearchRadiusRef.current = searchRadius;
     } catch (error) {
       console.error("Supermarket search error:", error);
       setNearbyPlaces([]);
@@ -1103,7 +1106,7 @@ export function StoreMapView({
           <Card className="glass-card border-white/20 dark:border-white/10 hover-lift">
             <CardContent className="p-0 h-[400px] md:h-[600px] relative">
               {/* 手動検索ボタン */}
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center gap-2">
                 <Button
                   onClick={handleManualSearch}
                   disabled={searchingNearby}
@@ -1122,6 +1125,13 @@ export function StoreMapView({
                     </>
                   )}
                 </Button>
+                {lastSearchRadiusRef.current && (
+                  <div className="bg-white dark:bg-slate-900 px-3 py-1 rounded-full shadow-lg text-sm font-medium text-muted-foreground border border-border/50">
+                    検索範囲: {lastSearchRadiusRef.current >= 1000 
+                      ? `${(lastSearchRadiusRef.current / 1000).toFixed(1)}km` 
+                      : `${lastSearchRadiusRef.current}m`}
+                  </div>
+                )}
               </div>
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
@@ -1136,6 +1146,21 @@ export function StoreMapView({
                   keyboardShortcuts: false,
                 }}
               >
+                {/* 検索範囲の円 */}
+                {lastSearchLocationRef.current && lastSearchRadiusRef.current && (
+                  <Circle
+                    center={lastSearchLocationRef.current}
+                    radius={lastSearchRadiusRef.current}
+                    options={{
+                      fillColor: "#3b82f6",
+                      fillOpacity: 0.1,
+                      strokeColor: "#3b82f6",
+                      strokeOpacity: 0.8,
+                      strokeWeight: 2,
+                    }}
+                  />
+                )}
+
                 {/* 既存の店舗マーカー（青色） */}
                 {stores.map((store) => (
                   <Marker
