@@ -78,22 +78,23 @@ export function ScheduleTable({
             placeholder="店舗名・担当者で検索"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 text-sm sm:text-base"
             data-testid="input-search-schedule"
           />
         </div>
       </div>
 
-      <div className="rounded-lg border">
+      {/* タブレット以上：テーブル表示 */}
+      <div className="hidden md:block rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ステータス</TableHead>
-              <TableHead>店舗名</TableHead>
-              <TableHead>担当者</TableHead>
-              <TableHead>期間</TableHead>
-              <TableHead className="text-right">概算コスト</TableHead>
-              <TableHead className="text-right">実績粗利</TableHead>
+              <TableHead className="text-xs sm:text-sm">ステータス</TableHead>
+              <TableHead className="text-xs sm:text-sm">店舗名</TableHead>
+              <TableHead className="text-xs sm:text-sm">担当者</TableHead>
+              <TableHead className="text-xs sm:text-sm">期間</TableHead>
+              <TableHead className="text-right text-xs sm:text-sm">概算コスト</TableHead>
+              <TableHead className="text-right text-xs sm:text-sm">実績粗利</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -101,33 +102,33 @@ export function ScheduleTable({
             {filteredSchedules.map((schedule) => (
               <TableRow key={schedule.id} data-testid={`row-schedule-${schedule.id}`}>
                 <TableCell>
-                  <Badge className={`${getStatusColor(schedule.status)}`}>
+                  <Badge className={`text-xs ${getStatusColor(schedule.status)}`}>
                     {schedule.status}
                   </Badge>
                 </TableCell>
                 <TableCell 
-                  className={`font-medium ${onStoreClick ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                  className={`font-medium text-sm ${onStoreClick ? 'cursor-pointer text-primary hover:underline' : ''}`}
                   onClick={() => onStoreClick?.(schedule.id)}
                   data-testid={`cell-store-name-${schedule.id}`}
                 >
                   {schedule.storeName}
                 </TableCell>
-                <TableCell>{schedule.manager}</TableCell>
-                <TableCell className="text-sm font-mono">
+                <TableCell className="text-sm">{schedule.manager}</TableCell>
+                <TableCell className="text-xs sm:text-sm font-mono">
                   {schedule.startDate} - {schedule.endDate}
                 </TableCell>
-                <TableCell className="text-right font-mono">
+                <TableCell className="text-right font-mono text-sm">
                   ¥{schedule.estimatedCost.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
                   {schedule.status === "終了" ? (
                     editingId === schedule.id ? (
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-1 justify-end">
                         <Input
                           type="number"
                           value={profitValue}
                           onChange={(e) => setProfitValue(e.target.value)}
-                          className="w-32 text-right font-mono"
+                          className="w-24 sm:w-32 text-right font-mono text-xs sm:text-sm"
                           placeholder="金額"
                           data-testid={`input-profit-${schedule.id}`}
                         />
@@ -135,13 +136,14 @@ export function ScheduleTable({
                           size="sm"
                           onClick={() => handleSaveProfit(schedule.id)}
                           data-testid={`button-save-profit-${schedule.id}`}
+                          className="text-xs sm:text-sm"
                         >
                           保存
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="font-mono">
+                      <div className="flex items-center gap-1 justify-end">
+                        <span className="font-mono text-xs sm:text-sm">
                           {schedule.actualProfit
                             ? `¥${schedule.actualProfit.toLocaleString()}`
                             : "-"}
@@ -156,13 +158,14 @@ export function ScheduleTable({
                             );
                           }}
                           data-testid={`button-edit-profit-${schedule.id}`}
+                          className="h-8 w-8"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3 w-3" />
                         </Button>
                       </div>
                     )
                   ) : (
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs sm:text-sm">-</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -171,6 +174,7 @@ export function ScheduleTable({
                     size="sm"
                     onClick={() => onEdit(schedule)}
                     data-testid={`button-edit-schedule-${schedule.id}`}
+                    className="text-xs"
                   >
                     編集
                   </Button>
@@ -179,6 +183,104 @@ export function ScheduleTable({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* モバイル：カード表示 */}
+      <div className="md:hidden space-y-3">
+        {filteredSchedules.map((schedule) => (
+          <div key={schedule.id} className="border rounded-lg p-3 space-y-2" data-testid={`row-schedule-${schedule.id}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p 
+                  className={`font-medium text-sm ${onStoreClick ? 'text-primary cursor-pointer' : ''}`}
+                  onClick={() => onStoreClick?.(schedule.id)}
+                  data-testid={`cell-store-name-${schedule.id}`}
+                >
+                  {schedule.storeName}
+                </p>
+                <Badge className={`text-xs mt-1 ${getStatusColor(schedule.status)}`}>
+                  {schedule.status}
+                </Badge>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(schedule)}
+                data-testid={`button-edit-schedule-${schedule.id}`}
+                className="text-xs h-8"
+              >
+                編集
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">担当者</p>
+                <p className="font-medium">{schedule.manager}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">期間</p>
+                <p className="font-mono text-xs">{schedule.startDate}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">概算コスト</p>
+                <p className="font-mono">¥{schedule.estimatedCost.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">実績粗利</p>
+                {schedule.status === "終了" ? (
+                  editingId === schedule.id ? (
+                    <div className="flex gap-1">
+                      <Input
+                        type="number"
+                        value={profitValue}
+                        onChange={(e) => setProfitValue(e.target.value)}
+                        className="w-20 text-right font-mono text-xs"
+                        placeholder="金額"
+                        data-testid={`input-profit-${schedule.id}`}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveProfit(schedule.id)}
+                        data-testid={`button-save-profit-${schedule.id}`}
+                        className="text-xs h-7"
+                      >
+                        保存
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono">
+                        {schedule.actualProfit
+                          ? `¥${schedule.actualProfit.toLocaleString()}`
+                          : "-"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditingId(schedule.id);
+                          setProfitValue(
+                            schedule.actualProfit?.toString() || ""
+                          );
+                        }}
+                        data-testid={`button-edit-profit-${schedule.id}`}
+                        className="h-6 w-6"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
