@@ -148,10 +148,7 @@ export default function CalendarSchedule() {
   };
 
   const handleEdit = (schedule: ScheduleItem) => {
-    toast({
-      title: "編集",
-      description: `${schedule.storeName}のスケジュールを編集します`,
-    });
+    handleStoreClick(schedule.id);
   };
 
   const handleStoreClick = (eventId: string) => {
