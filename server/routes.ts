@@ -516,8 +516,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store Sales
   app.get("/api/sales-analytics", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const salesWithStoreInfo = await storage.getAllStoreSales(req.organizationId!);
-      res.json(salesWithStoreInfo);
+      // Get direct sales records
+      const directSales = await storage.getAllStoreSales(req.organizationId!);
+      
+      // Get events with sales data
+      const events = await storage.getAllEvents(req.organizationId!);
+      const registeredStores = await storage.getAllRegisteredStores(req.organizationId!);
+      
+      // Convert events to sales records
+      const eventSales = events
+        .filter(event => event.actualRevenue || event.itemsPurchased)
+        .map(event => {
+          const store = registeredStores.find(s => s.id === event.storeId);
+          return {
+            id: `event-${event.id}`,
+            organizationId: event.organizationId,
+            registeredStoreId: event.storeId,
+            saleDate: event.startDate,
+            revenue: event.actualRevenue || 0,
+            itemsSold: event.itemsPurchased || 0,
+            notes: event.notes,
+            storeName: store?.name || '未登録店舗',
+            storeAddress: store?.address || ''
+          };
+        });
+      
+      // Combine and return
+      const combinedSales = [...directSales, ...eventSales];
+      res.json(combinedSales);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
