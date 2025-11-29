@@ -147,7 +147,23 @@ export default function SalesAnalytics() {
     });
   }, [events, registeredStores, regularStores]);
 
-  const allSales = salesData || [];
+  // Convert events to sales records format for unified analytics
+  const allSales = useMemo(() => {
+    return eventsWithStoreInfo
+      .filter(e => e.actualRevenue || e.itemsPurchased)
+      .map(e => ({
+        id: e.id,
+        organizationId: e.organizationId,
+        registeredStoreId: e.storeId,
+        saleDate: e.startDate,
+        revenue: e.actualRevenue || 0,
+        itemsSold: e.itemsPurchased || 0,
+        notes: e.notes || '',
+        storeName: e.storeName || '不明な店舗',
+        storeAddress: e.storeAddress || '',
+        createdAt: new Date(),
+      } as SalesRecord));
+  }, [eventsWithStoreInfo]);
 
   const filteredSales = useMemo(() => {
     let filtered = [...allSales];
@@ -293,8 +309,10 @@ export default function SalesAnalytics() {
   const storeTotals = useMemo(() => ({
     revenue: allSales.reduce((sum, s) => sum + s.revenue, 0),
     items: allSales.reduce((sum, s) => sum + s.itemsSold, 0),
-    count: allSales.length,
-    avgRevenue: allSales.length > 0 ? Math.round(allSales.reduce((sum, s) => sum + s.revenue, 0) / allSales.length) : 0,
+    count: allSales.filter(s => s.revenue || s.itemsSold).length,
+    avgRevenue: allSales.filter(s => s.revenue).length > 0 
+      ? Math.round(allSales.reduce((sum, s) => sum + s.revenue, 0) / allSales.filter(s => s.revenue).length) 
+      : 0,
   }), [allSales]);
 
   const eventTotals = useMemo(() => ({
