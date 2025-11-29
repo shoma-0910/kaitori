@@ -5,13 +5,16 @@ import { ScheduleTable, ScheduleItem } from "@/components/ScheduleTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { format, eachDayOfInterval, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 import { EventDetailModal } from "@/components/EventDetailModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Event {
   id: string;
@@ -50,6 +53,12 @@ interface SaleForm {
   notes: string;
 }
 
+interface DaySale {
+  date: string;
+  revenue: string;
+  itemsSold: string;
+}
+
 export default function CalendarSchedule() {
   const { toast } = useToast();
   const [eventDetailModalOpen, setEventDetailModalOpen] = useState(false);
@@ -63,6 +72,8 @@ export default function CalendarSchedule() {
     itemsSold: '',
     notes: '',
   });
+  const [daySales, setDaySales] = useState<DaySale[]>([]);
+  const [saleInputMode, setSaleInputMode] = useState<'single' | 'multi'>('single');
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -193,13 +204,26 @@ export default function CalendarSchedule() {
   };
 
   const updateEventSaleMutation = useMutation({
-    mutationFn: async (eventId: string) => {
-      const res = await apiRequest("PATCH", `/api/events/${eventId}`, {
-        actualRevenue: parseInt(saleForm.revenue),
-        itemsPurchased: parseInt(saleForm.itemsSold),
-        actualProfit: parseInt(saleForm.revenue),
-      });
-      return await res.json();
+    mutationFn: async (data: any) => {
+      if (typeof data === 'string') {
+        // Single mode - update event directly
+        const res = await apiRequest("PATCH", `/api/events/${data}`, {
+          actualRevenue: parseInt(saleForm.revenue),
+          itemsPurchased: parseInt(saleForm.itemsSold),
+          actualProfit: parseInt(saleForm.revenue),
+        });
+        return await res.json();
+      } else {
+        // Multi mode - update with aggregated data from daySales
+        const totalRevenue = daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0);
+        const totalItems = daySales.reduce((sum, day) => sum + (parseInt(day.itemsSold) || 0), 0);
+        const res = await apiRequest("PATCH", `/api/events/${data.id}`, {
+          actualRevenue: totalRevenue,
+          itemsPurchased: totalItems,
+          actualProfit: totalRevenue,
+        });
+        return await res.json();
+      }
     },
     onSuccess: () => {
       toast({
@@ -228,27 +252,69 @@ export default function CalendarSchedule() {
   const handleOpenSaleDialog = (store: RegisteredStore) => {
     setSelectedStoreForSale(store);
     setSaleDialogOpen(true);
-    // 選択中のイベントから既存の売上データを読み込む
+    setSaleForm({
+      saleDate: new Date().toISOString().split('T')[0],
+      revenue: '',
+      itemsSold: '',
+      notes: '',
+    });
+    
+    // Initialize day sales from event period
     if (selectedEvent) {
-      setSaleForm({
-        saleDate: new Date().toISOString().split('T')[0],
-        revenue: selectedEvent.actualRevenue?.toString() || '',
-        itemsSold: selectedEvent.itemsPurchased?.toString() || '',
-        notes: '',
+      const days = eachDayOfInterval({
+        start: parseISO(selectedEvent.startDate),
+        end: parseISO(selectedEvent.endDate),
       });
+      setDaySales(days.map(day => ({
+        date: format(day, 'yyyy-MM-dd'),
+        revenue: '',
+        itemsSold: '',
+      })));
     }
+    setSaleInputMode('single');
   };
 
   const handleSaveSale = () => {
-    if (!selectedEvent || !saleForm.revenue || !saleForm.itemsSold) {
+    if (!selectedEvent) {
       toast({
-        title: "入力が不足しています",
-        description: "売上と買取品目数を入力してください。",
+        title: "エラー",
+        description: "イベントが選択されていません。",
         variant: "destructive",
       });
       return;
     }
-    updateEventSaleMutation.mutate(selectedEvent.id);
+    
+    if (saleInputMode === 'single') {
+      if (!saleForm.revenue || !saleForm.itemsSold) {
+        toast({
+          title: "入力が不足しています",
+          description: "売上と買取品目数を入力してください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      updateEventSaleMutation.mutate(selectedEvent.id);
+    } else {
+      // Multi-day mode: sum up all day sales
+      const totalRevenue = daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0);
+      const totalItems = daySales.reduce((sum, day) => sum + (parseInt(day.itemsSold) || 0), 0);
+      
+      if (totalRevenue === 0 || totalItems === 0) {
+        toast({
+          title: "入力が不足しています",
+          description: "少なくとも1日の売上を入力してください。",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Save aggregated sales
+      updateEventSaleMutation.mutate({
+        ...selectedEvent,
+        actualRevenue: totalRevenue,
+        itemsPurchased: totalItems,
+      } as any);
+    }
   };
 
   const getStoreName = (storeId: string) => {
@@ -343,7 +409,7 @@ export default function CalendarSchedule() {
       />
 
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
-        <DialogContent className="w-[95vw] sm:w-full" data-testid="dialog-add-sale-calendar">
+        <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto" data-testid="dialog-add-sale-calendar">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">売上を登録</DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
@@ -351,56 +417,103 @@ export default function CalendarSchedule() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-3 sm:space-y-4">
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="sale-date-cal" className="text-sm sm:text-base">売上日</Label>
-              <Input
-                id="sale-date-cal"
-                type="date"
-                value={saleForm.saleDate}
-                onChange={(e) => setSaleForm({ ...saleForm, saleDate: e.target.value })}
-                data-testid="input-sale-date-calendar"
-              />
-            </div>
-
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="sale-revenue-cal" className="text-sm sm:text-base">売上金額（円）</Label>
-              <Input
-                id="sale-revenue-cal"
-                type="number"
-                placeholder="0"
-                value={saleForm.revenue}
-                onChange={(e) => setSaleForm({ ...saleForm, revenue: e.target.value })}
-                data-testid="input-sale-revenue-calendar"
-                className="text-sm sm:text-base"
-              />
-            </div>
-
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="sale-items-cal" className="text-sm sm:text-base">買取品目数</Label>
-              <Input
-                id="sale-items-cal"
-                type="number"
-                placeholder="0"
-                value={saleForm.itemsSold}
-                onChange={(e) => setSaleForm({ ...saleForm, itemsSold: e.target.value })}
-                data-testid="input-sale-items-calendar"
-                className="text-sm sm:text-base"
-              />
-            </div>
-
-            <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="sale-notes-cal" className="text-sm sm:text-base">備考（オプション）</Label>
-              <Input
-                id="sale-notes-cal"
-                placeholder="特記事項など"
-                value={saleForm.notes}
-                onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
-                data-testid="input-sale-notes-calendar"
-                className="text-sm sm:text-base"
-              />
-            </div>
+          {/* Input mode selector */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              size="sm"
+              variant={saleInputMode === 'single' ? 'default' : 'outline'}
+              onClick={() => setSaleInputMode('single')}
+              className="text-xs sm:text-sm"
+            >
+              一括登録
+            </Button>
+            <Button
+              size="sm"
+              variant={saleInputMode === 'multi' ? 'default' : 'outline'}
+              onClick={() => setSaleInputMode('multi')}
+              className="text-xs sm:text-sm"
+            >
+              日単位入力
+            </Button>
           </div>
+          
+          {saleInputMode === 'single' ? (
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1 sm:space-y-2">
+                <Label htmlFor="sale-revenue-cal" className="text-sm sm:text-base">売上金額（円）</Label>
+                <Input
+                  id="sale-revenue-cal"
+                  type="number"
+                  placeholder="0"
+                  value={saleForm.revenue}
+                  onChange={(e) => setSaleForm({ ...saleForm, revenue: e.target.value })}
+                  data-testid="input-sale-revenue-calendar"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+
+              <div className="space-y-1 sm:space-y-2">
+                <Label htmlFor="sale-items-cal" className="text-sm sm:text-base">買取品目数</Label>
+                <Input
+                  id="sale-items-cal"
+                  type="number"
+                  placeholder="0"
+                  value={saleForm.itemsSold}
+                  onChange={(e) => setSaleForm({ ...saleForm, itemsSold: e.target.value })}
+                  data-testid="input-sale-items-calendar"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+
+              <div className="space-y-1 sm:space-y-2">
+                <Label htmlFor="sale-notes-cal" className="text-sm sm:text-base">備考（オプション）</Label>
+                <Input
+                  id="sale-notes-cal"
+                  placeholder="特記事項など"
+                  value={saleForm.notes}
+                  onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                  data-testid="input-sale-notes-calendar"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto border rounded-md p-3">
+              <Label className="text-sm font-medium">各日付ごとの売上を入力</Label>
+              {daySales.map((day, idx) => (
+                <Card key={day.date} className="p-2 sm:p-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">{format(parseISO(day.date), 'M月d日', { locale: ja })}</p>
+                      <p className="text-xs text-gray-500">{day.date}</p>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="売上"
+                      value={day.revenue}
+                      onChange={(e) => {
+                        const newDaySales = [...daySales];
+                        newDaySales[idx].revenue = e.target.value;
+                        setDaySales(newDaySales);
+                      }}
+                      className="text-xs"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="品目数"
+                      value={day.itemsSold}
+                      onChange={(e) => {
+                        const newDaySales = [...daySales];
+                        newDaySales[idx].itemsSold = e.target.value;
+                        setDaySales(newDaySales);
+                      }}
+                      className="text-xs"
+                    />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0">
             <Button
