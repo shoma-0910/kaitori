@@ -477,40 +477,46 @@ export default function CalendarSchedule() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[400px] overflow-y-auto border rounded-md p-3">
+            <div className="space-y-3">
               <Label className="text-sm font-medium">各日付ごとの売上を入力</Label>
-              {daySales.map((day, idx) => (
-                <Card key={day.date} className="p-2 sm:p-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">{format(parseISO(day.date), 'M月d日', { locale: ja })}</p>
-                      <p className="text-xs text-gray-500">{day.date}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      placeholder="売上"
-                      value={day.revenue}
-                      onChange={(e) => {
-                        const newDaySales = [...daySales];
-                        newDaySales[idx].revenue = e.target.value;
-                        setDaySales(newDaySales);
-                      }}
-                      className="text-xs"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="品目数"
-                      value={day.itemsSold}
-                      onChange={(e) => {
-                        const newDaySales = [...daySales];
-                        newDaySales[idx].itemsSold = e.target.value;
-                        setDaySales(newDaySales);
-                      }}
-                      className="text-xs"
-                    />
-                  </div>
-                </Card>
-              ))}
+              {daySales && daySales.length > 0 ? (
+                <div className="max-h-[400px] overflow-y-auto border rounded-md p-3 space-y-2">
+                  {daySales.map((day, idx) => (
+                    <Card key={day.date} className="p-2 sm:p-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{format(parseISO(day.date), 'M月d日', { locale: ja })}</p>
+                          <p className="text-xs text-gray-500">{day.date}</p>
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="売上"
+                          value={day.revenue}
+                          onChange={(e) => {
+                            const newDaySales = [...daySales];
+                            newDaySales[idx].revenue = e.target.value;
+                            setDaySales(newDaySales);
+                          }}
+                          className="text-xs"
+                        />
+                        <Input
+                          type="number"
+                          placeholder="品目数"
+                          value={day.itemsSold}
+                          onChange={(e) => {
+                            const newDaySales = [...daySales];
+                            newDaySales[idx].itemsSold = e.target.value;
+                            setDaySales(newDaySales);
+                          }}
+                          className="text-xs"
+                        />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">イベント期間のデータを読み込み中...</p>
+              )}
             </div>
           )}
 
