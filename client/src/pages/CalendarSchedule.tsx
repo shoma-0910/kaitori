@@ -416,6 +416,20 @@ export default function CalendarSchedule() {
             </DialogDescription>
           </DialogHeader>
           
+          {/* Current totals summary */}
+          {saleInputMode === 'multi' ? (
+            <div className="mb-4 p-2 bg-muted rounded-md text-sm">
+              <div className="flex justify-between">
+                <span>合計売上金額:</span>
+                <span className="font-semibold">¥{daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0).toLocaleString('ja-JP')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>合計買取品目数:</span>
+                <span className="font-semibold">{daySales.reduce((sum, day) => sum + (parseInt(day.itemsSold) || 0), 0)}個</span>
+              </div>
+            </div>
+          ) : null}
+
           {/* Input mode selector */}
           <div className="flex gap-2 mb-4">
             <Button
