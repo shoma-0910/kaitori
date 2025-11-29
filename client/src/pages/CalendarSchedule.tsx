@@ -204,26 +204,13 @@ export default function CalendarSchedule() {
   };
 
   const updateEventSaleMutation = useMutation({
-    mutationFn: async (data: any) => {
-      if (typeof data === 'string') {
-        // Single mode - update event directly
-        const res = await apiRequest("PATCH", `/api/events/${data}`, {
-          actualRevenue: parseInt(saleForm.revenue),
-          itemsPurchased: parseInt(saleForm.itemsSold),
-          actualProfit: parseInt(saleForm.revenue),
-        });
-        return await res.json();
-      } else {
-        // Multi mode - update with aggregated data from daySales
-        const totalRevenue = daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0);
-        const totalItems = daySales.reduce((sum, day) => sum + (parseInt(day.itemsSold) || 0), 0);
-        const res = await apiRequest("PATCH", `/api/events/${data.id}`, {
-          actualRevenue: totalRevenue,
-          itemsPurchased: totalItems,
-          actualProfit: totalRevenue,
-        });
-        return await res.json();
-      }
+    mutationFn: async (data: { eventId: string; revenue: number; items: number }) => {
+      const res = await apiRequest("PATCH", `/api/events/${data.eventId}`, {
+        actualRevenue: data.revenue,
+        itemsPurchased: data.items,
+        actualProfit: data.revenue,
+      });
+      return await res.json();
     },
     onSuccess: () => {
       toast({
@@ -293,13 +280,17 @@ export default function CalendarSchedule() {
         });
         return;
       }
-      updateEventSaleMutation.mutate(selectedEvent.id);
+      updateEventSaleMutation.mutate({
+        eventId: selectedEvent.id,
+        revenue: parseInt(saleForm.revenue),
+        items: parseInt(saleForm.itemsSold),
+      });
     } else {
       // Multi-day mode: sum up all day sales
       const totalRevenue = daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0);
       const totalItems = daySales.reduce((sum, day) => sum + (parseInt(day.itemsSold) || 0), 0);
       
-      if (totalRevenue === 0 || totalItems === 0) {
+      if (totalRevenue === 0 && totalItems === 0) {
         toast({
           title: "入力が不足しています",
           description: "少なくとも1日の売上を入力してください。",
@@ -310,10 +301,10 @@ export default function CalendarSchedule() {
       
       // Save aggregated sales
       updateEventSaleMutation.mutate({
-        ...selectedEvent,
-        actualRevenue: totalRevenue,
-        itemsPurchased: totalItems,
-      } as any);
+        eventId: selectedEvent.id,
+        revenue: totalRevenue,
+        items: totalItems,
+      });
     }
   };
 
