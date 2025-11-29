@@ -212,7 +212,20 @@ export default function CalendarSchedule() {
       });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedEvent) => {
+      // Invalidate and refetch events
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      
+      // Update selected event with new data
+      if (selectedEvent && updatedEvent) {
+        setSelectedEvent({
+          ...selectedEvent,
+          actualRevenue: updatedEvent.actualRevenue,
+          itemsPurchased: updatedEvent.itemsPurchased,
+          actualProfit: updatedEvent.actualProfit,
+        });
+      }
+      
       toast({
         title: "売上を登録しました",
         description: "売上データが保存されました。",
