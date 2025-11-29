@@ -104,6 +104,7 @@ export default function SalesAnalytics() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sales-analytics'] });
       toast({
         title: "更新完了",
         description: "催事の売上情報を更新しました",
