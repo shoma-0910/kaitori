@@ -239,15 +239,16 @@ export default function CalendarSchedule() {
   const handleOpenSaleDialog = (store: RegisteredStore) => {
     setSelectedStoreForSale(store);
     setSaleDialogOpen(true);
-    setSaleForm({
-      saleDate: new Date().toISOString().split('T')[0],
-      revenue: '',
-      itemsSold: '',
-      notes: '',
-    });
     
-    // Initialize day sales from event period
+    // Load existing sale data if available
     if (selectedEvent) {
+      setSaleForm({
+        saleDate: new Date().toISOString().split('T')[0],
+        revenue: selectedEvent.actualRevenue?.toString() || '',
+        itemsSold: selectedEvent.itemsPurchased?.toString() || '',
+        notes: '',
+      });
+
       const days = eachDayOfInterval({
         start: parseISO(selectedEvent.startDate),
         end: parseISO(selectedEvent.endDate),
@@ -257,6 +258,13 @@ export default function CalendarSchedule() {
         revenue: '',
         itemsSold: '',
       })));
+    } else {
+      setSaleForm({
+        saleDate: new Date().toISOString().split('T')[0],
+        revenue: '',
+        itemsSold: '',
+        notes: '',
+      });
     }
     setSaleInputMode('single');
   };
