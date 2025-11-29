@@ -429,7 +429,21 @@ export default function CalendarSchedule() {
             <Button
               size="sm"
               variant={saleInputMode === 'multi' ? 'default' : 'outline'}
-              onClick={() => setSaleInputMode('multi')}
+              onClick={() => {
+                // Initialize day sales when switching to multi mode
+                if (selectedEvent) {
+                  const days = eachDayOfInterval({
+                    start: parseISO(selectedEvent.startDate),
+                    end: parseISO(selectedEvent.endDate),
+                  });
+                  setDaySales(days.map(day => ({
+                    date: format(day, 'yyyy-MM-dd'),
+                    revenue: '',
+                    itemsSold: '',
+                  })));
+                }
+                setSaleInputMode('multi');
+              }}
               className="text-xs sm:text-sm"
             >
               日単位入力
