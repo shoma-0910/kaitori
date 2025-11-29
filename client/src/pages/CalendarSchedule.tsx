@@ -494,38 +494,35 @@ export default function CalendarSchedule() {
             <div className="space-y-3">
               <Label className="text-sm font-medium">各日付ごとの売上を入力</Label>
               {daySales && daySales.length > 0 ? (
-                <div className="max-h-[400px] overflow-y-auto border rounded-md p-3 space-y-2">
+                <div className="max-h-[400px] overflow-y-auto border rounded-md p-2">
                   {daySales.map((day, idx) => (
-                    <Card key={day.date} className="p-2 sm:p-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">{format(parseISO(day.date), 'M月d日', { locale: ja })}</p>
-                          <p className="text-xs text-gray-500">{day.date}</p>
-                        </div>
-                        <Input
-                          type="number"
-                          placeholder="売上"
-                          value={day.revenue}
-                          onChange={(e) => {
-                            const newDaySales = [...daySales];
-                            newDaySales[idx].revenue = e.target.value;
-                            setDaySales(newDaySales);
-                          }}
-                          className="text-xs"
-                        />
-                        <Input
-                          type="number"
-                          placeholder="品目数"
-                          value={day.itemsSold}
-                          onChange={(e) => {
-                            const newDaySales = [...daySales];
-                            newDaySales[idx].itemsSold = e.target.value;
-                            setDaySales(newDaySales);
-                          }}
-                          className="text-xs"
-                        />
+                    <div key={day.date} className="flex items-center gap-2 py-2 px-2 border-b last:border-0 hover:bg-muted/50">
+                      <div className="min-w-[70px]">
+                        <p className="text-xs font-medium">{format(parseISO(day.date), 'M月d日', { locale: ja })}</p>
                       </div>
-                    </Card>
+                      <Input
+                        type="number"
+                        placeholder="売上"
+                        value={day.revenue}
+                        onChange={(e) => {
+                          const newDaySales = [...daySales];
+                          newDaySales[idx].revenue = e.target.value;
+                          setDaySales(newDaySales);
+                        }}
+                        className="text-xs h-8 flex-1"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="品目"
+                        value={day.itemsSold}
+                        onChange={(e) => {
+                          const newDaySales = [...daySales];
+                          newDaySales[idx].itemsSold = e.target.value;
+                          setDaySales(newDaySales);
+                        }}
+                        className="text-xs h-8 flex-1"
+                      />
+                    </div>
                   ))}
                 </div>
               ) : (
