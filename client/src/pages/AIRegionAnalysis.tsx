@@ -154,15 +154,15 @@ export default function AIRegionAnalysis() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">市区町村（任意）</label>
                 <Select 
-                  value={selectedMunicipality} 
-                  onValueChange={setSelectedMunicipality}
+                  value={selectedMunicipality || "prefecture-only"} 
+                  onValueChange={(value) => setSelectedMunicipality(value === "prefecture-only" ? "" : value)}
                   disabled={!selectedPrefecture || municipalitiesLoading}
                 >
                   <SelectTrigger data-testid="select-municipality">
                     <SelectValue placeholder={municipalitiesLoading ? "読み込み中..." : "市区町村を選択"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">都道府県全体</SelectItem>
+                    <SelectItem value="prefecture-only">都道府県全体</SelectItem>
                     {municipalities.map((muni) => (
                       <SelectItem key={muni} value={muni}>
                         {muni}
