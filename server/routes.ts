@@ -1429,7 +1429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const region = municipality ? `${prefecture}${municipality}` : prefecture;
       
-      const prompt = `あなたは日本の地域統計の専門家です。以下の地域について、最新のデータに基づいた人口統計分析を行ってください。
+      const prompt = `あなたは日本の地域統計と買取催事（中古品買取イベント）の専門家です。以下の地域について、最新のデータに基づいた人口統計分析を行ってください。
 
 地域: ${region}
 
@@ -1440,18 +1440,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   "averageAge": 平均年齢（数値のみ、小数点1桁）,
   "averageIncome": 平均年収（万円単位、数値のみ）,
   "over60Ratio": 60歳以上の人口比率（パーセント、数値のみ、小数点1桁）,
+  "over60FemaleRatio": 60歳以上の女性比率（全人口に対するパーセント、数値のみ、小数点1桁）,
   "maleRatio": 男性比率（パーセント、数値のみ、小数点1桁）,
+  "residentialAreaRatio": 住宅地比率（地域面積に対する住宅地のパーセント、数値のみ、小数点1桁）,
+  "residentialDescription": "住宅街の特徴（戸建て中心か、マンション中心か、新興住宅地か、古くからの住宅地かなど、50文字程度）",
   "analysis": "この地域の特徴や買取催事に適した理由などの分析（200文字程度）",
   "buybackPotential": "高" | "中" | "低",
-  "buybackPotentialReason": "買取催事ポテンシャルの理由（100文字程度）",
+  "buybackPotentialReason": "買取催事ポテンシャルの理由（150文字程度）",
   "dataSource": "データの出典（例：総務省統計局、国勢調査等）",
   "dataYear": "データの基準年（例：2020年）"
 }
 
+【買取催事ポテンシャルの評価基準】
+以下の3つの要素を重視して総合的に評価してください：
+1. 高齢女性人口（60歳以上の女性）：多いほど良い。宝飾品、着物、ブランド品などを所有している可能性が高い
+2. 平均年収：高いほど良い。高価な品物を所有している可能性が高い
+3. 住宅街の多さ：住宅地比率が高いほど良い。持ち家に長年住んでいる家庭は不用品が溜まりやすい
+
 注意事項：
 - 実際の統計データに基づいて回答してください
 - 数値は現実的な範囲で正確に
-- 買取催事のポテンシャルは高齢者比率や人口密度を考慮してください
 - JSONのみを返してください（説明文は不要）`;
 
       const response = await client.models.generateContent({

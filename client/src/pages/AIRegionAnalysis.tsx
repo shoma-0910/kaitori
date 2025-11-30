@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Users, TrendingUp, UserCheck, Sparkles, BarChart3, Calendar } from "lucide-react";
+import { Loader2, MapPin, Users, TrendingUp, UserCheck, Sparkles, BarChart3, Calendar, Home, Heart } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -25,7 +25,10 @@ interface AnalysisResult {
   averageAge: number;
   averageIncome: number;
   over60Ratio: number;
+  over60FemaleRatio: number;
   maleRatio: number;
+  residentialAreaRatio: number;
+  residentialDescription: string;
   analysis: string;
   buybackPotential: "高" | "中" | "低";
   buybackPotentialReason: string;
@@ -141,7 +144,8 @@ export default function AIRegionAnalysis() {
             <CardDescription>分析したい地域を選択してください</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1
+              「sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">都道府県</label>
                 <Select value={selectedPrefecture} onValueChange={handlePrefectureChange}>
@@ -213,7 +217,7 @@ export default function AIRegionAnalysis() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card className="glass-card border-white/20 dark:border-white/10">
                 <CardContent className="p-4 text-center">
                   <Users className="w-6 h-6 mx-auto mb-2 text-blue-500" />
@@ -254,6 +258,26 @@ export default function AIRegionAnalysis() {
                 </CardContent>
               </Card>
 
+              <Card className="glass-card border-white/20 dark:border-white/10 border-2 border-pink-500/30">
+                <CardContent className="p-4 text-center">
+                  <Heart className="w-6 h-6 mx-auto mb-2 text-pink-500" />
+                  <p className="text-xs text-muted-foreground mb-1">60歳以上女性比率</p>
+                  <p className="text-lg font-bold text-pink-600" data-testid="text-over60-female-ratio">
+                    {analysisResult.over60FemaleRatio}%
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="glass-card border-white/20 dark:border-white/10 border-2 border-emerald-500/30">
+                <CardContent className="p-4 text-center">
+                  <Home className="w-6 h-6 mx-auto mb-2 text-emerald-500" />
+                  <p className="text-xs text-muted-foreground mb-1">住宅地比率</p>
+                  <p className="text-lg font-bold text-emerald-600" data-testid="text-residential-ratio">
+                    {analysisResult.residentialAreaRatio}%
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="glass-card border-white/20 dark:border-white/10">
                 <CardContent className="p-4 text-center">
                   <BarChart3 className="w-6 h-6 mx-auto mb-2 text-orange-500" />
@@ -264,6 +288,20 @@ export default function AIRegionAnalysis() {
                 </CardContent>
               </Card>
             </div>
+
+            {analysisResult.residentialDescription && (
+              <Card className="glass-card border-white/20 dark:border-white/10">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Home className="w-4 h-4 text-emerald-500" />
+                    <span className="text-sm font-medium">住宅街の特徴</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground" data-testid="text-residential-description">
+                    {analysisResult.residentialDescription}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card className="glass-card border-white/20 dark:border-white/10">
