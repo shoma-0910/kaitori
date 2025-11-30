@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Users, TrendingUp, UserCheck, Sparkles, BarChart3, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const PREFECTURES = [
   "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
@@ -42,7 +43,13 @@ export default function AIRegionAnalysis() {
     queryKey: ['/api/municipalities', selectedPrefecture],
     queryFn: async () => {
       if (!selectedPrefecture) return [];
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
       const res = await fetch(`/api/municipalities/${encodeURIComponent(selectedPrefecture)}`, {
+        headers,
         credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to fetch municipalities');
