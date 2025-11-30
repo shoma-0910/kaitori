@@ -16,6 +16,7 @@ import CalendarSchedule from "@/pages/CalendarSchedule";
 import SalesAnalytics from "@/pages/SalesAnalytics";
 import OrganizationSettings from "@/pages/OrganizationSettings";
 import Map from "@/pages/Map";
+import AIRegionAnalysis from "@/pages/AIRegionAnalysis";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
@@ -83,6 +84,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <ProtectedRoute component={OrganizationSettings} />
+      </Route>
+      <Route path="/ai-analysis">
+        <ProtectedRoute component={AIRegionAnalysis} />
       </Route>
       <Route component={NotFound} />
     </Switch>

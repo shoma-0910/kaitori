@@ -76,6 +76,12 @@ const menuGroups: MenuGroup[] = [
         icon: TrendingUp,
         superAdminOnly: false,
       },
+      {
+        title: "AI地域分析",
+        url: "/ai-analysis",
+        icon: Sparkles,
+        superAdminOnly: false,
+      },
     ],
   },
 ];

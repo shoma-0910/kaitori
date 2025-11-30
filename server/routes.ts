@@ -1410,6 +1410,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Region Analysis - Analyze demographics for a selected prefecture/municipality
+  app.post("/api/ai-region-analysis", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { prefecture, municipality } = req.body;
+      
+      if (!prefecture) {
+        return res.status(400).json({ error: "都道府県を選択してください" });
+      }
+
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: geminiApiKey });
+
+      const region = municipality ? `${prefecture}${municipality}` : prefecture;
+      
+      const prompt = `あなたは日本の地域統計の専門家です。以下の地域について、最新のデータに基づいた人口統計分析を行ってください。
+
+地域: ${region}
+
+以下の情報をJSON形式で返してください：
+{
+  "region": "地域名",
+  "population": 人口（数値のみ）,
+  "averageAge": 平均年齢（数値のみ、小数点1桁）,
+  "averageIncome": 平均年収（万円単位、数値のみ）,
+  "over60Ratio": 60歳以上の人口比率（パーセント、数値のみ、小数点1桁）,
+  "maleRatio": 男性比率（パーセント、数値のみ、小数点1桁）,
+  "analysis": "この地域の特徴や買取催事に適した理由などの分析（200文字程度）",
+  "buybackPotential": "高" | "中" | "低",
+  "buybackPotentialReason": "買取催事ポテンシャルの理由（100文字程度）",
+  "dataSource": "データの出典（例：総務省統計局、国勢調査等）",
+  "dataYear": "データの基準年（例：2020年）"
+}
+
+注意事項：
+- 実際の統計データに基づいて回答してください
+- 数値は現実的な範囲で正確に
+- 買取催事のポテンシャルは高齢者比率や人口密度を考慮してください
+- JSONのみを返してください（説明文は不要）`;
+
+      const response = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: prompt,
+      });
+
+      const responseText = response.text || "";
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error("Failed to parse Gemini response");
+      }
+
+      const analysisData = JSON.parse(jsonMatch[0]);
+
+      // Log API usage
+      const { apiUsageLogs } = await import("@shared/schema");
+      await db.insert(apiUsageLogs).values({
+        organizationId: req.organizationId!,
+        apiType: "google_gemini",
+        endpoint: "/api/ai-region-analysis",
+        timestamp: new Date(),
+        metadata: JSON.stringify({ model: "gemini-2.0-flash-001", region }),
+      });
+
+      res.json({
+        success: true,
+        data: analysisData,
+      });
+    } catch (error: any) {
+      console.error("AI Region Analysis error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get municipalities for a prefecture
+  app.get("/api/municipalities/:prefecture", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { prefecture } = req.params;
+      
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: geminiApiKey });
+
+      const prompt = `${prefecture}の主要な市区町村を20個までリストアップしてください。
+JSON配列形式で市区町村名のみを返してください。例：["横浜市", "川崎市", "相模原市"]
+県庁所在地を最初に、次に人口の多い順で並べてください。
+JSONのみを返してください。`;
+
+      const response = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: prompt,
+      });
+
+      const responseText = response.text || "";
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      
+      if (!jsonMatch) {
+        throw new Error("Failed to parse municipalities");
+      }
+
+      const municipalities = JSON.parse(jsonMatch[0]);
+
+      res.json({ municipalities });
+    } catch (error: any) {
+      console.error("Get municipalities error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
