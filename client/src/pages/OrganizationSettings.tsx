@@ -62,7 +62,6 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganizationMember[]>({
     queryKey: [`/api/admin/organizations/${org.id}/members`],
-    enabled: showMembers,
   });
 
   const { data: apiUsage, isLoading: apiUsageLoading } = useQuery<ApiUsageStats>({
