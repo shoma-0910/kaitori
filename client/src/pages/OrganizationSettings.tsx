@@ -404,7 +404,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                     <div className="font-medium truncate">{member.email || "メールなし"}</div>
                     <div className="flex gap-2 mt-1">
                       {member.isSuperAdmin && (
-                        <Badge variant="destructive">スーパー管理者</Badge>
+                        <Badge variant="destructive">マスター</Badge>
                       )}
                     </div>
                   </div>
