@@ -1514,10 +1514,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { GoogleGenAI } = await import("@google/genai");
       const client = new GoogleGenAI({ apiKey: geminiApiKey });
 
-      const prompt = `${prefecture}の主要な市区町村を20個までリストアップしてください。
-JSON配列形式で市区町村名のみを返してください。例：["横浜市", "川崎市", "相模原市"]
+      const prompt = `${prefecture}の主要な市区町村（市、区、町、村すべてを含む）を20個までリストアップしてください。
+JSON配列形式で市区町村名のみを返してください。例：["大阪市中央区", "大阪市北区", "堺市堺区", "豊中市", "池田市"]
 県庁所在地を最初に、次に人口の多い順で並べてください。
+市の場合は「〇〇市」、特別区がある場合は「都市名 区名」（例：東京都23区）もしくは「区名」（例：中央区）、町や村がある場合は「〇〇町」「〇〇村」と表記してください。
 JSONのみを返してください。`;
+
 
       const response = await client.models.generateContent({
         model: "gemini-2.0-flash-001",
