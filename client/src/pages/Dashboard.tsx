@@ -30,7 +30,16 @@ interface StoreSale {
   storeName?: string;
 }
 
+interface Organization {
+  id: string;
+  name: string;
+}
+
 export default function Dashboard() {
+  const { data: organizations = [], isLoading: orgsLoading } = useQuery<Organization[]>({
+    queryKey: ["/api/user/organizations"],
+  });
+
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
@@ -86,7 +95,7 @@ export default function Dashboard() {
 
   const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1)/0.6)", "hsl(var(--chart-2)/0.6)", "hsl(var(--chart-3)/0.6)"];
 
-  if (eventsLoading || storesLoading || salesLoading) {
+  if (orgsLoading || eventsLoading || storesLoading || salesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -110,10 +119,26 @@ export default function Dashboard() {
   return (
     <div className="fade-in space-y-8">
       <div className="space-y-3">
-        <h1 className="text-4xl font-bold gradient-text">ダッシュボード</h1>
-        <p className="text-lg text-muted-foreground">
-          買取催事の全体状況と主要業績指標を確認できます
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold gradient-text">ダッシュボード</h1>
+            <p className="text-lg text-muted-foreground">
+              買取催事の全体状況と主要業績指標を確認できます
+            </p>
+          </div>
+          {organizations.length > 1 && (
+            <div className="w-full sm:w-64" data-testid="org-selector-container">
+              <p className="text-sm text-muted-foreground mb-2">所属組織:</p>
+              <div className="flex flex-wrap gap-2">
+                {organizations.map((org) => (
+                  <div key={org.id} className="px-3 py-1 rounded-md bg-muted text-muted-foreground text-sm" data-testid={`org-badge-${org.id}`}>
+                    {org.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">

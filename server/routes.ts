@@ -1022,6 +1022,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all organizations for current user
+  app.get("/api/user/organizations", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const userOrgs = await db.select({
+        id: userOrganizations.organizationId,
+        name: organizations.name,
+      })
+        .from(userOrganizations)
+        .innerJoin(organizations, eq(userOrganizations.organizationId, organizations.id))
+        .where(eq(userOrganizations.userId, req.userId!));
+      
+      res.json(userOrgs);
+    } catch (error: any) {
+      console.error("Get user organizations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Super Admin Only: Organization Management
   app.get("/api/admin/organizations", requireAuth, async (req: AuthRequest, res) => {
     try {
