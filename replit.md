@@ -26,6 +26,7 @@ Supabase PostgreSQL is the database, managed with Drizzle ORM for type-safe quer
 - **Regional Demographics Data**: Hybrid approach using e-Stat official data and Google Gemini AI for enrichment, with graceful degradation.
 - **Authentication**: Supabase Auth integrated with a `user_organizations` table for linking users to organizations.
 - **UI/UX**: Consistent design language across dashboards, store selection, calendar views, and administrative interfaces, focusing on intuitive user flows and data visualization.
+- **Dashboard Organization Display**: ダッシュボード上で、ユーザーが属する全組織をバッジ表示。複数組織の場合は全て表示される。各ページで表示データは現在のアクティブ組織に限定される。
 
 ## External Dependencies
 
@@ -36,3 +37,25 @@ Supabase PostgreSQL is the database, managed with Drizzle ORM for type-safe quer
 - **Data Visualization**: Recharts library for KPIs and performance analysis.
 - **Date Handling**: `date-fns` and `react-big-calendar`.
 - **Database**: Supabase PostgreSQL.
+
+## Recent Changes (December 2, 2025)
+
+### 市区町村ドロップダウン改善
+- AI地域分析ページの「都道府県」選択時に、全ての市区町村が表示されるようになりました
+- プロンプト改善により、市・区・町・村をすべて対象に
+- 東京都のような特別区がある場合は全23区を表示
+
+### 組織設定ページ - メンバー数即座表示
+- メンバー管理パネルを開かなくても、組織ごとのメンバー数が即座に表示されるように改善
+- ページ初期化時に自動的にメンバー数を取得
+
+### ダッシュボード - 組織情報表示
+- 複数の組織に属するユーザーの場合、ダッシュボード上部に「所属組織」として全組織をバッジ表示
+- `/api/user/organizations` エンドポイント追加：ログインユーザーが属する全組織を取得
+- ダッシュボード上の全ての数値（対象店舗数、予定催事件数、売上等）は現在のアクティブ組織のデータのみ表示
+- 別の組織のデータを確認したい場合は、その組織のユーザーアカウントでログイン切り替え
+
+## Technical Notes
+- マルチ組織対応：ユーザーは複数の組織に属することが可能
+- セッション管理：各セッションでは1つのアクティブ組織が設定される
+- APIフィルタリング：全APIエンドポイントは `requireAuth` ミドルウェアで自動的に `req.organizationId` でデータを絞り込み
