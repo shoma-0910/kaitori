@@ -72,7 +72,7 @@
 
 | ロール | 日本語名 | 権限内容 |
 |--------|----------|----------|
-| `member` | メンバー | データ閲覧、催事の登録・編集、売上入力 |
+| `member` | メンバー | データ閲覧、催事の登録・編集、粗利入力 |
 | `admin` | 管理者 | メンバー権限 + 組織設定、メンバー管理 |
 | `super_admin` | マスター | 管理者権限 + 全組織へのアクセス |
 
@@ -84,7 +84,7 @@
 | 店舗検索・選定 | ○ | ○ | ○ |
 | 店舗登録 | ○ | ○ | ○ |
 | 催事作成・編集 | ○ | ○ | ○ |
-| 売上入力 | ○ | ○ | ○ |
+| 粗利入力 | ○ | ○ | ○ |
 | AI地域分析 | ○ | ○ | ○ |
 | 組織設定 | × | ○ | ○ |
 | メンバー追加・削除 | × | ○ | ○ |
@@ -120,7 +120,7 @@
 |-----|------|--------------|
 | 対象店舗数 | 登録済み店舗の総数 | `registered_stores` テーブル |
 | 予定催事件数 | ステータスが「予定」の催事数 | `events` テーブル（status = '予定'） |
-| 総実績粗利 | 全催事の実績粗利合計 | `events.actualProfit` の合計 |
+| 総実績粗利 | 全催事の実績粗利合計 | `events.grossProfit` の合計 |
 | 総概算コスト | 全催事の予定コスト合計 | `events.estimatedCost` の合計 |
 
 **追加機能**:
@@ -177,7 +177,7 @@
    - モーダルで詳細情報を表示
    - 住所、電話番号、営業時間、ウェブサイト
    - 駐車場情報（AI判定結果）
-   - 売上履歴
+   - 粗利履歴
 
 3. **駐車場AI判定**
    - Google Street Viewから4方向の画像を取得
@@ -185,8 +185,8 @@
    - 判定結果: available（あり）/ unavailable（なし）/ unknown（不明）
    - 確信度: 0〜100%
 
-4. **売上入力**
-   - 日付、売上金額、買取点数を入力
+4. **粗利入力**
+   - 日付、粗利金額、買取点数を入力
    - 備考欄あり
 
 5. **店舗削除**
@@ -220,11 +220,11 @@
    - 各項目の編集
    - ステータス変更
 
-4. **売上入力**
+4. **粗利入力**
    - 催事完了後に実績を入力
-   - 実績売上（円）
+   - 実績粗利（円）
    - 買取点数
-   - 実績粗利
+   - 実績粗利率
 
 5. **Googleカレンダー連携**
    - 催事をGoogleカレンダーに追加
@@ -241,19 +241,19 @@
 
 ---
 
-### 4.6 売上分析 (`/sales`)
+### 4.6 粗利分析 (`/profits`)
 
-**目的**: 売上データの可視化・分析
+**目的**: 粗利データの可視化・分析
 
 **機能**:
 
-1. **売上グラフ**
+1. **粗利グラフ**
    - 折れ線グラフまたは棒グラフ
-   - 期間別売上推移
+   - 期間別粗利推移
    - Rechartsライブラリ使用
 
-2. **店舗別売上**
-   - 店舗ごとの売上集計
+2. **店舗別粗利**
+   - 店舗ごとの粗利集計
    - 円グラフまたはバーチャート
 
 3. **データフィルタリング**
@@ -261,7 +261,7 @@
    - 店舗指定
 
 4. **データ統合**
-   - 催事からの売上 + 直接入力売上を統合表示
+   - 催事からの粗利 + 直接入力粗利を統合表示
 
 ---
 
@@ -389,16 +389,16 @@
 
 ---
 
-### 5.4 売上データ統合
+### 5.4 粗利データ統合
 
 **データソース**:
 
-1. **催事売上**: `events.actualRevenue`, `events.itemsPurchased`
-2. **直接入力売上**: `store_sales` テーブル
+1. **催事粗利**: `events.actualGrossProfit`, `events.itemsPurchased`
+2. **直接入力粗利**: `store_profits` テーブル
 
 **統合ロジック**:
-- 催事の売上入力時、自動的に `store_sales` にも反映
-- 売上分析画面では両方を統合して表示
+- 催事の粗利入力時、自動的に `store_profits` にも反映
+- 粗利分析画面では両方を統合して表示
 
 ---
 
@@ -478,24 +478,24 @@ organizations ─┬─< user_organizations >─── users (Supabase Auth)
 | endDate | TIMESTAMP | NOT NULL | 終了日時 |
 | status | TEXT | NOT NULL | ステータス |
 | estimatedCost | INTEGER | NOT NULL | 予定コスト |
-| actualProfit | INTEGER | NULL | 実績粗利 |
-| actualRevenue | INTEGER | NULL | 実績売上 |
+| actualGrossProfit | INTEGER | NULL | 実績粗利 |
+| actualRevenue | INTEGER | NULL | 実績売上額 |
 | itemsPurchased | INTEGER | NULL | 買取点数 |
 | googleCalendarEventId | TEXT | NULL | GCal イベントID |
 | notes | TEXT | NULL | 備考 |
 
 ---
 
-#### store_sales（店舗別売上）
+#### store_profits（店舗別粗利）
 
 | カラム名 | 型 | 制約 | 説明 |
 |----------|-----|------|------|
 | id | VARCHAR | PK, AUTO UUID | ID |
 | organizationId | UUID | FK → organizations.id | 組織ID |
 | registeredStoreId | VARCHAR | FK → registered_stores.id | 店舗ID |
-| saleDate | TIMESTAMP | NOT NULL | 売上日 |
-| revenue | INTEGER | NOT NULL | 売上金額 |
-| itemsSold | INTEGER | NOT NULL | 販売点数 |
+| profitDate | TIMESTAMP | NOT NULL | 粗利日 |
+| grossProfit | INTEGER | NOT NULL | 粗利金額 |
+| itemsPurchased | INTEGER | NOT NULL | 買取点数 |
 | notes | TEXT | NULL | 備考 |
 | createdAt | TIMESTAMP | NOT NULL, DEFAULT NOW | 作成日時 |
 
@@ -573,8 +573,8 @@ Authorization: Bearer <JWT_TOKEN>
 | POST | `/api/registered-stores` | 店舗登録 | ○ |
 | DELETE | `/api/registered-stores/:id` | 登録解除 | ○ |
 | POST | `/api/registered-stores/:id/analyze-parking` | 駐車場分析 | ○ |
-| GET | `/api/registered-stores/:id/sales` | 売上取得 | ○ |
-| POST | `/api/registered-stores/:id/sales` | 売上登録 | ○ |
+| GET | `/api/registered-stores/:id/profits` | 粗利取得 | ○ |
+| POST | `/api/registered-stores/:id/profits` | 粗利登録 | ○ |
 
 #### 催事系
 
@@ -595,12 +595,12 @@ Authorization: Bearer <JWT_TOKEN>
 | POST | `/api/costs` | コスト登録 | ○ |
 | DELETE | `/api/costs/:id` | コスト削除 | ○ |
 
-#### 売上分析系
+#### 粗利分析系
 
 | Method | Endpoint | 説明 | 認証 |
 |--------|----------|------|:----:|
-| GET | `/api/sales-analytics` | 売上分析データ | ○ |
-| DELETE | `/api/store-sales/:id` | 売上削除 | ○ |
+| GET | `/api/profits-analytics` | 粗利分析データ | ○ |
+| DELETE | `/api/store-profits/:id` | 粗利削除 | ○ |
 
 #### 地図・検索系
 
