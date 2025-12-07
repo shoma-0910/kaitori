@@ -21,6 +21,11 @@ The database is **Supabase PostgreSQL**, leveraging **Row Level Security (RLS)**
 - **Calendar & Scheduling**: Provides month, week, and day views for events, allows event creation (store, duration, manager), synchronizes with Google Calendar, facilitates sales and item purchase input post-event, and manages event statuses (planned/in progress/completed/cancelled).
 - **Sales Analytics**: Offers graphical representation of sales trends by store and period, integrates event sales with direct input sales, and allows filtering by period and store.
 - **AI Region Analysis**: Provides AI-powered regional analysis for all municipalities in Japan, assessing buyback potential based on demographics (population, average age/income, senior/female ratios, housing characteristics).
+- **AI Store Recommendation** (新規実装 2025-12-07): AI-powered store recommendation system with two modes:
+  - AI Recommendation Mode: AI analyzes stores and ranks them S/A/B/C based on buyback event potential (60+ female population, average income, residential density)
+  - Manual Search Mode: Search stores by prefecture, municipality, store type, and radius with demographic filters
+  - Map visualization with rank-based marker colors (S: Gold, A: Red, B: Blue, C: Green)
+  - One-click store registration from both modes
 - **Organization Settings**: Allows management of organizations (creation, editing, deletion by admins), member management (add, change role, remove), and displays API usage for Google Maps/Gemini.
 - **Multi-tenancy**: Achieved through `organizationId` in all data tables and enforced via Supabase RLS and API filtering.
 - **Authentication**: Utilizes Supabase Auth for login/signup, JWT for session management, and `user_organizations` table for user-organization mapping.
