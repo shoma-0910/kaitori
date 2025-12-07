@@ -82,6 +82,12 @@ const menuGroups: MenuGroup[] = [
         icon: Sparkles,
         superAdminOnly: false,
       },
+      {
+        title: "AI店舗推薦",
+        url: "/ai-recommendation",
+        icon: BarChart3,
+        superAdminOnly: false,
+      },
     ],
   },
 ];

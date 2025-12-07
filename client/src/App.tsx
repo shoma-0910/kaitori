@@ -17,6 +17,7 @@ import SalesAnalytics from "@/pages/SalesAnalytics";
 import OrganizationSettings from "@/pages/OrganizationSettings";
 import Map from "@/pages/Map";
 import AIRegionAnalysis from "@/pages/AIRegionAnalysis";
+import AIStoreRecommendation from "@/pages/AIStoreRecommendation";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
@@ -87,6 +88,9 @@ function Router() {
       </Route>
       <Route path="/ai-analysis">
         <ProtectedRoute component={AIRegionAnalysis} />
+      </Route>
+      <Route path="/ai-recommendation">
+        <ProtectedRoute component={AIStoreRecommendation} />
       </Route>
       <Route component={NotFound} />
     </Switch>
