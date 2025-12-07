@@ -302,15 +302,15 @@ export default function AIStoreRecommendation() {
               <div className="space-y-2">
                 <Label htmlFor="municipality">市区町村</Label>
                 <Select 
-                  value={selectedMunicipality} 
-                  onValueChange={setSelectedMunicipality}
+                  value={selectedMunicipality || "__all__"} 
+                  onValueChange={(v) => setSelectedMunicipality(v === "__all__" ? "" : v)}
                   disabled={!selectedPrefecture || municipalitiesLoading}
                 >
                   <SelectTrigger id="municipality" data-testid="select-municipality">
                     <SelectValue placeholder={municipalitiesLoading ? "読み込み中..." : "市区町村を選択（任意）"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">すべて</SelectItem>
+                    <SelectItem value="__all__">すべて</SelectItem>
                     {municipalities.map(muni => (
                       <SelectItem key={muni} value={muni}>{muni}</SelectItem>
                     ))}
