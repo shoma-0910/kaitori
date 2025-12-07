@@ -118,10 +118,28 @@ export default function AIStoreRecommendation() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: async (error: any) => {
+      // Try to parse error response for better error message
+      let errorMessage = "AI推薦に失敗しました";
+      try {
+        if (error.response) {
+          const errorData = await error.response.json();
+          if (errorData.errorCode === "RATE_LIMIT_EXCEEDED") {
+            errorMessage = "APIレート制限に達しました。1分ほど待ってから再度お試しください。";
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } else if (error.message && error.message.includes("429")) {
+          errorMessage = "APIレート制限に達しました。1分ほど待ってから再度お試しください。";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (e) {
+        // Use default error message
+      }
       toast({
         title: "エラー",
-        description: error.message || "AI推薦に失敗しました",
+        description: errorMessage,
         variant: "destructive",
       });
     },

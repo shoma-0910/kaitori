@@ -1772,6 +1772,15 @@ JSONのみを返してください。`;
       });
     } catch (error: any) {
       console.error("AI Store Recommendations error:", error);
+      
+      // Check if it's a rate limit error (429)
+      if (error.status === 429 || (error.message && error.message.includes("429"))) {
+        return res.status(429).json({ 
+          error: "APIレート制限に達しました。1分ほど待ってから再度お試しください。",
+          errorCode: "RATE_LIMIT_EXCEEDED",
+          retryAfter: 60
+        });
+      }
       res.status(500).json({ error: error.message });
     }
   });
