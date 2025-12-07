@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, insertStoreSaleSchema, organizations, userOrganizations } from "@shared/schema";
+import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, insertStoreSaleSchema, organizations, userOrganizations, aiRecommendationRequestSchema, storeSearchFilterSchema, type StoreRecommendation } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
 import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
@@ -726,13 +726,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Google レーティングを考慮したランク計算の改善
           // rating: 店舗評価、userRatingsTotal: レビュー数を活用
-          let enhancedRank = rank;
+          let enhancedRank: "S" | "A" | "B" | "C" | "D" | null = rank;
           if (place.rating && place.rating > 0) {
             // レーティングが高い場合はランクを上げる（3.8以上でA、4.5以上でS）
             const ratingBonus = place.rating >= 4.5 ? 2 : place.rating >= 3.8 ? 1 : 0;
             if (ratingBonus > 0 && rank) {
               const rankMap: { [key: string]: number } = { "D": 0, "C": 1, "B": 2, "A": 3, "S": 4 };
-              const rankValues = ["D", "C", "B", "A", "S"];
+              const rankValues: ("D" | "C" | "B" | "A" | "S")[] = ["D", "C", "B", "A", "S"];
               const currentRankValue = rankMap[rank] || 2;
               enhancedRank = rankValues[Math.min(currentRankValue + ratingBonus, 4)] || rank;
             }
@@ -1557,6 +1557,275 @@ JSONのみを返してください。`;
       res.json({ municipalities });
     } catch (error: any) {
       console.error("Get municipalities error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // AI Store Recommendations - AI-powered store ranking
+  app.post("/api/ai-store-recommendations", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = aiRecommendationRequestSchema.parse(req.body);
+      const { prefecture, municipality, storeType = "supermarket", maxResults = 20 } = validatedData;
+
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      
+      if (!geminiApiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+      if (!googleMapsApiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: geminiApiKey });
+
+      const region = municipality ? `${prefecture}${municipality}` : prefecture;
+
+      // Step 1: Get region demographics using AI
+      const demographicsPrompt = `${region}の買取催事に関連する人口統計情報を分析してください。
+
+以下のJSON形式で回答してください：
+{
+  "population": 人口数,
+  "averageAge": 平均年齢,
+  "averageIncome": 平均年収（万円）,
+  "over60Ratio": 60歳以上比率（%）,
+  "over60FemaleRatio": 60歳以上女性比率（%）,
+  "residentialRatio": 住宅地比率（%）,
+  "centerLat": 地域の中心緯度,
+  "centerLng": 地域の中心経度
+}
+JSONのみを返してください。`;
+
+      const demographicsResponse = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: demographicsPrompt,
+      });
+
+      const demographicsText = demographicsResponse.text || "";
+      const demographicsMatch = demographicsText.match(/\{[\s\S]*\}/);
+      
+      if (!demographicsMatch) {
+        return res.status(500).json({ error: "Failed to get demographics" });
+      }
+
+      const demographics = JSON.parse(demographicsMatch[0]);
+
+      // Step 2: Search for stores in the area using Google Places API
+      const typeMapping: { [key: string]: string } = {
+        supermarket: "supermarket",
+        shopping_mall: "shopping_mall",
+        department_store: "department_store",
+        all: "supermarket"
+      };
+      const placeType = typeMapping[storeType] || "supermarket";
+
+      const nearbySearchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${demographics.centerLat},${demographics.centerLng}&radius=5000&type=${placeType}&language=ja&key=${googleMapsApiKey}`;
+      
+      const placesResponse = await fetch(nearbySearchUrl);
+      const placesData = await placesResponse.json();
+
+      if (placesData.status !== "OK" && placesData.status !== "ZERO_RESULTS") {
+        console.error("Places API error:", placesData.status);
+        return res.status(500).json({ error: "Failed to search stores" });
+      }
+
+      const places = placesData.results || [];
+
+      // Step 3: Rank stores using AI
+      const storeNames = places.slice(0, maxResults).map((p: any) => ({
+        name: p.name,
+        address: p.vicinity,
+        rating: p.rating,
+        userRatingsTotal: p.user_ratings_total
+      }));
+
+      const rankingPrompt = `以下の店舗リストを、買取催事（金・プラチナ・ブランド品の買取）に適した順にランク付けしてください。
+
+地域情報:
+- 60歳以上女性比率: ${demographics.over60FemaleRatio}%
+- 平均年収: ${demographics.averageIncome}万円
+- 住宅地比率: ${demographics.residentialRatio}%
+
+店舗リスト:
+${JSON.stringify(storeNames, null, 2)}
+
+ランク基準:
+- S: 買取催事に最適（高齢者が多く訪れる、住宅街に近い、アクセス良好）
+- A: 非常に適している
+- B: 適している
+- C: やや適している
+
+以下のJSON形式で回答してください：
+{
+  "rankings": [
+    {
+      "name": "店舗名",
+      "rank": "S" | "A" | "B" | "C",
+      "score": 0-100の数値,
+      "rationale": "ランク付けの理由（50文字程度）"
+    }
+  ]
+}
+JSONのみを返してください。`;
+
+      const rankingResponse = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: rankingPrompt,
+      });
+
+      const rankingText = rankingResponse.text || "";
+      const rankingMatch = rankingText.match(/\{[\s\S]*\}/);
+      
+      if (!rankingMatch) {
+        return res.status(500).json({ error: "Failed to rank stores" });
+      }
+
+      const rankingData = JSON.parse(rankingMatch[0]);
+
+      // Step 4: Get registered stores for checking isRegistered status
+      const registeredStores = await storage.getAllRegisteredStores(req.organizationId!);
+      const registeredPlaceIds = new Set(registeredStores.map(s => s.placeId));
+
+      // Step 5: Combine data to create recommendations
+      const recommendations: StoreRecommendation[] = places.slice(0, maxResults).map((place: any) => {
+        const ranking = rankingData.rankings?.find((r: any) => r.name === place.name) || {
+          rank: "C",
+          score: 50,
+          rationale: "データ不足"
+        };
+
+        return {
+          placeId: place.place_id,
+          name: place.name,
+          address: place.vicinity || "",
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng,
+          rank: ranking.rank as "S" | "A" | "B" | "C",
+          score: ranking.score,
+          rationale: ranking.rationale,
+          demographics: {
+            population: demographics.population,
+            averageAge: demographics.averageAge,
+            averageIncome: demographics.averageIncome,
+            over60Ratio: demographics.over60Ratio,
+            over60FemaleRatio: demographics.over60FemaleRatio,
+            residentialRatio: demographics.residentialRatio,
+          },
+          isRegistered: registeredPlaceIds.has(place.place_id),
+        };
+      });
+
+      // Sort by score descending
+      recommendations.sort((a, b) => b.score - a.score);
+
+      // Log API usage
+      const { apiUsageLogs } = await import("@shared/schema");
+      await db.insert(apiUsageLogs).values({
+        organizationId: req.organizationId!,
+        apiType: "google_gemini",
+        endpoint: "/api/ai-store-recommendations",
+        timestamp: new Date(),
+        metadata: JSON.stringify({ model: "gemini-2.0-flash-001", region, storeCount: recommendations.length }),
+      });
+
+      res.json({
+        success: true,
+        region,
+        demographics,
+        recommendations,
+      });
+    } catch (error: any) {
+      console.error("AI Store Recommendations error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Store Search - Manual exploration with filters
+  app.post("/api/store-search", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = storeSearchFilterSchema.parse(req.body);
+      const { 
+        prefecture, 
+        municipality, 
+        centerLat, 
+        centerLng, 
+        radius = 5000,
+        storeType = "supermarket" 
+      } = validatedData;
+
+      const googleMapsApiKey = process.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (!googleMapsApiKey) {
+        return res.status(500).json({ error: "Google Maps API key not configured" });
+      }
+
+      // If no coordinates provided, geocode the region
+      let lat = centerLat;
+      let lng = centerLng;
+
+      if (!lat || !lng) {
+        const region = municipality ? `${prefecture}${municipality}` : prefecture;
+        if (!region) {
+          return res.status(400).json({ error: "Location required" });
+        }
+
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(region)}&key=${googleMapsApiKey}&language=ja&region=jp`;
+        const geocodeResponse = await fetch(geocodeUrl);
+        const geocodeData = await geocodeResponse.json();
+
+        if (geocodeData.status !== "OK" || !geocodeData.results?.[0]) {
+          return res.status(404).json({ error: "Location not found" });
+        }
+
+        lat = geocodeData.results[0].geometry.location.lat;
+        lng = geocodeData.results[0].geometry.location.lng;
+      }
+
+      // Search for stores
+      const typeMapping: { [key: string]: string } = {
+        supermarket: "supermarket",
+        shopping_mall: "shopping_mall",
+        department_store: "department_store",
+        all: "supermarket"
+      };
+      const placeType = typeMapping[storeType || "supermarket"] || "supermarket";
+
+      const nearbySearchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${placeType}&language=ja&key=${googleMapsApiKey}`;
+      
+      const placesResponse = await fetch(nearbySearchUrl);
+      const placesData = await placesResponse.json();
+
+      if (placesData.status !== "OK" && placesData.status !== "ZERO_RESULTS") {
+        console.error("Places API error:", placesData.status);
+        return res.status(500).json({ error: "Failed to search stores" });
+      }
+
+      const places = placesData.results || [];
+
+      // Get registered stores
+      const registeredStores = await storage.getAllRegisteredStores(req.organizationId!);
+      const registeredPlaceIds = new Set(registeredStores.map(s => s.placeId));
+
+      // Map to store format
+      const stores = places.map((place: any) => ({
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+        latitude: place.geometry.location.lat,
+        longitude: place.geometry.location.lng,
+        rating: place.rating || null,
+        userRatingsTotal: place.user_ratings_total || null,
+        isRegistered: registeredPlaceIds.has(place.place_id),
+      }));
+
+      res.json({
+        success: true,
+        center: { lat, lng },
+        stores,
+      });
+    } catch (error: any) {
+      console.error("Store Search error:", error);
       res.status(500).json({ error: error.message });
     }
   });

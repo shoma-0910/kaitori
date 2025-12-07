@@ -196,3 +196,56 @@ export const insertStoreSaleSchema = createInsertSchema(storeSales).omit({
 });
 export type InsertStoreSale = z.infer<typeof insertStoreSaleSchema>;
 export type StoreSale = typeof storeSales.$inferSelect;
+
+// AI Store Recommendation schemas
+export const storeRecommendationSchema = z.object({
+  placeId: z.string(),
+  name: z.string(),
+  address: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  rank: z.enum(["S", "A", "B", "C"]),
+  score: z.number().min(0).max(100),
+  rationale: z.string(),
+  demographics: z.object({
+    population: z.number().optional(),
+    averageAge: z.number().optional(),
+    averageIncome: z.number().optional(),
+    over60Ratio: z.number().optional(),
+    over60FemaleRatio: z.number().optional(),
+    residentialRatio: z.number().optional(),
+  }).optional(),
+  isRegistered: z.boolean().optional(),
+});
+
+export type StoreRecommendation = z.infer<typeof storeRecommendationSchema>;
+
+// Store search filter schema for manual exploration
+export const storeSearchFilterSchema = z.object({
+  region: z.string().optional(),
+  prefecture: z.string().optional(),
+  municipality: z.string().optional(),
+  minAverageAge: z.number().optional(),
+  maxAverageAge: z.number().optional(),
+  minAverageIncome: z.number().optional(),
+  maxAverageIncome: z.number().optional(),
+  minOver60Ratio: z.number().optional(),
+  minOver60FemaleRatio: z.number().optional(),
+  minResidentialRatio: z.number().optional(),
+  storeType: z.enum(["supermarket", "shopping_mall", "department_store", "all"]).optional(),
+  radius: z.number().optional(),
+  centerLat: z.number().optional(),
+  centerLng: z.number().optional(),
+});
+
+export type StoreSearchFilter = z.infer<typeof storeSearchFilterSchema>;
+
+// AI Recommendation request schema
+export const aiRecommendationRequestSchema = z.object({
+  prefecture: z.string(),
+  municipality: z.string().optional(),
+  storeType: z.enum(["supermarket", "shopping_mall", "department_store", "all"]).optional(),
+  maxResults: z.number().optional(),
+});
+
+export type AIRecommendationRequest = z.infer<typeof aiRecommendationRequestSchema>;
