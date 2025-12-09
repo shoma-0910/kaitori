@@ -105,6 +105,13 @@ export function RegisteredStoreDetailModal({
   const [storeArchetype, setStoreArchetype] = useState<StoreArchetype | "">("");
   const [parkingSize, setParkingSize] = useState<ParkingSize | "">("");
   const [parkingCapacity, setParkingCapacity] = useState<string>("");
+  const [marketPowerResult, setMarketPowerResult] = useState<{
+    score: number;
+    breakdown: { label: string; value: number; description: string }[];
+    region: string | null;
+    seniorFemalePopulation: number;
+    averageIncome: number;
+  } | null>(null);
 
   useEffect(() => {
     if (store) {
@@ -142,6 +149,32 @@ export function RegisteredStoreDetailModal({
       parkingSize: parkingSize || undefined,
       parkingCapacity: parkingCapacity ? parseInt(parkingCapacity) : undefined,
     });
+  };
+
+  const calculateMarketPowerMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/registered-stores/${store?.id}/calculate-market-power`);
+    },
+    onSuccess: (data: any) => {
+      setMarketPowerResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/registered-stores"] });
+      toast({
+        title: "商圏スコア計算完了",
+        description: `スコア: ${data.score.toFixed(1)}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: error.message || "商圏スコアの計算に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCalculateMarketPower = () => {
+    if (!store) return;
+    calculateMarketPowerMutation.mutate();
   };
 
   useEffect(() => {
@@ -446,36 +479,79 @@ export function RegisteredStoreDetailModal({
                     </p>
                   </div>
 
-                  {store?.marketPowerScore && (
-                    <div className="bg-muted/50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                        <span className="font-medium">商圏スコア</span>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSaveSettings}
+                      disabled={updateStoreMutation.isPending}
+                      className="flex-1"
+                      data-testid="button-save-settings"
+                    >
+                      {updateStoreMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          設定を保存
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleCalculateMarketPower}
+                      disabled={calculateMarketPowerMutation.isPending}
+                      variant="secondary"
+                      className="flex-1"
+                      data-testid="button-calculate-market-power"
+                    >
+                      {calculateMarketPowerMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          計算中...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          商圏スコア計算
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {(store?.marketPowerScore || marketPowerResult) && (
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-primary" />
+                          <span className="font-semibold text-lg">商圏スコア</span>
+                        </div>
+                        <p className="text-3xl font-bold text-primary" data-testid="text-market-power-score">
+                          {(marketPowerResult?.score ?? store?.marketPowerScore)?.toFixed(1)}
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold text-primary" data-testid="text-market-power-score">
-                        {store.marketPowerScore.toFixed(1)}
-                      </p>
+                      
+                      {marketPowerResult?.breakdown && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <p className="text-sm font-medium text-muted-foreground">スコア内訳</p>
+                          {marketPowerResult.breakdown.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">{item.label}</span>
+                              <span className="font-medium">{item.description}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {marketPowerResult?.region && (
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground">
+                            対象地域: {marketPowerResult.region}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  <Button
-                    onClick={handleSaveSettings}
-                    disabled={updateStoreMutation.isPending}
-                    className="w-full"
-                    data-testid="button-save-settings"
-                  >
-                    {updateStoreMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        保存中...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        設定を保存
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             </div>
