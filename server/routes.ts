@@ -372,6 +372,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/registered-stores/:id", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { storeArchetype, parkingSize, parkingCapacity, marketPowerScore } = req.body;
+
+      const store = await storage.getRegisteredStore(id, req.organizationId!);
+      if (!store) {
+        return res.status(404).json({ error: "Registered store not found" });
+      }
+
+      const updates: Record<string, any> = {};
+      if (storeArchetype !== undefined) updates.storeArchetype = storeArchetype;
+      if (parkingSize !== undefined) updates.parkingSize = parkingSize;
+      if (parkingCapacity !== undefined) updates.parkingCapacity = parkingCapacity;
+      if (marketPowerScore !== undefined) updates.marketPowerScore = marketPowerScore;
+
+      const updated = await storage.updateRegisteredStore(id, req.organizationId!, updates);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/registered-stores/:id/analyze-parking", requireAuth, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;
