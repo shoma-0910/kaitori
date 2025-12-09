@@ -74,10 +74,9 @@ class EStatClient {
     return data;
   }
 
-  private createSource(name: string, url?: string): RegionMetricSource {
+  private createSource(name: string): RegionMetricSource {
     return {
       name,
-      url,
       retrievedAt: new Date().toISOString(),
       type: "official",
     };
@@ -156,10 +155,7 @@ class EStatClient {
       if (totalPopulation > 0) {
         result.population = {
           value: totalPopulation,
-          source: this.createSource(
-            "令和2年国勢調査 人口等基本集計",
-            "https://www.e-stat.go.jp/stat-search/files?page=1&layout=datalist&toukei=00200521&tstat=000001136464"
-          ),
+          source: this.createSource("出典：e-Stat 国勢調査（2020年）"),
         };
 
         // Calculate average age (rough estimate based on age groups)
@@ -172,10 +168,7 @@ class EStatClient {
 
         result.averageAge = {
           value: Math.round(estimatedAverageAge * 10) / 10,
-          source: this.createSource(
-            "令和2年国勢調査 人口等基本集計（年齢別人口から算出）",
-            "https://www.e-stat.go.jp/stat-search/files?page=1&layout=datalist&toukei=00200521&tstat=000001136464"
-          ),
+          source: this.createSource("出典：e-Stat 国勢調査（2020年）"),
         };
 
         // Age distribution percentages
@@ -187,10 +180,7 @@ class EStatClient {
             { range: "50-64歳", percentage: Math.round((ageGroups["50-64"] / totalPopulation) * 1000) / 10 },
             { range: "65歳以上", percentage: Math.round((ageGroups["65+"] / totalPopulation) * 1000) / 10 },
           ],
-          source: this.createSource(
-            "令和2年国勢調査 人口等基本集計",
-            "https://www.e-stat.go.jp/stat-search/files?page=1&layout=datalist&toukei=00200521&tstat=000001136464"
-          ),
+          source: this.createSource("出典：e-Stat 国勢調査（2020年）"),
         };
 
         // Gender ratio
@@ -201,10 +191,7 @@ class EStatClient {
               male: Math.round((maleCount / total) * 1000) / 10,
               female: Math.round((femaleCount / total) * 1000) / 10,
             },
-            source: this.createSource(
-              "令和2年国勢調査 人口等基本集計",
-              "https://www.e-stat.go.jp/stat-search/files?page=1&layout=datalist&toukei=00200521&tstat=000001136464"
-            ),
+            source: this.createSource("出典：e-Stat 国勢調査（2020年）"),
           };
         }
       }
