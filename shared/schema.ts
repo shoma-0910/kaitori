@@ -88,6 +88,23 @@ export const insertCostSchema = createInsertSchema(costs).omit({ id: true }).ext
 export type InsertCost = z.infer<typeof insertCostSchema>;
 export type Cost = typeof costs.$inferSelect;
 
+export const storeArchetypeEnum = z.enum([
+  "station_front",      // 駅前
+  "suburban",           // 郊外
+  "shopping_mall",      // 商業施設併設
+  "roadside",           // ロードサイド
+  "residential",        // 住宅街
+]);
+export type StoreArchetype = z.infer<typeof storeArchetypeEnum>;
+
+export const parkingSizeEnum = z.enum([
+  "none",               // なし
+  "small",              // 小規模（1-20台）
+  "medium",             // 中規模（21-50台）
+  "large",              // 大規模（51台以上）
+]);
+export type ParkingSize = z.infer<typeof parkingSizeEnum>;
+
 export const registeredStores = pgTable("registered_stores", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
@@ -104,6 +121,10 @@ export const registeredStores = pgTable("registered_stores", {
   parkingStatus: text("parking_status"),
   parkingConfidence: integer("parking_confidence"),
   parkingAnalyzedAt: timestamp("parking_analyzed_at"),
+  storeArchetype: text("store_archetype"),
+  parkingSize: text("parking_size"),
+  parkingCapacity: integer("parking_capacity"),
+  marketPowerScore: real("market_power_score"),
   registeredAt: timestamp("registered_at").notNull().defaultNow(),
 });
 
