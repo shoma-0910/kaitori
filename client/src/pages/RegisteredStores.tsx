@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { MapPin, Phone, Trash2, Loader2, Clock, Calendar, Plus, ChevronDown, ChevronUp, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { RegisteredStore, StoreSale } from "@shared/schema";
@@ -370,12 +370,13 @@ export default function RegisteredStores() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[25%] min-w-[180px]">店舗名</TableHead>
-                    <TableHead className="w-[30%] min-w-[180px] hidden md:table-cell">住所</TableHead>
-                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">売上合計</TableHead>
-                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">最新売上</TableHead>
+                    <TableHead className="w-[22%] min-w-[180px]">店舗名</TableHead>
+                    <TableHead className="w-[26%] min-w-[180px] hidden md:table-cell">住所</TableHead>
+                    <TableHead className="w-[10%] min-w-[80px] hidden sm:table-cell">商圏</TableHead>
+                    <TableHead className="w-[10%] min-w-[100px] hidden sm:table-cell">売上合計</TableHead>
+                    <TableHead className="w-[10%] min-w-[100px] hidden sm:table-cell">最新売上</TableHead>
                     <TableHead className="w-[12%] min-w-[100px] hidden lg:table-cell">電話番号</TableHead>
-                    <TableHead className="w-[9%] text-right">操作</TableHead>
+                    <TableHead className="w-[10%] text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -414,6 +415,18 @@ export default function RegisteredStores() {
                             {store.address}
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {store.marketPowerScore ? (
+                          <div className="flex items-center gap-1" data-testid={`text-market-score-${store.id}`}>
+                            <TrendingUp className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold text-primary">
+                              {store.marketPowerScore.toFixed(1)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <button
