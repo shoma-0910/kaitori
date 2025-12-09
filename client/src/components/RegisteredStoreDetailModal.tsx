@@ -17,6 +17,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +36,14 @@ import {
   Clock,
   Star,
   ExternalLink,
+  Car,
+  Building2,
+  TrendingUp,
+  Save,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { RegisteredStore } from "@shared/schema";
+import type { RegisteredStore, StoreArchetype, ParkingSize } from "@shared/schema";
 import { EventReservationData } from "./EventReservationModal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +64,21 @@ interface RegisteredStoreDetailModalProps {
   onSubmit: (data: EventReservationData) => void;
   isPending?: boolean;
 }
+
+const ARCHETYPE_OPTIONS: { value: StoreArchetype; label: string }[] = [
+  { value: "station_front", label: "駅前" },
+  { value: "shopping_mall", label: "商業施設併設" },
+  { value: "roadside", label: "ロードサイド" },
+  { value: "suburban", label: "郊外" },
+  { value: "residential", label: "住宅街" },
+];
+
+const PARKING_SIZE_OPTIONS: { value: ParkingSize; label: string }[] = [
+  { value: "none", label: "なし" },
+  { value: "small", label: "小規模（1-20台）" },
+  { value: "medium", label: "中規模（21-50台）" },
+  { value: "large", label: "大規模（51台以上）" },
+];
 
 export function RegisteredStoreDetailModal({
   store,
@@ -75,6 +101,48 @@ export function RegisteredStoreDetailModal({
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const mapInitTimerRef = useRef<number | null>(null);
   const isOpenRef = useRef(open);
+  
+  const [storeArchetype, setStoreArchetype] = useState<StoreArchetype | "">("");
+  const [parkingSize, setParkingSize] = useState<ParkingSize | "">("");
+  const [parkingCapacity, setParkingCapacity] = useState<string>("");
+
+  useEffect(() => {
+    if (store) {
+      setStoreArchetype((store.storeArchetype as StoreArchetype) || "");
+      setParkingSize((store.parkingSize as ParkingSize) || "");
+      setParkingCapacity(store.parkingCapacity?.toString() || "");
+    }
+  }, [store]);
+
+  const updateStoreMutation = useMutation({
+    mutationFn: async (data: { storeArchetype?: string; parkingSize?: string; parkingCapacity?: number }) => {
+      return apiRequest("PATCH", `/api/registered-stores/${store?.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/registered-stores"] });
+      toast({
+        title: "保存完了",
+        description: "店舗設定を保存しました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: error.message || "保存に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveSettings = () => {
+    if (!store) return;
+    
+    updateStoreMutation.mutate({
+      storeArchetype: storeArchetype || undefined,
+      parkingSize: parkingSize || undefined,
+      parkingCapacity: parkingCapacity ? parseInt(parkingCapacity) : undefined,
+    });
+  };
 
   useEffect(() => {
     isOpenRef.current = open;
@@ -295,7 +363,7 @@ export function RegisteredStoreDetailModal({
               {/* Parking Status */}
               {store?.parkingStatus && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">駐車場判定</p>
+                  <p className="text-sm text-muted-foreground mb-2">駐車場判定（AI）</p>
                   <div className="flex items-center gap-2">
                     <Badge variant={store.parkingStatus === "あり" ? "default" : "secondary"} data-testid="badge-parking-status">
                       {store.parkingStatus === "あり" ? `✅ あり (${store.parkingConfidence || 0}%)` : `❌ なし (${store.parkingConfidence || 0}%)`}
@@ -303,6 +371,113 @@ export function RegisteredStoreDetailModal({
                   </div>
                 </div>
               )}
+
+              {/* Store Settings Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  店舗設定（商圏分析用）
+                </h3>
+                
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="storeArchetype" className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      店舗タイプ
+                    </Label>
+                    <Select
+                      value={storeArchetype}
+                      onValueChange={(value) => setStoreArchetype(value as StoreArchetype)}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-store-archetype">
+                        <SelectValue placeholder="店舗タイプを選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ARCHETYPE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      立地タイプによって集客ポテンシャルの係数が変わります
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="parkingSize" className="flex items-center gap-2">
+                      <Car className="w-4 h-4" />
+                      駐車場規模
+                    </Label>
+                    <Select
+                      value={parkingSize}
+                      onValueChange={(value) => setParkingSize(value as ParkingSize)}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-parking-size">
+                        <SelectValue placeholder="駐車場規模を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PARKING_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="parkingCapacity" className="flex items-center gap-2">
+                      <Car className="w-4 h-4" />
+                      駐車場台数（任意）
+                    </Label>
+                    <Input
+                      id="parkingCapacity"
+                      type="number"
+                      value={parkingCapacity}
+                      onChange={(e) => setParkingCapacity(e.target.value)}
+                      placeholder="例: 50"
+                      className="mt-1"
+                      data-testid="input-parking-capacity"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      正確な台数がわかる場合は入力してください
+                    </p>
+                  </div>
+
+                  {store?.marketPowerScore && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        <span className="font-medium">商圏スコア</span>
+                      </div>
+                      <p className="text-2xl font-bold text-primary" data-testid="text-market-power-score">
+                        {store.marketPowerScore.toFixed(1)}
+                      </p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleSaveSettings}
+                    disabled={updateStoreMutation.isPending}
+                    className="w-full"
+                    data-testid="button-save-settings"
+                  >
+                    {updateStoreMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        保存中...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        設定を保存
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
