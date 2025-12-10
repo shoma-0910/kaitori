@@ -123,13 +123,14 @@ export default function AIStoreRecommendation() {
       if (data.success) {
         setRecommendations(data.recommendations || []);
         setRegionDemographics(data.demographics);
+        setCompetitors(data.competitors || []);
         if (data.recommendations?.length > 0) {
           const firstStore = data.recommendations[0];
           setMapCenter({ lat: firstStore.latitude, lng: firstStore.longitude });
         }
         toast({
           title: "AI推薦完了",
-          description: `${data.recommendations?.length || 0}件の店舗を分析しました`,
+          description: `スーパー${data.recommendations?.length || 0}件、買取店${data.competitors?.length || 0}件を分析しました`,
         });
       }
     },
@@ -273,7 +274,7 @@ export default function AIStoreRecommendation() {
   };
 
   const currentStores = activeTab === "ai" ? recommendations : searchStores;
-  const currentCompetitors = activeTab === "manual" ? competitors : [];
+  const currentCompetitors = competitors;
 
   const storesByRank = useMemo(() => {
     if (activeTab !== "ai") return null;
@@ -461,17 +462,15 @@ export default function AIStoreRecommendation() {
                       </div>
                     ))}
                     {activeTab === "manual" && (
-                      <>
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-red-500" />
-                          <span>スーパー</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-black" />
-                          <span>買取店</span>
-                        </div>
-                      </>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                        <span>スーパー</span>
+                      </div>
                     )}
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-black" />
+                      <span>買取店</span>
+                    </div>
                   </div>
                 </CardTitle>
               </CardHeader>

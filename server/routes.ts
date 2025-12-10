@@ -707,6 +707,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const results = nearbyData.results || [];
+
+      // Search for competitor buyback shops in parallel
+      const buybackShops: any[] = [];
+      try {
+        // Search for "買取" keyword-based stores
+        const buybackKeywordUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&keyword=${encodeURIComponent("買取")}&language=ja&key=${apiKey}`;
+        const buybackKeywordResponse = await fetch(buybackKeywordUrl);
+        const buybackKeywordData = await buybackKeywordResponse.json();
+        if (buybackKeywordData.status === "OK" && buybackKeywordData.results) {
+          buybackShops.push(...buybackKeywordData.results);
+        }
+
+        // Also search for "リサイクルショップ" 
+        const recycleUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&keyword=${encodeURIComponent("リサイクルショップ")}&language=ja&key=${apiKey}`;
+        const recycleResponse = await fetch(recycleUrl);
+        const recycleData = await recycleResponse.json();
+        if (recycleData.status === "OK" && recycleData.results) {
+          buybackShops.push(...recycleData.results);
+        }
+      } catch (error) {
+        console.warn("Failed to search buyback shops:", error);
+      }
+
+      // Deduplicate buyback shops by place_id
+      const seenBuybackIds = new Set<string>();
+      const uniqueBuybackShops = buybackShops.filter(shop => {
+        if (seenBuybackIds.has(shop.place_id)) return false;
+        seenBuybackIds.add(shop.place_id);
+        return true;
+      });
       
       // Process each supermarket to get demographics and rank
       const { calculateStoreRank } = await import("./utils/rankCalculator");
@@ -793,7 +823,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
-      res.json({ supermarkets: supermarketsWithRanking });
+      // Map buyback shops (competitors) to response format
+      const competitors = uniqueBuybackShops.map((place: any) => ({
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+        latitude: place.geometry.location.lat,
+        longitude: place.geometry.location.lng,
+        rating: place.rating || null,
+        userRatingsTotal: place.user_ratings_total || null,
+        storeType: "buyback" as const,
+      }));
+
+      res.json({ supermarkets: supermarketsWithRanking, competitors });
     } catch (error: any) {
       console.error("Supermarket search error:", error);
       res.status(500).json({ error: error.message || "Failed to search supermarkets" });
@@ -1690,6 +1732,33 @@ JSONのみを返してください。`;
 
       const places = placesData.results || [];
 
+      // Search for competitor buyback shops
+      const buybackShops: any[] = [];
+      try {
+        const buybackKeywordUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${demographics.centerLat},${demographics.centerLng}&radius=5000&keyword=${encodeURIComponent("買取")}&language=ja&key=${googleMapsApiKey}`;
+        const buybackKeywordResponse = await fetch(buybackKeywordUrl);
+        const buybackKeywordData = await buybackKeywordResponse.json();
+        if (buybackKeywordData.status === "OK" && buybackKeywordData.results) {
+          buybackShops.push(...buybackKeywordData.results);
+        }
+
+        const recycleUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${demographics.centerLat},${demographics.centerLng}&radius=5000&keyword=${encodeURIComponent("リサイクルショップ")}&language=ja&key=${googleMapsApiKey}`;
+        const recycleResponse = await fetch(recycleUrl);
+        const recycleData = await recycleResponse.json();
+        if (recycleData.status === "OK" && recycleData.results) {
+          buybackShops.push(...recycleData.results);
+        }
+      } catch (error) {
+        console.warn("Failed to search buyback shops:", error);
+      }
+
+      const seenBuybackIds = new Set<string>();
+      const uniqueBuybackShops = buybackShops.filter(shop => {
+        if (seenBuybackIds.has(shop.place_id)) return false;
+        seenBuybackIds.add(shop.place_id);
+        return true;
+      });
+
       // Step 3: Rank stores using AI
       const storeNames = places.slice(0, maxResults).map((p: any) => ({
         name: p.name,
@@ -1787,11 +1856,24 @@ JSONのみを返してください。`;
         metadata: JSON.stringify({ model: "gemini-2.0-flash-001", region, storeCount: recommendations.length }),
       });
 
+      // Map buyback shops to competitors format
+      const competitors = uniqueBuybackShops.map((place: any) => ({
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+        latitude: place.geometry.location.lat,
+        longitude: place.geometry.location.lng,
+        rating: place.rating || null,
+        userRatingsTotal: place.user_ratings_total || null,
+        storeType: "buyback" as const,
+      }));
+
       res.json({
         success: true,
         region,
         demographics,
         recommendations,
+        competitors,
       });
     } catch (error: any) {
       console.error("AI Store Recommendations error:", error);

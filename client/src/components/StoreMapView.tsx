@@ -79,6 +79,17 @@ interface NearbyFacility {
   openNow?: boolean;
 }
 
+interface CompetitorStore {
+  placeId: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  rating: number | null;
+  userRatingsTotal: number | null;
+  storeType: "buyback";
+}
+
 export interface DemographicFilters {
   averageAge?: { min: number; max: number };
   averageIncome?: { min: number; max: number };
@@ -133,6 +144,9 @@ export function StoreMapView({
   const lastSearchZoomRef = useRef<number | null>(null);
   const lastSearchRadiusRef = useRef<number | null>(null);
   const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [competitors, setCompetitors] = useState<CompetitorStore[]>([]);
+  const [selectedCompetitor, setSelectedCompetitor] = useState<CompetitorStore | null>(null);
+  const [competitorDialogOpen, setCompetitorDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: registeredStores = [] } = useQuery<RegisteredStore[]>({
@@ -256,6 +270,7 @@ export function StoreMapView({
 
       const data = await response.json();
       const supermarkets = data.supermarkets || [];
+      const competitorData = data.competitors || [];
 
       const places: NearbyPlace[] = supermarkets.map((place: any) => ({
         placeId: place.placeId,
@@ -275,6 +290,7 @@ export function StoreMapView({
       }));
 
       setNearbyPlaces(places);
+      setCompetitors(competitorData);
       // 検索範囲を記録
       lastSearchRadiusRef.current = searchRadius;
     } catch (error) {
@@ -1133,6 +1149,25 @@ export function StoreMapView({
                   </div>
                 )}
               </div>
+              {/* 凡例 */}
+              <div className="absolute bottom-4 left-4 z-10 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg shadow-lg text-sm border border-border/50 flex flex-wrap gap-3">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#DC2626" }} />
+                  <span>Sランク</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#EA580C" }} />
+                  <span>Aランク</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
+                  <span>Bランク</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#000000" }} />
+                  <span>買取店</span>
+                </div>
+              </div>
               <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}
@@ -1204,6 +1239,26 @@ export function StoreMapView({
                     />
                   );
                 })}
+
+                {/* 競合買取店（黒マーカー） */}
+                {competitors.map((competitor) => (
+                  <Marker
+                    key={`competitor-${competitor.placeId}`}
+                    position={{ lat: competitor.latitude, lng: competitor.longitude }}
+                    onClick={() => {
+                      setSelectedCompetitor(competitor);
+                      setCompetitorDialogOpen(true);
+                    }}
+                    icon={{
+                      path: google.maps.SymbolPath.CIRCLE,
+                      scale: 8,
+                      fillColor: "#000000",
+                      fillOpacity: 0.9,
+                      strokeColor: "#ffffff",
+                      strokeWeight: 2,
+                    }}
+                  />
+                ))}
 
                 {selectedMarker && (
                   <InfoWindow
@@ -1671,6 +1726,48 @@ export function StoreMapView({
               )}
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* 買取店（競合）詳細ダイアログ */}
+      <Dialog open={competitorDialogOpen} onOpenChange={setCompetitorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              {selectedCompetitor?.name}
+              <Badge variant="outline" className="bg-black text-white">
+                買取店
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>{selectedCompetitor?.address}</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                この店舗は競合の買取店です。催事を開催する際の競合状況の参考にしてください。
+              </p>
+            </div>
+
+            {selectedCompetitor?.rating && (
+              <div className="flex items-center gap-2">
+                <Label className="text-muted-foreground">評価:</Label>
+                <span>★{selectedCompetitor.rating}</span>
+                {selectedCompetitor.userRatingsTotal && (
+                  <span className="text-muted-foreground">
+                    ({selectedCompetitor.userRatingsTotal}件)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompetitorDialogOpen(false)}>
+              閉じる
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
