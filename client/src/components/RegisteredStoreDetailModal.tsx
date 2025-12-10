@@ -36,14 +36,10 @@ import {
   Clock,
   Star,
   ExternalLink,
-  Car,
-  Building2,
-  TrendingUp,
-  Save,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { RegisteredStore, StoreArchetype, ParkingSize } from "@shared/schema";
+import type { RegisteredStore } from "@shared/schema";
 import { EventReservationData } from "./EventReservationModal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -64,21 +60,6 @@ interface RegisteredStoreDetailModalProps {
   onSubmit: (data: EventReservationData) => void;
   isPending?: boolean;
 }
-
-const ARCHETYPE_OPTIONS: { value: StoreArchetype; label: string }[] = [
-  { value: "station_front", label: "駅前" },
-  { value: "shopping_mall", label: "商業施設併設" },
-  { value: "roadside", label: "ロードサイド" },
-  { value: "suburban", label: "郊外" },
-  { value: "residential", label: "住宅街" },
-];
-
-const PARKING_SIZE_OPTIONS: { value: ParkingSize; label: string }[] = [
-  { value: "none", label: "なし" },
-  { value: "small", label: "小規模（1-20台）" },
-  { value: "medium", label: "中規模（21-50台）" },
-  { value: "large", label: "大規模（51台以上）" },
-];
 
 export function RegisteredStoreDetailModal({
   store,
@@ -102,81 +83,6 @@ export function RegisteredStoreDetailModal({
   const mapInitTimerRef = useRef<number | null>(null);
   const isOpenRef = useRef(open);
   
-  const [storeArchetype, setStoreArchetype] = useState<StoreArchetype | "">("");
-  const [parkingSize, setParkingSize] = useState<ParkingSize | "">("");
-  const [parkingCapacity, setParkingCapacity] = useState<string>("");
-  const [marketPowerResult, setMarketPowerResult] = useState<{
-    score: number;
-    breakdown: { label: string; value: number; description: string }[];
-    region: string | null;
-    seniorFemalePopulation: number;
-    averageIncome: number;
-  } | null>(null);
-
-  useEffect(() => {
-    if (store) {
-      setStoreArchetype((store.storeArchetype as StoreArchetype) || "");
-      setParkingSize((store.parkingSize as ParkingSize) || "");
-      setParkingCapacity(store.parkingCapacity?.toString() || "");
-    }
-  }, [store]);
-
-  const updateStoreMutation = useMutation({
-    mutationFn: async (data: { storeArchetype?: string; parkingSize?: string; parkingCapacity?: number }) => {
-      return apiRequest("PATCH", `/api/registered-stores/${store?.id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/registered-stores"] });
-      toast({
-        title: "保存完了",
-        description: "店舗設定を保存しました",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "エラー",
-        description: error.message || "保存に失敗しました",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSaveSettings = () => {
-    if (!store) return;
-    
-    updateStoreMutation.mutate({
-      storeArchetype: storeArchetype || undefined,
-      parkingSize: parkingSize || undefined,
-      parkingCapacity: parkingCapacity ? parseInt(parkingCapacity) : undefined,
-    });
-  };
-
-  const calculateMarketPowerMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/registered-stores/${store?.id}/calculate-market-power`);
-    },
-    onSuccess: (data: any) => {
-      setMarketPowerResult(data);
-      queryClient.invalidateQueries({ queryKey: ["/api/registered-stores"] });
-      toast({
-        title: "商圏スコア計算完了",
-        description: `スコア: ${data.score.toFixed(1)}`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "エラー",
-        description: error.message || "商圏スコアの計算に失敗しました",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCalculateMarketPower = () => {
-    if (!store) return;
-    calculateMarketPowerMutation.mutate();
-  };
-
   useEffect(() => {
     isOpenRef.current = open;
   }, [open]);
@@ -405,155 +311,6 @@ export function RegisteredStoreDetailModal({
                 </div>
               )}
 
-              {/* Store Settings Section */}
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  店舗設定（商圏分析用）
-                </h3>
-                
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="storeArchetype" className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4" />
-                      店舗タイプ
-                    </Label>
-                    <Select
-                      value={storeArchetype}
-                      onValueChange={(value) => setStoreArchetype(value as StoreArchetype)}
-                    >
-                      <SelectTrigger className="mt-1" data-testid="select-store-archetype">
-                        <SelectValue placeholder="店舗タイプを選択" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ARCHETYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      立地タイプによって集客ポテンシャルの係数が変わります
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="parkingSize" className="flex items-center gap-2">
-                      <Car className="w-4 h-4" />
-                      駐車場規模
-                    </Label>
-                    <Select
-                      value={parkingSize}
-                      onValueChange={(value) => setParkingSize(value as ParkingSize)}
-                    >
-                      <SelectTrigger className="mt-1" data-testid="select-parking-size">
-                        <SelectValue placeholder="駐車場規模を選択" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PARKING_SIZE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="parkingCapacity" className="flex items-center gap-2">
-                      <Car className="w-4 h-4" />
-                      駐車場台数（任意）
-                    </Label>
-                    <Input
-                      id="parkingCapacity"
-                      type="number"
-                      value={parkingCapacity}
-                      onChange={(e) => setParkingCapacity(e.target.value)}
-                      placeholder="例: 50"
-                      className="mt-1"
-                      data-testid="input-parking-capacity"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      正確な台数がわかる場合は入力してください
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSaveSettings}
-                      disabled={updateStoreMutation.isPending}
-                      className="flex-1"
-                      data-testid="button-save-settings"
-                    >
-                      {updateStoreMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          保存中...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          設定を保存
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={handleCalculateMarketPower}
-                      disabled={calculateMarketPowerMutation.isPending}
-                      variant="secondary"
-                      className="flex-1"
-                      data-testid="button-calculate-market-power"
-                    >
-                      {calculateMarketPowerMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          計算中...
-                        </>
-                      ) : (
-                        <>
-                          <TrendingUp className="mr-2 h-4 w-4" />
-                          商圏スコア計算
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {(store?.marketPowerScore || marketPowerResult) && (
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-primary" />
-                          <span className="font-semibold text-lg">商圏スコア</span>
-                        </div>
-                        <p className="text-3xl font-bold text-primary" data-testid="text-market-power-score">
-                          {(marketPowerResult?.score ?? store?.marketPowerScore)?.toFixed(1)}
-                        </p>
-                      </div>
-                      
-                      {marketPowerResult?.breakdown && (
-                        <div className="space-y-2 pt-2 border-t">
-                          <p className="text-sm font-medium text-muted-foreground">スコア内訳</p>
-                          {marketPowerResult.breakdown.map((item, index) => (
-                            <div key={index} className="flex justify-between items-center text-sm">
-                              <span className="text-muted-foreground">{item.label}</span>
-                              <span className="font-medium">{item.description}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {marketPowerResult?.region && (
-                        <div className="pt-2 border-t">
-                          <p className="text-xs text-muted-foreground">
-                            対象地域: {marketPowerResult.region}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </TabsContent>
 
