@@ -66,7 +66,7 @@ export default function AIStoreRecommendation() {
   const [activeTab, setActiveTab] = useState<"ai" | "manual">("ai");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("");
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
-  const [storeType, setStoreType] = useState<"supermarket" | "shopping_mall" | "department_store" | "all">("supermarket");
+  const storeType = "supermarket"; // スーパーマーケットのみに固定
   const [recommendations, setRecommendations] = useState<StoreRecommendation[]>([]);
   const [searchStores, setSearchStores] = useState<SearchStore[]>([]);
   const [regionDemographics, setRegionDemographics] = useState<any>(null);
@@ -336,20 +336,6 @@ export default function AIStoreRecommendation() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="storeType">店舗タイプ</Label>
-                <Select value={storeType} onValueChange={(v) => setStoreType(v as any)}>
-                  <SelectTrigger id="storeType" data-testid="select-store-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="supermarket">スーパーマーケット</SelectItem>
-                    <SelectItem value="shopping_mall">ショッピングモール</SelectItem>
-                    <SelectItem value="department_store">百貨店</SelectItem>
-                    <SelectItem value="all">すべて</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               {activeTab === "manual" && (
                 <div className="space-y-2">
