@@ -1857,6 +1857,7 @@ JSONのみを返してください。`;
       };
       const placeType = typeMapping[storeType || "supermarket"] || "supermarket";
 
+      // Search for supermarkets
       const nearbySearchUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${placeType}&language=ja&key=${googleMapsApiKey}`;
       
       const placesResponse = await fetch(nearbySearchUrl);
@@ -1869,11 +1870,38 @@ JSONのみを返してください。`;
 
       const places = placesData.results || [];
 
+      // Search for buyback shops (pawn shops, second hand stores) - competitors
+      const buybackShops: any[] = [];
+      
+      // Search for "買取" keyword-based stores
+      const buybackKeywordUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent("買取")}&language=ja&key=${googleMapsApiKey}`;
+      const buybackKeywordResponse = await fetch(buybackKeywordUrl);
+      const buybackKeywordData = await buybackKeywordResponse.json();
+      if (buybackKeywordData.status === "OK" && buybackKeywordData.results) {
+        buybackShops.push(...buybackKeywordData.results);
+      }
+
+      // Also search for "リサイクルショップ" 
+      const recycleUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent("リサイクルショップ")}&language=ja&key=${googleMapsApiKey}`;
+      const recycleResponse = await fetch(recycleUrl);
+      const recycleData = await recycleResponse.json();
+      if (recycleData.status === "OK" && recycleData.results) {
+        buybackShops.push(...recycleData.results);
+      }
+
+      // Deduplicate buyback shops by place_id
+      const seenBuybackIds = new Set<string>();
+      const uniqueBuybackShops = buybackShops.filter(shop => {
+        if (seenBuybackIds.has(shop.place_id)) return false;
+        seenBuybackIds.add(shop.place_id);
+        return true;
+      });
+
       // Get registered stores
       const registeredStores = await storage.getAllRegisteredStores(req.organizationId!);
       const registeredPlaceIds = new Set(registeredStores.map(s => s.placeId));
 
-      // Map to store format
+      // Map supermarkets to store format
       const stores = places.map((place: any) => ({
         placeId: place.place_id,
         name: place.name,
@@ -1883,12 +1911,26 @@ JSONのみを返してください。`;
         rating: place.rating || null,
         userRatingsTotal: place.user_ratings_total || null,
         isRegistered: registeredPlaceIds.has(place.place_id),
+        storeType: "supermarket" as const,
+      }));
+
+      // Map buyback shops (competitors)
+      const competitors = uniqueBuybackShops.map((place: any) => ({
+        placeId: place.place_id,
+        name: place.name,
+        address: place.vicinity || "",
+        latitude: place.geometry.location.lat,
+        longitude: place.geometry.location.lng,
+        rating: place.rating || null,
+        userRatingsTotal: place.user_ratings_total || null,
+        storeType: "buyback" as const,
       }));
 
       res.json({
         success: true,
         center: { lat, lng },
         stores,
+        competitors,
       });
     } catch (error: any) {
       console.error("Store Search error:", error);

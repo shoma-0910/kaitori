@@ -59,6 +59,18 @@ interface SearchStore {
   rating?: number | null;
   userRatingsTotal?: number | null;
   isRegistered?: boolean;
+  storeType?: "supermarket" | "buyback";
+}
+
+interface CompetitorStore {
+  placeId: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  rating?: number | null;
+  userRatingsTotal?: number | null;
+  storeType: "buyback";
 }
 
 export default function AIStoreRecommendation() {
@@ -69,9 +81,12 @@ export default function AIStoreRecommendation() {
   const storeType = "supermarket"; // スーパーマーケットのみに固定
   const [recommendations, setRecommendations] = useState<StoreRecommendation[]>([]);
   const [searchStores, setSearchStores] = useState<SearchStore[]>([]);
+  const [competitors, setCompetitors] = useState<CompetitorStore[]>([]);
   const [regionDemographics, setRegionDemographics] = useState<any>(null);
   const [selectedStore, setSelectedStore] = useState<StoreRecommendation | SearchStore | null>(null);
+  const [selectedCompetitor, setSelectedCompetitor] = useState<CompetitorStore | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [competitorDialogOpen, setCompetitorDialogOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [searchRadius, setSearchRadius] = useState<number>(5000);
 
@@ -153,12 +168,13 @@ export default function AIStoreRecommendation() {
     onSuccess: (data) => {
       if (data.success) {
         setSearchStores(data.stores || []);
+        setCompetitors(data.competitors || []);
         if (data.center) {
           setMapCenter({ lat: data.center.lat, lng: data.center.lng });
         }
         toast({
           title: "検索完了",
-          description: `${data.stores?.length || 0}件の店舗が見つかりました`,
+          description: `スーパー${data.stores?.length || 0}件、買取店${data.competitors?.length || 0}件が見つかりました`,
         });
       }
     },
@@ -245,6 +261,11 @@ export default function AIStoreRecommendation() {
     setDetailDialogOpen(true);
   };
 
+  const handleCompetitorClick = (competitor: CompetitorStore) => {
+    setSelectedCompetitor(competitor);
+    setCompetitorDialogOpen(true);
+  };
+
   const handleRegister = () => {
     if (selectedStore) {
       registerStoreMutation.mutate(selectedStore);
@@ -252,6 +273,7 @@ export default function AIStoreRecommendation() {
   };
 
   const currentStores = activeTab === "ai" ? recommendations : searchStores;
+  const currentCompetitors = activeTab === "manual" ? competitors : [];
 
   const storesByRank = useMemo(() => {
     if (activeTab !== "ai") return null;
@@ -423,24 +445,34 @@ export default function AIStoreRecommendation() {
           <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between flex-wrap gap-2">
                   <span className="flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
                     マップ
                   </span>
-                  {activeTab === "ai" && (
-                    <div className="flex items-center gap-4 text-sm font-normal">
-                      {Object.entries(rankColors).map(([rank, color]) => (
-                        <div key={rank} className="flex items-center gap-1">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: color }}
-                          />
-                          <span>ランク{rank}</span>
+                  <div className="flex items-center gap-4 text-sm font-normal flex-wrap">
+                    {activeTab === "ai" && Object.entries(rankColors).map(([rank, color]) => (
+                      <div key={rank} className="flex items-center gap-1">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: color }}
+                        />
+                        <span>ランク{rank}</span>
+                      </div>
+                    ))}
+                    {activeTab === "manual" && (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          <span>スーパー</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-black" />
+                          <span>買取店</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -464,7 +496,30 @@ export default function AIStoreRecommendation() {
                           strokeColor: "#fff",
                           strokeWeight: 2,
                           scale: 10,
+                        } : activeTab === "manual" ? {
+                          path: google.maps.SymbolPath.CIRCLE,
+                          fillColor: "#EF4444",
+                          fillOpacity: 1,
+                          strokeColor: "#fff",
+                          strokeWeight: 2,
+                          scale: 8,
                         } : undefined}
+                      />
+                    ))}
+                    {/* 買取店（競合）を黒マーカーで表示 */}
+                    {currentCompetitors.map((competitor) => (
+                      <MarkerF
+                        key={`competitor-${competitor.placeId}`}
+                        position={{ lat: competitor.latitude, lng: competitor.longitude }}
+                        onClick={() => handleCompetitorClick(competitor)}
+                        icon={{
+                          path: google.maps.SymbolPath.CIRCLE,
+                          fillColor: "#000000",
+                          fillOpacity: 1,
+                          strokeColor: "#fff",
+                          strokeWeight: 2,
+                          scale: 8,
+                        }}
                       />
                     ))}
                   </GoogleMap>
@@ -649,6 +704,48 @@ export default function AIStoreRecommendation() {
                 登録済み
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 買取店（競合）詳細ダイアログ */}
+      <Dialog open={competitorDialogOpen} onOpenChange={setCompetitorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Store className="w-5 h-5" />
+              {selectedCompetitor?.name}
+              <Badge variant="outline" className="bg-black text-white">
+                買取店
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>{selectedCompetitor?.address}</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                この店舗は競合の買取店です。催事を開催する際の競合状況の参考にしてください。
+              </p>
+            </div>
+
+            {selectedCompetitor?.rating && (
+              <div className="flex items-center gap-2">
+                <Label className="text-muted-foreground">評価:</Label>
+                <span>★{selectedCompetitor.rating}</span>
+                {selectedCompetitor.userRatingsTotal && (
+                  <span className="text-muted-foreground">
+                    ({selectedCompetitor.userRatingsTotal}件)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompetitorDialogOpen(false)}>
+              閉じる
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
