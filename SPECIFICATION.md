@@ -42,7 +42,7 @@
 
 1. **店舗選定の効率化**: AIと人口統計データを活用し、高ポテンシャルな店舗を発見
 2. **スケジュール管理の一元化**: Googleカレンダー連携で催事予定を統合管理
-3. **売上分析の可視化**: 店舗別・期間別の売上をグラフで把握
+3. **粗利分析の可視化**: 店舗別・期間別の粗利をグラフで把握
 4. **マルチ組織対応**: 複数の組織・チームでデータを分離管理
 
 ---
@@ -479,7 +479,7 @@ organizations ─┬─< user_organizations >─── users (Supabase Auth)
 | status | TEXT | NOT NULL | ステータス |
 | estimatedCost | INTEGER | NOT NULL | 予定コスト |
 | actualGrossProfit | INTEGER | NULL | 実績粗利 |
-| actualRevenue | INTEGER | NULL | 実績売上額 |
+| actualRevenue | INTEGER | NULL | 実績粗利額 |
 | itemsPurchased | INTEGER | NULL | 買取点数 |
 | googleCalendarEventId | TEXT | NULL | GCal イベントID |
 | notes | TEXT | NULL | 備考 |

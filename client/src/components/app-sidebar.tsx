@@ -71,7 +71,7 @@ const menuGroups: MenuGroup[] = [
         superAdminOnly: false,
       },
       {
-        title: "売上管理",
+        title: "粗利管理",
         url: "/sales",
         icon: TrendingUp,
         superAdminOnly: false,

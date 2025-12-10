@@ -107,7 +107,7 @@ export default function SalesAnalytics() {
       queryClient.invalidateQueries({ queryKey: ['/api/sales-analytics'] });
       toast({
         title: "更新完了",
-        description: "催事の売上情報を更新しました",
+        description: "催事の粗利情報を更新しました",
       });
       setEditingEventId(null);
       setOriginalEventData(null);
@@ -121,7 +121,7 @@ export default function SalesAnalytics() {
     onError: (error: any) => {
       toast({
         title: "エラー",
-        description: error.message || "売上情報の更新に失敗しました",
+        description: error.message || "粗利情報の更新に失敗しました",
         variant: "destructive",
       });
     },
@@ -353,7 +353,7 @@ export default function SalesAnalytics() {
         if (Number.isNaN(parsed)) {
           toast({
             title: "入力エラー",
-            description: "売上金額は数値で入力してください",
+            description: "粗利金額は数値で入力してください",
             variant: "destructive",
           });
           return;
@@ -434,16 +434,16 @@ export default function SalesAnalytics() {
   return (
     <div className="fade-in space-y-6 px-2 sm:px-0">
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">売上管理</h1>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">粗利管理</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
-          店舗別・催事別の売上データを管理・分析
+          店舗別・催事別の粗利データを管理・分析
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AnalyticsTab)} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="events" data-testid="tab-event-sales">催事別売上</TabsTrigger>
-          <TabsTrigger value="stores" data-testid="tab-store-sales">店舗別売上</TabsTrigger>
+          <TabsTrigger value="events" data-testid="tab-event-sales">催事別粗利</TabsTrigger>
+          <TabsTrigger value="stores" data-testid="tab-store-sales">店舗別粗利</TabsTrigger>
         </TabsList>
 
         <div className="mt-6 space-y-6">
@@ -453,8 +453,8 @@ export default function SalesAnalytics() {
               <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
                   <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                  <span className="hidden sm:inline">総売上</span>
-                  <span className="sm:hidden">売上</span>
+                  <span className="hidden sm:inline">総粗利</span>
+                  <span className="sm:hidden">粗利</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-3 py-2 sm:px-6 sm:py-4">
@@ -483,7 +483,7 @@ export default function SalesAnalytics() {
               <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
                   <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500" />
-                  <span className="hidden sm:inline">{activeTab === 'stores' ? '売上件数' : '催事件数'}</span>
+                  <span className="hidden sm:inline">{activeTab === 'stores' ? '粗利件数' : '催事件数'}</span>
                   <span className="sm:hidden">件数</span>
                 </CardTitle>
               </CardHeader>
@@ -498,7 +498,7 @@ export default function SalesAnalytics() {
               <CardHeader className="pb-2 px-3 py-2 sm:px-6 sm:py-4">
                 <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
                   <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
-                  <span className="hidden sm:inline">平均売上/回</span>
+                  <span className="hidden sm:inline">平均粗利/回</span>
                   <span className="sm:hidden">平均</span>
                 </CardTitle>
               </CardHeader>
@@ -510,7 +510,7 @@ export default function SalesAnalytics() {
             </Card>
           </div>
 
-          {/* 催事別売上タブ */}
+          {/* 催事別粗利タブ */}
           <TabsContent value="events" className="space-y-6 mt-0">
             {eventsHasError ? (
               <Card className="glass-card border-white/20 dark:border-white/10">
@@ -545,7 +545,7 @@ export default function SalesAnalytics() {
                           <TableHead className="min-w-[90px] sm:min-w-[120px] px-2 sm:px-4">開催日</TableHead>
                           <TableHead className="min-w-[120px] sm:min-w-[180px] px-2 sm:px-4 hidden sm:table-cell">店舗名</TableHead>
                           <TableHead className="min-w-[80px] sm:min-w-[100px] px-2 sm:px-4 hidden md:table-cell">担当者</TableHead>
-                          <TableHead className="text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4">売上</TableHead>
+                          <TableHead className="text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4">粗利</TableHead>
                           <TableHead className="text-right min-w-[80px] sm:min-w-[100px] px-2 sm:px-4">品目</TableHead>
                           <TableHead className="text-right min-w-[100px] sm:min-w-[120px] px-2 sm:px-4 hidden lg:table-cell">利益</TableHead>
                           <TableHead className="min-w-[120px] sm:min-w-[200px] px-2 sm:px-4 hidden lg:table-cell">備考</TableHead>
@@ -687,7 +687,7 @@ export default function SalesAnalytics() {
             )}
           </TabsContent>
 
-          {/* 店舗別売上タブ */}
+          {/* 店舗別粗利タブ */}
           <TabsContent value="stores" className="space-y-6 mt-0">
             <Card className="glass-card border-white/20 dark:border-white/10">
               <CardContent className="p-2 sm:p-4">
@@ -733,7 +733,7 @@ export default function SalesAnalytics() {
             {groupedSales.length === 0 ? (
               <Card className="glass-card border-white/20 dark:border-white/10">
                 <CardContent className="p-12 text-center">
-                  <p className="text-muted-foreground">売上データがありません</p>
+                  <p className="text-muted-foreground">粗利データがありません</p>
                 </CardContent>
               </Card>
             ) : (
@@ -745,7 +745,7 @@ export default function SalesAnalytics() {
                         <CardTitle className="text-base sm:text-lg">{group.label}</CardTitle>
                         <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
                           <Badge variant="outline" className="bg-green-500/10 border-green-500 text-xs sm:text-sm">
-                            売上: ¥{group.totalRevenue.toLocaleString()}
+                            粗利: ¥{group.totalRevenue.toLocaleString()}
                           </Badge>
                           <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-xs sm:text-sm">
                             品目: {group.totalItems}個
@@ -777,7 +777,7 @@ export default function SalesAnalytics() {
                                 onClick={() => handleSort('revenue')}
                                 data-testid="th-revenue"
                               >
-                                売上 <SortIcon field="revenue" />
+                                粗利 <SortIcon field="revenue" />
                               </TableHead>
                               <TableHead 
                                 className={`${viewMode === 'all' ? "cursor-pointer hover-elevate" : ""} text-right min-w-[80px] sm:min-w-[100px] px-2 sm:px-4 text-xs sm:text-sm`}

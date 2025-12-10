@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Event not found" });
       }
 
-      // 催事別売上が入力された場合、店舗別売上に反映
+      // 催事別粗利が入力された場合、店舗別粗利に反映
       if (updateData.actualRevenue !== undefined || updateData.itemsPurchased !== undefined) {
         try {
           const revenue = updateData.actualRevenue ?? event.actualRevenue ?? 0;

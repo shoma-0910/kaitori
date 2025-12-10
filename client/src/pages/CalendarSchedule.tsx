@@ -227,8 +227,8 @@ export default function CalendarSchedule() {
       }
       
       toast({
-        title: "売上を登録しました",
-        description: "売上データが保存されました。",
+        title: "粗利を登録しました",
+        description: "粗利データが保存されました。",
       });
       setSaleDialogOpen(false);
       setSaleForm({
@@ -296,7 +296,7 @@ export default function CalendarSchedule() {
       if (!saleForm.revenue || !saleForm.itemsSold) {
         toast({
           title: "入力が不足しています",
-          description: "売上と買取品目数を入力してください。",
+          description: "粗利と買取品目数を入力してください。",
           variant: "destructive",
         });
         return;
@@ -314,7 +314,7 @@ export default function CalendarSchedule() {
       if (totalRevenue === 0 && totalItems === 0) {
         toast({
           title: "入力が不足しています",
-          description: "少なくとも1日の売上を入力してください。",
+          description: "少なくとも1日の粗利を入力してください。",
           variant: "destructive",
         });
         return;
@@ -423,9 +423,9 @@ export default function CalendarSchedule() {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto" data-testid="dialog-add-sale-calendar">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">売上を登録</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">粗利を登録</DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              {selectedStoreForSale?.name} の売上情報を記録します
+              {selectedStoreForSale?.name} の粗利情報を記録します
             </DialogDescription>
           </DialogHeader>
           
@@ -433,7 +433,7 @@ export default function CalendarSchedule() {
           {saleInputMode === 'multi' ? (
             <div className="mb-4 p-2 bg-muted rounded-md text-sm">
               <div className="flex justify-between">
-                <span>合計売上金額:</span>
+                <span>合計粗利金額:</span>
                 <span className="font-semibold">¥{daySales.reduce((sum, day) => sum + (parseInt(day.revenue) || 0), 0).toLocaleString('ja-JP')}</span>
               </div>
               <div className="flex justify-between">
@@ -480,7 +480,7 @@ export default function CalendarSchedule() {
           {saleInputMode === 'single' ? (
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1 sm:space-y-2">
-                <Label htmlFor="sale-revenue-cal" className="text-sm sm:text-base">売上金額（円）</Label>
+                <Label htmlFor="sale-revenue-cal" className="text-sm sm:text-base">粗利金額（円）</Label>
                 <Input
                   id="sale-revenue-cal"
                   type="number"
@@ -519,7 +519,7 @@ export default function CalendarSchedule() {
             </div>
           ) : (
             <div className="space-y-3">
-              <Label className="text-sm font-medium">各日付ごとの売上を入力</Label>
+              <Label className="text-sm font-medium">各日付ごとの粗利を入力</Label>
               {daySales && daySales.length > 0 ? (
                 <div className="max-h-[400px] overflow-y-auto border rounded-md p-2">
                   {daySales.map((day, idx) => (
@@ -529,7 +529,7 @@ export default function CalendarSchedule() {
                       </div>
                       <Input
                         type="number"
-                        placeholder="売上"
+                        placeholder="粗利"
                         value={day.revenue}
                         onChange={(e) => {
                           const newDaySales = [...daySales];

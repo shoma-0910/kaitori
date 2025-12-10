@@ -411,12 +411,12 @@ export function EventDetailModal({
             )}
           </div>
 
-          {/* 売上登録セクション */}
+          {/* 粗利登録セクション */}
           {!isEditing && onOpenSaleDialog && (
             <>
               <Separator />
               <div>
-                <h3 className="text-lg font-semibold mb-4">売上情報</h3>
+                <h3 className="text-lg font-semibold mb-4">粗利情報</h3>
                 {(event.actualRevenue !== undefined && event.actualRevenue !== null && event.actualRevenue > 0) || 
                  (event.itemsPurchased !== undefined && event.itemsPurchased !== null && event.itemsPurchased > 0) ? (
                   <div className="space-y-3">
@@ -424,7 +424,7 @@ export function EventDetailModal({
                       <div className="flex items-start gap-3">
                         <DollarSign className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium mb-1">売上金額</p>
+                          <p className="text-sm font-medium mb-1">粗利金額</p>
                           <p className="text-sm font-mono" data-testid="text-sale-revenue">
                             ¥{event.actualRevenue.toLocaleString()}
                           </p>
@@ -463,7 +463,7 @@ export function EventDetailModal({
                       data-testid="button-open-sale-dialog"
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      売上を登録
+                      粗利を登録
                     </Button>
                   </div>
                 )}

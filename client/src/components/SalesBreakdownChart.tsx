@@ -27,7 +27,7 @@ interface SalesBreakdownChartProps {
 }
 
 export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
-  // 店舗別売上ランキング
+  // 店舗別粗利ランキング
   const storeSalesMap: { [key: string]: { revenue: number; items: number } } = {};
   data.forEach((sale) => {
     const storeName = sale.storeName || "不明";
@@ -47,7 +47,7 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
       items: items,
     }));
 
-  // 月別売上
+  // 月別粗利
   const monthlySalesMap: { [key: string]: { revenue: number; items: number } } = {};
   data.forEach((sale) => {
     const monthKey = sale.saleDate
@@ -70,11 +70,11 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
 
   return (
     <div className="space-y-6">
-      {/* 店舗別売上ランキング（棒グラフ） */}
+      {/* 店舗別粗利ランキング（棒グラフ） */}
       {storeRankingData.length > 0 && (
         <Card className="glass-card border-white/20 dark:border-white/10">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">店舗別売上ランキング（TOP10）</CardTitle>
+            <CardTitle className="text-lg font-bold">店舗別粗利ランキング（TOP10）</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
@@ -91,7 +91,7 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
                 <YAxis
                   className="text-xs"
                   tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
-                  label={{ value: "売上（万円）", angle: -90, position: "insideLeft" }}
+                  label={{ value: "粗利（万円）", angle: -90, position: "insideLeft" }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -101,14 +101,14 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
                   }}
                   formatter={(value: number) => [
                     `¥${(value * 10000).toLocaleString()}`,
-                    "売上",
+                    "粗利",
                   ]}
                 />
                 <Legend wrapperStyle={{ paddingTop: "20px" }} />
                 <Bar
                   dataKey="revenue"
                   fill="hsl(var(--chart-1))"
-                  name="売上"
+                  name="粗利"
                   radius={[8, 8, 0, 0]}
                 />
               </BarChart>
@@ -117,11 +117,11 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
         </Card>
       )}
 
-      {/* 月別売上推移（折れ線グラフ） */}
+      {/* 月別粗利推移（折れ線グラフ） */}
       {monthlySalesData.length > 0 && (
         <Card className="glass-card border-white/20 dark:border-white/10">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">月別売上推移</CardTitle>
+            <CardTitle className="text-lg font-bold">月別粗利推移</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
@@ -135,7 +135,7 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
                 <YAxis
                   className="text-xs"
                   tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
-                  label={{ value: "売上（万円）", angle: -90, position: "insideLeft" }}
+                  label={{ value: "粗利（万円）", angle: -90, position: "insideLeft" }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -145,7 +145,7 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
                   }}
                   formatter={(value: number) => [
                     `¥${(value * 10000).toLocaleString()}`,
-                    "売上",
+                    "粗利",
                   ]}
                 />
                 <Legend wrapperStyle={{ paddingTop: "20px" }} />
@@ -156,7 +156,7 @@ export function SalesBreakdownChart({ data }: SalesBreakdownChartProps) {
                   strokeWidth={2}
                   dot={{ fill: "hsl(var(--chart-2))", r: 4 }}
                   activeDot={{ r: 6 }}
-                  name="売上"
+                  name="粗利"
                 />
               </LineChart>
             </ResponsiveContainer>

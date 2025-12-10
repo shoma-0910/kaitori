@@ -94,7 +94,7 @@ export default function RegisteredStores() {
     queryKey: ['/api/registered-stores'],
   });
 
-  // 各店舗の売上データを取得
+  // 各店舗の粗利データを取得
   const { data: storeSalesMap = {} } = useQuery({
     queryKey: ['/api/sales-summary'],
     queryFn: async () => {
@@ -238,8 +238,8 @@ export default function RegisteredStores() {
     },
     onSuccess: () => {
       toast({
-        title: "売上を登録しました",
-        description: "売上データが保存されました。",
+        title: "粗利を登録しました",
+        description: "粗利データが保存されました。",
       });
       setSaleDialogOpen(false);
       setSaleForm({
@@ -280,7 +280,7 @@ export default function RegisteredStores() {
     if (!selectedStoreForSale || !saleForm.revenue || !saleForm.itemsSold) {
       toast({
         title: "入力が不足しています",
-        description: "売上と買取品目数を入力してください。",
+        description: "粗利と買取品目数を入力してください。",
         variant: "destructive",
       });
       return;
@@ -372,8 +372,8 @@ export default function RegisteredStores() {
                   <TableRow>
                     <TableHead className="w-[25%] min-w-[180px]">店舗名</TableHead>
                     <TableHead className="w-[30%] min-w-[180px] hidden md:table-cell">住所</TableHead>
-                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">売上合計</TableHead>
-                    <TableHead className="w-[10%] min-w-[100px] hidden sm:table-cell">最新売上</TableHead>
+                    <TableHead className="w-[12%] min-w-[100px] hidden sm:table-cell">粗利合計</TableHead>
+                    <TableHead className="w-[10%] min-w-[100px] hidden sm:table-cell">最新粗利</TableHead>
                     <TableHead className="w-[12%] min-w-[100px] hidden lg:table-cell">電話番号</TableHead>
                     <TableHead className="w-[10%] text-right">操作</TableHead>
                   </TableRow>
@@ -497,15 +497,15 @@ export default function RegisteredStores() {
       <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
         <DialogContent data-testid="dialog-add-sale">
           <DialogHeader>
-            <DialogTitle>売上を追加</DialogTitle>
+            <DialogTitle>粗利を追加</DialogTitle>
             <DialogDescription>
-              {selectedStoreForSale?.name} の売上情報を記録します
+              {selectedStoreForSale?.name} の粗利情報を記録します
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="sale-date">売上日</Label>
+              <Label htmlFor="sale-date">粗利日</Label>
               <Input
                 id="sale-date"
                 type="date"
@@ -516,7 +516,7 @@ export default function RegisteredStores() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sale-revenue">売上金額（円）</Label>
+              <Label htmlFor="sale-revenue">粗利金額（円）</Label>
               <Input
                 id="sale-revenue"
                 type="number"

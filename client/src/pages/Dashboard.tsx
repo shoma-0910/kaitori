@@ -73,7 +73,7 @@ export default function Dashboard() {
     };
   });
 
-  // 催事別売上の円グラフデータ
+  // 催事別粗利の円グラフデータ
   const eventSalesData = events
     .filter((e) => e.actualRevenue && e.actualRevenue > 0)
     .slice(0, 8)
@@ -82,7 +82,7 @@ export default function Dashboard() {
       value: e.actualRevenue || 0,
     }));
 
-  // 店舗別売上の円グラフデータ
+  // 店舗別粗利の円グラフデータ
   const storeSalesGrouped: { [key: string]: number } = {};
   salesData.forEach((sale) => {
     storeSalesGrouped[sale.storeName || '不明'] = (storeSalesGrouped[sale.storeName || '不明'] || 0) + sale.revenue;
@@ -150,11 +150,11 @@ export default function Dashboard() {
       {chartData.length > 0 && <StoreAnalysisChart data={chartData} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 催事別売上の円グラフ */}
+        {/* 催事別粗利の円グラフ */}
         {eventSalesData.length > 0 && (
           <Card className="glass-card border-white/20 dark:border-white/10">
             <CardHeader>
-              <CardTitle className="text-lg font-bold">催事別売上分布</CardTitle>
+              <CardTitle className="text-lg font-bold">催事別粗利分布</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -181,11 +181,11 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* 店舗別売上の円グラフ */}
+        {/* 店舗別粗利の円グラフ */}
         {storeSalesPieData.length > 0 && (
           <Card className="glass-card border-white/20 dark:border-white/10">
             <CardHeader>
-              <CardTitle className="text-lg font-bold">店舗別売上分布</CardTitle>
+              <CardTitle className="text-lg font-bold">店舗別粗利分布</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
