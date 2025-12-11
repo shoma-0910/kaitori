@@ -296,49 +296,6 @@ export default function AIStoreRecommendation() {
         </div>
       </div>
 
-      {/* 初心者向けガイド */}
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">1</div>
-              <div>
-                <h3 className="font-semibold text-sm">都道府県を選択</h3>
-                <p className="text-xs text-muted-foreground">買取催事を開催したい地域の都道府県を選んでください</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">2</div>
-              <div>
-                <h3 className="font-semibold text-sm">市区町村を選択（任意）</h3>
-                <p className="text-xs text-muted-foreground">さらに詳しく探したい場合は市区町村を指定してください。指定しなければ県全体を検索します</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">3</div>
-              <div>
-                <h3 className="font-semibold text-sm">AI推薦または検索を実行</h3>
-                <p className="text-xs text-muted-foreground">「AI推薦を実行」ボタンを押すと、AIが高齢女性人口や平均年収などを分析して店舗をランク付けします</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">4</div>
-              <div>
-                <h3 className="font-semibold text-sm">マップで場所を確認</h3>
-                <p className="text-xs text-muted-foreground">右側のマップで店舗の場所と周辺の買取店（競合）を確認できます。ランク色：<span className="inline-block w-2 h-2 rounded-full bg-yellow-400 align-text-bottom"></span>S最優先 <span className="inline-block w-2 h-2 rounded-full bg-red-500 align-text-bottom"></span>A優先 <span className="inline-block w-2 h-2 rounded-full bg-blue-500 align-text-bottom"></span>B通常 <span className="inline-block w-2 h-2 rounded-full bg-green-500 align-text-bottom"></span>C低優先</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">5</div>
-              <div>
-                <h3 className="font-semibold text-sm">店舗を登録</h3>
-                <p className="text-xs text-muted-foreground">催事開催予定地として店舗をクリックして詳細を確認し、「店舗を登録」ボタンで登録します</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "ai" | "manual")}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="ai" data-testid="tab-ai-recommendation">
