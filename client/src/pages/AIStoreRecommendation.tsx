@@ -50,6 +50,8 @@ const defaultCenter = {
   lng: 139.6503,
 };
 
+const libraries: ("places")[] = ["places"];
+
 interface SearchStore {
   placeId: string;
   name: string;
@@ -98,7 +100,7 @@ export default function AIStoreRecommendation() {
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["places"],
+    libraries,
   });
 
   const { data: municipalities = [], isLoading: municipalitiesLoading } = useQuery<string[]>({
@@ -196,7 +198,8 @@ export default function AIStoreRecommendation() {
   });
 
   const registerStoreMutation = useMutation({
-    mutationFn: async (store: StoreRecommendation | SearchStore) => {
+    mutationFn: async (params: { store: StoreRecommendation | SearchStore; details: typeof storeDetails }) => {
+      const { store, details } = params;
       const res = await apiRequest("POST", "/api/registered-stores", {
         placeId: store.placeId,
         name: store.name,
@@ -204,6 +207,9 @@ export default function AIStoreRecommendation() {
         latitude: store.latitude,
         longitude: store.longitude,
         rank: 'rank' in store ? store.rank : null,
+        phoneNumber: details?.phoneNumber || null,
+        openingHours: details?.openingHours || [],
+        website: details?.website || null,
       });
       return await res.json();
     },
@@ -321,7 +327,7 @@ export default function AIStoreRecommendation() {
 
   const handleRegister = () => {
     if (selectedStore) {
-      registerStoreMutation.mutate(selectedStore);
+      registerStoreMutation.mutate({ store: selectedStore, details: storeDetails });
     }
   };
 
