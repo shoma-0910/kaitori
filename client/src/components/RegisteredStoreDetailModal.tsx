@@ -168,6 +168,12 @@ export function RegisteredStoreDetailModal({
   const handleNearbySearch = () => {
     if (!store || !mapInstance) return;
 
+    // Places ライブラリが読み込まれているかチェック
+    if (!google.maps.places?.PlacesService) {
+      console.error('Google Maps Places library not loaded');
+      return;
+    }
+
     setSearchingFacilities(true);
     setNearbyFacilities([]);
 
