@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, Search, MapPin, Store, TrendingUp, Users, Home, DollarSign, CheckCircle, Plus, Loader2, Info } from "lucide-react";
+import { Sparkles, Search, MapPin, Store, TrendingUp, Users, Home, DollarSign, CheckCircle, Plus, Loader2, Info, Phone, Clock } from "lucide-react";
 import type { StoreRecommendation } from "@shared/schema";
 
 const PREFECTURES = [
@@ -87,11 +87,18 @@ export default function AIStoreRecommendation() {
   const [selectedCompetitor, setSelectedCompetitor] = useState<CompetitorStore | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [competitorDialogOpen, setCompetitorDialogOpen] = useState(false);
+  const [storeDetails, setStoreDetails] = useState<{
+    phoneNumber?: string;
+    openingHours?: string[];
+    website?: string;
+  } | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [searchRadius, setSearchRadius] = useState<number>(5000);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
   });
 
   const { data: municipalities = [], isLoading: municipalitiesLoading } = useQuery<string[]>({
@@ -259,7 +266,52 @@ export default function AIStoreRecommendation() {
 
   const handleMarkerClick = (store: StoreRecommendation | SearchStore) => {
     setSelectedStore(store);
+    setStoreDetails(null);
+    setLoadingDetails(false);
     setDetailDialogOpen(true);
+    
+    // Places APIから詳細情報を取得
+    const fetchPlaceDetails = () => {
+      if (!store.placeId) return;
+      
+      try {
+        if (window.google?.maps?.places?.PlacesService) {
+          setLoadingDetails(true);
+          const dummyDiv = document.createElement('div');
+          const service = new google.maps.places.PlacesService(dummyDiv);
+          
+          const timeoutId = setTimeout(() => {
+            setLoadingDetails(false);
+          }, 10000);
+          
+          service.getDetails(
+            {
+              placeId: store.placeId,
+              fields: ['formatted_phone_number', 'opening_hours', 'website']
+            },
+            (place, status) => {
+              clearTimeout(timeoutId);
+              setLoadingDetails(false);
+              if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                setStoreDetails({
+                  phoneNumber: place.formatted_phone_number,
+                  openingHours: place.opening_hours?.weekday_text,
+                  website: place.website,
+                });
+              }
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Failed to fetch place details:', error);
+        setLoadingDetails(false);
+      }
+    };
+    
+    // Places APIが読み込まれるまで少し待つ
+    if (isLoaded) {
+      setTimeout(fetchPlaceDetails, 100);
+    }
   };
 
   const handleCompetitorClick = (competitor: CompetitorStore) => {
@@ -677,6 +729,47 @@ export default function AIStoreRecommendation() {
                   </span>
                 )}
               </div>
+            )}
+
+            {loadingDetails ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">詳細情報を取得中...</span>
+              </div>
+            ) : storeDetails && (
+              <>
+                {storeDetails.phoneNumber && (
+                  <div>
+                    <Label className="text-muted-foreground text-sm">電話番号</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <a
+                        href={`tel:${storeDetails.phoneNumber}`}
+                        className="text-primary hover:underline"
+                        data-testid="link-phone"
+                      >
+                        {storeDetails.phoneNumber}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {storeDetails.openingHours && storeDetails.openingHours.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground text-sm">営業時間</Label>
+                    <div className="flex items-start gap-2 mt-1">
+                      <Clock className="w-4 h-4 flex-shrink-0 mt-1 text-muted-foreground" />
+                      <div className="space-y-0.5" data-testid="text-hours">
+                        {storeDetails.openingHours.map((hours, index) => (
+                          <div key={index} className="text-sm">
+                            {hours}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
