@@ -58,7 +58,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
 
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberPassword, setNewMemberPassword] = useState("");
-  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
+  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member" | "reservation_agent">("member");
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganizationMember[]>({
     queryKey: [`/api/admin/organizations/${org.id}/members`],
@@ -353,13 +353,14 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`member-role-${org.id}`}>役割</Label>
-                  <Select value={newMemberRole} onValueChange={(value: "admin" | "member") => setNewMemberRole(value)}>
+                  <Select value={newMemberRole} onValueChange={(value: "admin" | "member" | "reservation_agent") => setNewMemberRole(value)}>
                     <SelectTrigger data-testid={`select-member-role-${org.id}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="member">一般メンバー</SelectItem>
                       <SelectItem value="admin">管理者</SelectItem>
+                      <SelectItem value="reservation_agent">予約代行</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -411,16 +412,17 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                     <div className="flex gap-2 items-center w-full sm:w-auto flex-shrink-0">
                       <Select 
                         value={member.role} 
-                        onValueChange={(value: "admin" | "member") => 
+                        onValueChange={(value: "admin" | "member" | "reservation_agent") => 
                           updateMemberRoleMutation.mutate({ userId: member.userId, role: value })
                         }
                       >
-                        <SelectTrigger className="flex-1 sm:flex-none sm:w-32" data-testid={`select-role-${member.userId}`}>
+                        <SelectTrigger className="flex-1 sm:flex-none sm:w-36" data-testid={`select-role-${member.userId}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="member">メンバー</SelectItem>
                           <SelectItem value="admin">管理者</SelectItem>
+                          <SelectItem value="reservation_agent">予約代行</SelectItem>
                         </SelectContent>
                       </Select>
                       <AlertDialog>

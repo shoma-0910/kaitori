@@ -2020,6 +2020,100 @@ JSONのみを返してください。`;
     }
   });
 
+  // ===== Reservation Requests Routes =====
+  // Allowed roles for reservation request management
+  const canAccessReservationRequests = (role: string | undefined, isSuperAdmin: boolean | undefined) => {
+    return isSuperAdmin || role === "admin" || role === "reservation_agent";
+  };
+
+  // Get all reservation requests for the organization
+  app.get("/api/reservation-requests", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      // Role check - only admin, super admin, or reservation_agent can access
+      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin)) {
+        return res.status(403).json({ error: "Access denied. Insufficient permissions." });
+      }
+      
+      const requests = await storage.getAllReservationRequests(req.organizationId!);
+      res.json(requests);
+    } catch (error: any) {
+      console.error("Error fetching reservation requests:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new reservation request - admins can create requests
+  app.post("/api/reservation-requests", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      // Only admin or super admin can create reservation requests
+      if (!req.isSuperAdmin && req.userRole !== "admin" && req.userRole !== "member") {
+        return res.status(403).json({ error: "Access denied. Only admins can create reservation requests." });
+      }
+
+      // Validate request body
+      const reservationRequestSchema = z.object({
+        eventId: z.string().optional().nullable(),
+        storeId: z.string(),
+        storeName: z.string(),
+        storeAddress: z.string(),
+        storePhone: z.string().optional().nullable(),
+        startDate: z.string().or(z.date()).transform(val => typeof val === 'string' ? new Date(val) : val),
+        endDate: z.string().or(z.date()).transform(val => typeof val === 'string' ? new Date(val) : val),
+        manager: z.string(),
+        notes: z.string().optional().nullable(),
+      });
+
+      const validatedData = reservationRequestSchema.parse(req.body);
+      
+      const data = {
+        ...validatedData,
+        organizationId: req.organizationId!,
+        status: "pending",
+      };
+      const request = await storage.createReservationRequest(data);
+      res.status(201).json(request);
+    } catch (error: any) {
+      console.error("Error creating reservation request:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update reservation request status (approve/reject) - only reservation_agent or admin
+  app.patch("/api/reservation-requests/:id", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      // Role check - only admin, super admin, or reservation_agent can update
+      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin)) {
+        return res.status(403).json({ error: "Access denied. Insufficient permissions." });
+      }
+
+      // Validate and whitelist status values
+      const updateSchema = z.object({
+        status: z.enum(["pending", "approved", "rejected", "completed"]),
+        notes: z.string().optional().nullable(),
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+
+      const request = await storage.updateReservationRequest(
+        req.params.id,
+        req.organizationId!,
+        {
+          status: validatedData.status,
+          notes: validatedData.notes || undefined,
+          processedBy: req.userId,
+          processedAt: new Date(),
+        }
+      );
+      if (!request) {
+        return res.status(404).json({ error: "Reservation request not found" });
+      }
+      res.json(request);
+    } catch (error: any) {
+      console.error("Error updating reservation request:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

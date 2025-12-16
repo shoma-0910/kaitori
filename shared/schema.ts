@@ -270,3 +270,26 @@ export const aiRecommendationRequestSchema = z.object({
 });
 
 export type AIRecommendationRequest = z.infer<typeof aiRecommendationRequestSchema>;
+
+// Reservation requests table - for tracking store reservation requests
+export const reservationRequests = pgTable("reservation_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventId: varchar("event_id").references(() => events.id, { onDelete: "cascade" }),
+  storeId: varchar("store_id").notNull(),
+  storeName: text("store_name").notNull(),
+  storeAddress: text("store_address").notNull(),
+  storePhone: text("store_phone"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  manager: text("manager").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected, completed
+  notes: text("notes"),
+  processedBy: uuid("processed_by"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReservationRequestSchema = createInsertSchema(reservationRequests).omit({ id: true, createdAt: true, processedAt: true });
+export type InsertReservationRequest = z.infer<typeof insertReservationRequestSchema>;
+export type ReservationRequest = typeof reservationRequests.$inferSelect;

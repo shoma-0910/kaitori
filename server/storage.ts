@@ -11,12 +11,15 @@ import {
   type InsertApiUsageLog,
   type StoreSale,
   type InsertStoreSale,
+  type ReservationRequest,
+  type InsertReservationRequest,
   stores,
   events,
   costs,
   registeredStores,
   apiUsageLogs,
   storeSales,
+  reservationRequests,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
@@ -61,6 +64,11 @@ export interface IStorage {
   createSale(sale: InsertStoreSale): Promise<StoreSale>;
   updateSale(id: string, organizationId: string, sale: Partial<InsertStoreSale>): Promise<StoreSale | undefined>;
   deleteSale(id: string, organizationId: string): Promise<boolean>;
+
+  // Reservation Requests
+  getAllReservationRequests(organizationId: string): Promise<ReservationRequest[]>;
+  createReservationRequest(request: InsertReservationRequest): Promise<ReservationRequest>;
+  updateReservationRequest(id: string, organizationId: string, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -260,6 +268,25 @@ export class DbStorage implements IStorage {
     const result = await db.delete(storeSales)
       .where(and(eq(storeSales.id, id), eq(storeSales.organizationId, organizationId)));
     return result.rowCount! > 0;
+  }
+
+  // Reservation Requests
+  async getAllReservationRequests(organizationId: string): Promise<ReservationRequest[]> {
+    return await db.select().from(reservationRequests)
+      .where(eq(reservationRequests.organizationId, organizationId))
+      .orderBy(desc(reservationRequests.createdAt));
+  }
+
+  async createReservationRequest(request: InsertReservationRequest): Promise<ReservationRequest> {
+    const result = await db.insert(reservationRequests).values(request).returning();
+    return result[0];
+  }
+
+  async updateReservationRequest(id: string, organizationId: string, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined> {
+    const result = await db.update(reservationRequests).set(data)
+      .where(and(eq(reservationRequests.id, id), eq(reservationRequests.organizationId, organizationId)))
+      .returning();
+    return result[0];
   }
 }
 
