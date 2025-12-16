@@ -293,3 +293,14 @@ export const reservationRequests = pgTable("reservation_requests", {
 export const insertReservationRequestSchema = createInsertSchema(reservationRequests).omit({ id: true, createdAt: true, processedAt: true });
 export type InsertReservationRequest = z.infer<typeof insertReservationRequestSchema>;
 export type ReservationRequest = typeof reservationRequests.$inferSelect;
+
+// Reservation agents table - for managing reservation agent accounts (no organization assignment)
+export const reservationAgents = pgTable("reservation_agents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReservationAgentSchema = createInsertSchema(reservationAgents).omit({ id: true, createdAt: true });
+export type InsertReservationAgent = z.infer<typeof insertReservationAgentSchema>;
+export type ReservationAgent = typeof reservationAgents.$inferSelect;

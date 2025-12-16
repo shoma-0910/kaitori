@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, insertStoreSaleSchema, organizations, userOrganizations, aiRecommendationRequestSchema, storeSearchFilterSchema, type StoreRecommendation } from "@shared/schema";
+import { insertStoreSchema, insertEventSchema, insertCostSchema, insertRegisteredStoreSchema, insertStoreSaleSchema, organizations, userOrganizations, reservationAgents, aiRecommendationRequestSchema, storeSearchFilterSchema, type StoreRecommendation } from "@shared/schema";
 import { createCalendarEvent } from "./google-calendar";
 import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
@@ -1304,7 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createMemberSchema = z.object({
         email: z.string().email(),
         password: z.string().min(6),
-        role: z.enum(["admin", "member", "reservation_agent"]).default("member"),
+        role: z.enum(["admin", "member"]).default("member"),
       });
 
       const { email, password, role } = createMemberSchema.parse(req.body);
@@ -1350,7 +1350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updateMemberSchema = z.object({
-        role: z.enum(["admin", "member", "reservation_agent"]),
+        role: z.enum(["admin", "member"]),
       });
 
       const { role } = updateMemberSchema.parse(req.body);
@@ -1418,29 +1418,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Super admin access required" });
       }
 
-      // Get all users with reservation_agent role
+      // Get all reservation agents from dedicated table
       const agents = await db.select({
-        userId: userOrganizations.userId,
-        organizationId: userOrganizations.organizationId,
-        createdAt: userOrganizations.createdAt,
+        userId: reservationAgents.userId,
+        createdAt: reservationAgents.createdAt,
       })
-        .from(userOrganizations)
-        .where(eq(userOrganizations.role, "reservation_agent"));
+        .from(reservationAgents);
 
-      // Add email and organization name
+      // Add email
       const agentsWithDetails = await Promise.all(
         agents.map(async (agent) => {
           const { data: userData } = await supabaseAdmin.auth.admin.getUserById(agent.userId);
-          const orgResult = await db.select({ name: organizations.name })
-            .from(organizations)
-            .where(eq(organizations.id, agent.organizationId))
-            .limit(1);
           
           return {
             userId: agent.userId,
             email: userData?.user?.email || null,
-            organizationId: agent.organizationId,
-            organizationName: orgResult[0]?.name || "不明",
             createdAt: agent.createdAt,
           };
         })
@@ -1463,20 +1455,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createAgentSchema = z.object({
         email: z.string().email(),
         password: z.string().min(6),
-        organizationId: z.string().uuid(),
       });
 
-      const { email, password, organizationId } = createAgentSchema.parse(req.body);
-
-      // Verify organization exists
-      const orgExists = await db.select()
-        .from(organizations)
-        .where(eq(organizations.id, organizationId))
-        .limit(1);
-
-      if (!orgExists || orgExists.length === 0) {
-        return res.status(400).json({ error: "Organization not found" });
-      }
+      const { email, password } = createAgentSchema.parse(req.body);
 
       // Create user with Supabase Auth
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -1493,19 +1474,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: authError?.message || "Failed to create user" });
       }
 
-      // Link user to organization as reservation_agent
-      await db.insert(userOrganizations).values({
+      // Store reservation agent in reservation_agents table (no organization)
+      await db.insert(reservationAgents).values({
         userId: authData.user.id,
-        organizationId,
-        role: "reservation_agent",
-        isSuperAdmin: "false",
       });
 
       res.status(201).json({
         userId: authData.user.id,
         email,
-        organizationId,
-        organizationName: orgExists[0].name,
       });
     } catch (error: any) {
       console.error("Create reservation agent error:", error);
@@ -1524,11 +1500,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify this is a reservation agent
       const agent = await db.select()
-        .from(userOrganizations)
-        .where(and(
-          eq(userOrganizations.userId, agentUserId),
-          eq(userOrganizations.role, "reservation_agent")
-        ))
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, agentUserId))
         .limit(1);
 
       if (!agent || agent.length === 0) {
@@ -1538,9 +1511,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete from Supabase Auth
       await supabaseAdmin.auth.admin.deleteUser(agentUserId);
 
-      // Delete from user_organizations
-      await db.delete(userOrganizations)
-        .where(eq(userOrganizations.userId, agentUserId));
+      // Delete from reservation_agents table
+      await db.delete(reservationAgents)
+        .where(eq(reservationAgents.userId, agentUserId));
 
       res.status(204).send();
     } catch (error: any) {

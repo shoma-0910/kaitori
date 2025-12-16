@@ -22,7 +22,7 @@ interface OrganizationWithUser {
 interface OrganizationMember {
   userId: string;
   email: string | null;
-  role: "admin" | "member" | "reservation_agent";
+  role: "admin" | "member";
   isSuperAdmin: boolean;
   createdAt: string;
 }
@@ -30,8 +30,6 @@ interface OrganizationMember {
 interface ReservationAgent {
   userId: string;
   email: string | null;
-  organizationId: string;
-  organizationName: string;
   createdAt: string;
 }
 
@@ -66,7 +64,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
 
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberPassword, setNewMemberPassword] = useState("");
-  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member" | "reservation_agent">("member");
+  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganizationMember[]>({
     queryKey: [`/api/admin/organizations/${org.id}/members`],
@@ -147,7 +145,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   });
 
   const updateMemberRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "member" | "reservation_agent" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "member" }) => {
       return await apiRequest("PATCH", `/api/admin/organizations/${org.id}/members/${userId}`, { role });
     },
     onSuccess: () => {
@@ -361,14 +359,13 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor={`member-role-${org.id}`}>役割</Label>
-                  <Select value={newMemberRole} onValueChange={(value: "admin" | "member" | "reservation_agent") => setNewMemberRole(value)}>
+                  <Select value={newMemberRole} onValueChange={(value: "admin" | "member") => setNewMemberRole(value)}>
                     <SelectTrigger data-testid={`select-member-role-${org.id}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="member">一般メンバー</SelectItem>
                       <SelectItem value="admin">管理者</SelectItem>
-                      <SelectItem value="reservation_agent">予約代行</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -420,7 +417,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                     <div className="flex gap-2 items-center w-full sm:w-auto flex-shrink-0">
                       <Select 
                         value={member.role} 
-                        onValueChange={(value: "admin" | "member" | "reservation_agent") => 
+                        onValueChange={(value: "admin" | "member") => 
                           updateMemberRoleMutation.mutate({ userId: member.userId, role: value })
                         }
                       >
@@ -430,7 +427,6 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
                         <SelectContent>
                           <SelectItem value="member">メンバー</SelectItem>
                           <SelectItem value="admin">管理者</SelectItem>
-                          <SelectItem value="reservation_agent">予約代行</SelectItem>
                         </SelectContent>
                       </Select>
                       <AlertDialog>
@@ -556,12 +552,11 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   );
 }
 
-function ReservationAgentSection({ organizations }: { organizations: OrganizationWithUser[] }) {
+function ReservationAgentSection() {
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAgentEmail, setNewAgentEmail] = useState("");
   const [newAgentPassword, setNewAgentPassword] = useState("");
-  const [selectedOrgId, setSelectedOrgId] = useState("");
 
   const { data: agents = [], isLoading: agentsLoading } = useQuery<ReservationAgent[]>({
     queryKey: ["/api/admin/reservation-agents"],
@@ -572,7 +567,6 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
       return await apiRequest("POST", "/api/admin/reservation-agents", {
         email: newAgentEmail,
         password: newAgentPassword,
-        organizationId: selectedOrgId,
       });
     },
     onSuccess: () => {
@@ -584,7 +578,6 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
       setShowAddForm(false);
       setNewAgentEmail("");
       setNewAgentPassword("");
-      setSelectedOrgId("");
     },
     onError: (error: any) => {
       toast({
@@ -616,7 +609,7 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
 
   const handleCreateAgent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newAgentEmail.trim() && newAgentPassword.trim() && selectedOrgId) {
+    if (newAgentEmail.trim() && newAgentPassword.trim()) {
       createAgentMutation.mutate();
     }
   };
@@ -646,21 +639,6 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
         {showAddForm && (
           <form onSubmit={handleCreateAgent} className="p-4 border rounded-md bg-background space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="agent-org">所属組織</Label>
-              <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-                <SelectTrigger data-testid="select-agent-org">
-                  <SelectValue placeholder="組織を選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="agent-email">メールアドレス</Label>
               <Input
                 id="agent-email"
@@ -688,7 +666,7 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
             <div className="flex gap-2">
               <Button
                 type="submit"
-                disabled={createAgentMutation.isPending || !selectedOrgId}
+                disabled={createAgentMutation.isPending}
                 data-testid="button-create-agent"
               >
                 作成
@@ -700,7 +678,6 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
                   setShowAddForm(false);
                   setNewAgentEmail("");
                   setNewAgentPassword("");
-                  setSelectedOrgId("");
                 }}
                 data-testid="button-cancel-add-agent"
               >
@@ -722,9 +699,6 @@ function ReservationAgentSection({ organizations }: { organizations: Organizatio
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{agent.email || "メールなし"}</div>
-                  <div className="text-sm text-muted-foreground">
-                    組織: {agent.organizationName}
-                  </div>
                 </div>
                 <div className="flex gap-2 items-center">
                   <Badge variant="secondary">
@@ -944,7 +918,7 @@ export default function OrganizationSettings() {
         </CardContent>
       </Card>
 
-      <ReservationAgentSection organizations={organizations || []} />
+      <ReservationAgentSection />
     </div>
   );
 }
