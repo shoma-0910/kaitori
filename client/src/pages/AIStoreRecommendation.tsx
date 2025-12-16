@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { GoogleMap, useLoadScript, MarkerF } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -102,6 +102,30 @@ export default function AIStoreRecommendation() {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
     libraries,
   });
+
+  // 市区町村または都道府県が選択されたらマップを自動移動
+  const geocodeAndMoveMap = useCallback((address: string) => {
+    if (!isLoaded || !window.google?.maps?.Geocoder) return;
+    
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: address + ", 日本" }, (results, status) => {
+      if (status === "OK" && results && results[0]) {
+        const location = results[0].geometry.location;
+        setMapCenter({ lat: location.lat(), lng: location.lng() });
+      }
+    });
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    
+    // 市区町村が選択されている場合はそちらを優先
+    if (selectedMunicipality && selectedPrefecture) {
+      geocodeAndMoveMap(`${selectedPrefecture}${selectedMunicipality}`);
+    } else if (selectedPrefecture) {
+      geocodeAndMoveMap(selectedPrefecture);
+    }
+  }, [selectedPrefecture, selectedMunicipality, isLoaded, geocodeAndMoveMap]);
 
   const { data: municipalities = [], isLoading: municipalitiesLoading } = useQuery<string[]>({
     queryKey: ['/api/municipalities', selectedPrefecture],
