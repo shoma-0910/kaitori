@@ -7,14 +7,17 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Calendar, Store, User, Clock, CheckCircle, XCircle, Loader2, Phone, MapPin, AlertCircle } from "lucide-react";
+import { Calendar, Store, User, Clock, CheckCircle, XCircle, Loader2, Phone, MapPin, AlertCircle, Building2, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
 interface ReservationRequest {
   id: string;
+  organizationId: string;
+  organizationName?: string;
   eventId: string;
   storeId: string;
   storeName: string;
@@ -28,12 +31,20 @@ interface ReservationRequest {
   createdAt: string;
 }
 
+interface OrganizationGroup {
+  organizationId: string;
+  organizationName: string;
+  requests: ReservationRequest[];
+  pendingCount: number;
+}
+
 export default function ReservationRequests() {
   const { toast } = useToast();
   const [selectedRequest, setSelectedRequest] = useState<ReservationRequest | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
+  const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set());
 
   const { data: requests = [], isLoading } = useQuery<ReservationRequest[]>({
     queryKey: ["/api/reservation-requests"],
@@ -78,6 +89,18 @@ export default function ReservationRequests() {
     });
   };
 
+  const toggleOrganization = (orgId: string) => {
+    setExpandedOrgs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orgId)) {
+        newSet.delete(orgId);
+      } else {
+        newSet.add(orgId);
+      }
+      return newSet;
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -93,12 +116,34 @@ export default function ReservationRequests() {
     }
   };
 
-  const pendingRequests = requests.filter(r => r.status === "pending");
-  const processedRequests = requests.filter(r => r.status !== "pending");
+  const groupByOrganization = (requests: ReservationRequest[]): OrganizationGroup[] => {
+    const groups: Record<string, OrganizationGroup> = {};
+    
+    requests.forEach(request => {
+      const orgId = request.organizationId;
+      if (!groups[orgId]) {
+        groups[orgId] = {
+          organizationId: orgId,
+          organizationName: request.organizationName || "不明な組織",
+          requests: [],
+          pendingCount: 0,
+        };
+      }
+      groups[orgId].requests.push(request);
+      if (request.status === "pending") {
+        groups[orgId].pendingCount++;
+      }
+    });
+    
+    return Object.values(groups).sort((a, b) => b.pendingCount - a.pendingCount);
+  };
+
+  const organizationGroups = groupByOrganization(requests);
+  const totalPending = requests.filter(r => r.status === "pending").length;
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-6">
         <div className="space-y-2">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-5 w-96" />
@@ -113,15 +158,20 @@ export default function ReservationRequests() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">予約要請</h1>
         <p className="text-muted-foreground">
-          店舗への予約依頼を確認し、処理してください
+          各組織からの店舗予約依頼を確認し、処理してください
         </p>
+        {totalPending > 0 && (
+          <Badge variant="destructive" className="mt-2">
+            未処理: {totalPending}件
+          </Badge>
+        )}
       </div>
 
-      {pendingRequests.length === 0 && processedRequests.length === 0 ? (
+      {organizationGroups.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -130,125 +180,117 @@ export default function ReservationRequests() {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {pendingRequests.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-500" />
-                未処理の予約要請
-                <Badge variant="secondary">{pendingRequests.length}件</Badge>
-              </h2>
-              <div className="grid gap-4">
-                {pendingRequests.map((request) => (
-                  <Card key={request.id} className="border-l-4 border-l-yellow-500" data-testid={`request-card-${request.id}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between flex-wrap gap-2">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Store className="w-5 h-5" />
-                            {request.storeName}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-1 mt-1">
-                            <MapPin className="w-4 h-4" />
-                            {request.storeAddress}
-                          </CardDescription>
-                        </div>
-                        {getStatusBadge(request.status)}
+        <div className="space-y-4">
+          {organizationGroups.map((group) => (
+            <Card key={group.organizationId} data-testid={`org-group-${group.organizationId}`}>
+              <Collapsible
+                open={expandedOrgs.has(group.organizationId)}
+                onOpenChange={() => toggleOrganization(group.organizationId)}
+              >
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {expandedOrgs.has(group.organizationId) ? (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <Building2 className="w-5 h-5 text-primary" />
+                        <CardTitle className="text-lg">{group.organizationName}</CardTitle>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {format(new Date(request.startDate), "yyyy/MM/dd (E)", { locale: ja })} - {format(new Date(request.endDate), "MM/dd (E)", { locale: ja })}
-                          </span>
+                      <div className="flex items-center gap-2">
+                        {group.pendingCount > 0 && (
+                          <Badge variant="destructive">
+                            <Clock className="w-3 h-3 mr-1" />
+                            未処理: {group.pendingCount}件
+                          </Badge>
+                        )}
+                        <Badge variant="secondary">
+                          全{group.requests.length}件
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4 pt-0">
+                    {group.requests.map((request) => (
+                      <div
+                        key={request.id}
+                        className={`p-4 border rounded-lg ${
+                          request.status === "pending" 
+                            ? "border-l-4 border-l-yellow-500 bg-yellow-50/30" 
+                            : "bg-muted/30 opacity-75"
+                        }`}
+                        data-testid={`request-card-${request.id}`}
+                      >
+                        <div className="flex items-start justify-between flex-wrap gap-2 mb-3">
+                          <div>
+                            <h4 className="font-semibold flex items-center gap-2">
+                              <Store className="w-4 h-4" />
+                              {request.storeName}
+                            </h4>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <MapPin className="w-3 h-3" />
+                              {request.storeAddress}
+                            </p>
+                          </div>
+                          {getStatusBadge(request.status)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span>担当: {request.manager}</span>
-                        </div>
-                        {request.storePhone && (
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-3">
                           <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span>{request.storePhone}</span>
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {format(new Date(request.startDate), "yyyy/MM/dd (E)", { locale: ja })} - {format(new Date(request.endDate), "MM/dd (E)", { locale: ja })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span>担当: {request.manager}</span>
+                          </div>
+                          {request.storePhone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              <span>{request.storePhone}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {request.notes && (
+                          <p className="text-sm text-muted-foreground bg-muted p-2 rounded mb-3">{request.notes}</p>
+                        )}
+                        
+                        {request.status === "pending" && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleAction(request, "approve")}
+                              data-testid={`button-approve-${request.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              承認
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAction(request, "reject")}
+                              data-testid={`button-reject-${request.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              拒否
+                            </Button>
                           </div>
                         )}
                       </div>
-                      {request.notes && (
-                        <p className="text-sm text-muted-foreground bg-muted p-2 rounded">{request.notes}</p>
-                      )}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() => handleAction(request, "approve")}
-                          className="flex-1"
-                          data-testid={`button-approve-${request.id}`}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          承認
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleAction(request, "reject")}
-                          className="flex-1"
-                          data-testid={`button-reject-${request.id}`}
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          拒否
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {processedRequests.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                処理済みの予約要請
-                <Badge variant="secondary">{processedRequests.length}件</Badge>
-              </h2>
-              <div className="grid gap-4">
-                {processedRequests.map((request) => (
-                  <Card key={request.id} className="opacity-75" data-testid={`request-card-processed-${request.id}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between flex-wrap gap-2">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Store className="w-5 h-5" />
-                            {request.storeName}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-1 mt-1">
-                            <MapPin className="w-4 h-4" />
-                            {request.storeAddress}
-                          </CardDescription>
-                        </div>
-                        {getStatusBadge(request.status)}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {format(new Date(request.startDate), "yyyy/MM/dd (E)", { locale: ja })} - {format(new Date(request.endDate), "MM/dd (E)", { locale: ja })}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span>担当: {request.manager}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          ))}
+        </div>
       )}
 
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>

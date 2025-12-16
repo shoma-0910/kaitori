@@ -2138,14 +2138,46 @@ JSONのみを返してください。`;
     return isSuperAdmin || role === "admin" || role === "reservation_agent";
   };
 
-  // Get all reservation requests for the organization
+  // Get all reservation requests for the organization (or all for reservation agents)
   app.get("/api/reservation-requests", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent (stored in reservation_agents table)
+      const isReservationAgent = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      
       // Role check - only admin, super admin, or reservation_agent can access
-      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin)) {
+      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin) && isReservationAgent.length === 0) {
         return res.status(403).json({ error: "Access denied. Insufficient permissions." });
       }
       
+      // For reservation agents, get ALL requests from ALL organizations
+      if (isReservationAgent.length > 0) {
+        const { reservationRequests } = await import("@shared/schema");
+        const allRequests = await db.select()
+          .from(reservationRequests)
+          .orderBy(reservationRequests.createdAt);
+        
+        // Add organization name to each request
+        const requestsWithOrg = await Promise.all(
+          allRequests.map(async (request) => {
+            const orgResult = await db.select({ name: organizations.name })
+              .from(organizations)
+              .where(eq(organizations.id, request.organizationId))
+              .limit(1);
+            
+            return {
+              ...request,
+              organizationName: orgResult[0]?.name || "不明",
+            };
+          })
+        );
+        
+        return res.json(requestsWithOrg);
+      }
+      
+      // For admin/superadmin, return only their organization's requests
       const requests = await storage.getAllReservationRequests(req.organizationId!);
       res.json(requests);
     } catch (error: any) {

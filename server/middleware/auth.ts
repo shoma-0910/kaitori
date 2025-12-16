@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../../lib/supabase";
 import { db } from "../db";
-import { userOrganizations } from "@shared/schema";
+import { userOrganizations, reservationAgents } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export interface AuthRequest extends Request {
@@ -78,6 +78,21 @@ export async function requireAuth(
       .limit(1);
 
     if (!userOrgResult || userOrgResult.length === 0) {
+      // Check if user is a reservation agent (no organization)
+      const reservationAgentResult = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, userId!))
+        .limit(1);
+
+      if (reservationAgentResult && reservationAgentResult.length > 0) {
+        console.log("[Auth] Reservation agent authenticated:", userEmail);
+        req.userId = userId;
+        req.organizationId = undefined;
+        req.userRole = "reservation_agent";
+        req.isSuperAdmin = false;
+        return next();
+      }
+
       console.log("[Auth] No organization found for user:", userEmail);
       return res.status(403).json({ error: "No organization found" });
     }
