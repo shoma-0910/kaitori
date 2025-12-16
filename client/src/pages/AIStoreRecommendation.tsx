@@ -97,6 +97,7 @@ export default function AIStoreRecommendation() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const searchRadius = 1000; // 検索半径を1000mに固定
+  const [customPin, setCustomPin] = useState<{ lat: number; lng: number } | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -195,7 +196,7 @@ export default function AIStoreRecommendation() {
   });
 
   const storeSearchMutation = useMutation({
-    mutationFn: async (params: { prefecture?: string; municipality?: string; storeType?: string; radius?: number }) => {
+    mutationFn: async (params: { prefecture?: string; municipality?: string; storeType?: string; radius?: number; centerLat?: number; centerLng?: number }) => {
       const res = await apiRequest("POST", "/api/store-search", params);
       return await res.json();
     },
@@ -279,19 +280,38 @@ export default function AIStoreRecommendation() {
   };
 
   const handleManualSearch = () => {
-    if (!selectedPrefecture) {
+    if (!selectedPrefecture && !customPin) {
       toast({
-        title: "都道府県を選択してください",
+        title: "都道府県を選択するか、マップをクリックしてピンを配置してください",
         variant: "destructive",
       });
       return;
     }
     storeSearchMutation.mutate({
-      prefecture: selectedPrefecture,
-      municipality: selectedMunicipality || undefined,
+      prefecture: customPin ? undefined : selectedPrefecture,
+      municipality: customPin ? undefined : (selectedMunicipality || undefined),
+      centerLat: customPin?.lat,
+      centerLng: customPin?.lng,
       storeType,
       radius: searchRadius,
     });
+  };
+
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (activeTab === "manual" && e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      setCustomPin({ lat, lng });
+      setMapCenter({ lat, lng });
+      toast({
+        title: "ピンを配置しました",
+        description: "「検索」ボタンでこの位置周辺の店舗を検索できます",
+      });
+    }
+  };
+
+  const clearCustomPin = () => {
+    setCustomPin(null);
   };
 
   const handleMarkerClick = (store: StoreRecommendation | SearchStore) => {
@@ -443,15 +463,38 @@ export default function AIStoreRecommendation() {
 
 
               {activeTab === "manual" && (
-                <div className="space-y-2">
-                  <Label>検索半径</Label>
-                  <div className="text-sm text-muted-foreground">1,000m（固定）</div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>検索半径</Label>
+                    <div className="text-sm text-muted-foreground">1,000m（固定）</div>
+                  </div>
+                  
+                  {customPin && (
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm font-medium">ピン位置</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={clearCustomPin} data-testid="button-clear-pin">
+                          クリア
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        緯度: {customPin.lat.toFixed(6)}, 経度: {customPin.lng.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    マップをクリックしてピンを配置し、その位置周辺を検索できます
+                  </p>
                 </div>
               )}
 
               <Button 
                 onClick={activeTab === "ai" ? handleAIRecommendation : handleManualSearch}
-                disabled={!selectedPrefecture || aiRecommendationMutation.isPending || storeSearchMutation.isPending}
+                disabled={(activeTab === "ai" && !selectedPrefecture) || (activeTab === "manual" && !selectedPrefecture && !customPin) || aiRecommendationMutation.isPending || storeSearchMutation.isPending}
                 className="w-full"
                 data-testid="button-search"
               >
@@ -535,10 +578,16 @@ export default function AIStoreRecommendation() {
                       </div>
                     ))}
                     {activeTab === "manual" && (
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <span>スーパー</span>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          <span>スーパー</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-blue-500" />
+                          <span>検索ピン</span>
+                        </div>
+                      </>
                     )}
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-black" />
@@ -555,6 +604,7 @@ export default function AIStoreRecommendation() {
                     mapContainerStyle={mapContainerStyle}
                     center={mapCenter}
                     zoom={13}
+                    onClick={handleMapClick}
                   >
                     {currentStores.map((store) => (
                       <MarkerF
@@ -594,6 +644,21 @@ export default function AIStoreRecommendation() {
                         }}
                       />
                     ))}
+                    {/* カスタムピン（手動検索用） */}
+                    {customPin && activeTab === "manual" && (
+                      <MarkerF
+                        key="custom-pin"
+                        position={customPin}
+                        icon={{
+                          path: google.maps.SymbolPath.CIRCLE,
+                          fillColor: "#3B82F6",
+                          fillOpacity: 1,
+                          strokeColor: "#fff",
+                          strokeWeight: 3,
+                          scale: 12,
+                        }}
+                      />
+                    )}
                   </GoogleMap>
                 )}
               </CardContent>
