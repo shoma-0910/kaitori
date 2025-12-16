@@ -1304,7 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createMemberSchema = z.object({
         email: z.string().email(),
         password: z.string().min(6),
-        role: z.enum(["admin", "member"]).default("member"),
+        role: z.enum(["admin", "member", "reservation_agent"]).default("member"),
       });
 
       const { email, password, role } = createMemberSchema.parse(req.body);
@@ -1350,7 +1350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updateMemberSchema = z.object({
-        role: z.enum(["admin", "member"]),
+        role: z.enum(["admin", "member", "reservation_agent"]),
       });
 
       const { role } = updateMemberSchema.parse(req.body);
@@ -1406,6 +1406,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error: any) {
       console.error("Delete organization member error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===== Reservation Agent Management Routes =====
+  // Get all reservation agents
+  app.get("/api/admin/reservation-agents", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      // Get all users with reservation_agent role
+      const agents = await db.select({
+        userId: userOrganizations.userId,
+        organizationId: userOrganizations.organizationId,
+        createdAt: userOrganizations.createdAt,
+      })
+        .from(userOrganizations)
+        .where(eq(userOrganizations.role, "reservation_agent"));
+
+      // Add email and organization name
+      const agentsWithDetails = await Promise.all(
+        agents.map(async (agent) => {
+          const { data: userData } = await supabaseAdmin.auth.admin.getUserById(agent.userId);
+          const orgResult = await db.select({ name: organizations.name })
+            .from(organizations)
+            .where(eq(organizations.id, agent.organizationId))
+            .limit(1);
+          
+          return {
+            userId: agent.userId,
+            email: userData?.user?.email || null,
+            organizationId: agent.organizationId,
+            organizationName: orgResult[0]?.name || "不明",
+            createdAt: agent.createdAt,
+          };
+        })
+      );
+
+      res.json(agentsWithDetails);
+    } catch (error: any) {
+      console.error("Get reservation agents error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new reservation agent
+  app.post("/api/admin/reservation-agents", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const createAgentSchema = z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        organizationId: z.string().uuid(),
+      });
+
+      const { email, password, organizationId } = createAgentSchema.parse(req.body);
+
+      // Verify organization exists
+      const orgExists = await db.select()
+        .from(organizations)
+        .where(eq(organizations.id, organizationId))
+        .limit(1);
+
+      if (!orgExists || orgExists.length === 0) {
+        return res.status(400).json({ error: "Organization not found" });
+      }
+
+      // Create user with Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          created_by_admin: true,
+          role: "reservation_agent",
+        },
+      });
+
+      if (authError || !authData.user) {
+        return res.status(400).json({ error: authError?.message || "Failed to create user" });
+      }
+
+      // Link user to organization as reservation_agent
+      await db.insert(userOrganizations).values({
+        userId: authData.user.id,
+        organizationId,
+        role: "reservation_agent",
+        isSuperAdmin: "false",
+      });
+
+      res.status(201).json({
+        userId: authData.user.id,
+        email,
+        organizationId,
+        organizationName: orgExists[0].name,
+      });
+    } catch (error: any) {
+      console.error("Create reservation agent error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Delete a reservation agent
+  app.delete("/api/admin/reservation-agents/:userId", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.isSuperAdmin) {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const agentUserId = req.params.userId;
+
+      // Verify this is a reservation agent
+      const agent = await db.select()
+        .from(userOrganizations)
+        .where(and(
+          eq(userOrganizations.userId, agentUserId),
+          eq(userOrganizations.role, "reservation_agent")
+        ))
+        .limit(1);
+
+      if (!agent || agent.length === 0) {
+        return res.status(404).json({ error: "Reservation agent not found" });
+      }
+
+      // Delete from Supabase Auth
+      await supabaseAdmin.auth.admin.deleteUser(agentUserId);
+
+      // Delete from user_organizations
+      await db.delete(userOrganizations)
+        .where(eq(userOrganizations.userId, agentUserId));
+
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Delete reservation agent error:", error);
       res.status(500).json({ error: error.message });
     }
   });

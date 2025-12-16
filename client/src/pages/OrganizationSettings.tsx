@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Trash2, Pencil, Save, X, UserPlus, Users, ChevronDown, ChevronUp, Activity } from "lucide-react";
+import { Building2, Trash2, Pencil, Save, X, UserPlus, Users, ChevronDown, ChevronUp, Activity, Headset } from "lucide-react";
 
 interface OrganizationWithUser {
   id: string;
@@ -22,8 +22,16 @@ interface OrganizationWithUser {
 interface OrganizationMember {
   userId: string;
   email: string | null;
-  role: "admin" | "member";
+  role: "admin" | "member" | "reservation_agent";
   isSuperAdmin: boolean;
+  createdAt: string;
+}
+
+interface ReservationAgent {
+  userId: string;
+  email: string | null;
+  organizationId: string;
+  organizationName: string;
   createdAt: string;
 }
 
@@ -139,7 +147,7 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   });
 
   const updateMemberRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "member" }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "member" | "reservation_agent" }) => {
       return await apiRequest("PATCH", `/api/admin/organizations/${org.id}/members/${userId}`, { role });
     },
     onSuccess: () => {
@@ -548,6 +556,223 @@ function OrganizationItem({ org }: { org: OrganizationWithUser }) {
   );
 }
 
+function ReservationAgentSection({ organizations }: { organizations: OrganizationWithUser[] }) {
+  const { toast } = useToast();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAgentEmail, setNewAgentEmail] = useState("");
+  const [newAgentPassword, setNewAgentPassword] = useState("");
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+
+  const { data: agents = [], isLoading: agentsLoading } = useQuery<ReservationAgent[]>({
+    queryKey: ["/api/admin/reservation-agents"],
+  });
+
+  const createAgentMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/reservation-agents", {
+        email: newAgentEmail,
+        password: newAgentPassword,
+        organizationId: selectedOrgId,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reservation-agents"] });
+      toast({
+        title: "予約代行を作成しました",
+        description: `${newAgentEmail} を追加しました`,
+      });
+      setShowAddForm(false);
+      setNewAgentEmail("");
+      setNewAgentPassword("");
+      setSelectedOrgId("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "作成エラー",
+        description: error.message || "予約代行の作成に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAgentMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return await apiRequest("DELETE", `/api/admin/reservation-agents/${userId}`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/reservation-agents"] });
+      toast({
+        title: "予約代行を削除しました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "削除エラー",
+        description: error.message || "削除に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateAgent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAgentEmail.trim() && newAgentPassword.trim() && selectedOrgId) {
+      createAgentMutation.mutate();
+    }
+  };
+
+  return (
+    <Card data-testid="card-reservation-agents">
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Headset className="w-6 h-6 text-primary" />
+          <div>
+            <CardTitle>予約代行</CardTitle>
+            <CardDescription>予約要請を処理する代行アカウントを管理します</CardDescription>
+          </div>
+        </div>
+        {!showAddForm && (
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="w-full md:w-auto"
+            data-testid="button-show-add-agent-form"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            予約代行を追加
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {showAddForm && (
+          <form onSubmit={handleCreateAgent} className="p-4 border rounded-md bg-background space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="agent-org">所属組織</Label>
+              <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                <SelectTrigger data-testid="select-agent-org">
+                  <SelectValue placeholder="組織を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agent-email">メールアドレス</Label>
+              <Input
+                id="agent-email"
+                type="email"
+                value={newAgentEmail}
+                onChange={(e) => setNewAgentEmail(e.target.value)}
+                placeholder="agent@example.com"
+                required
+                data-testid="input-agent-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agent-password">パスワード</Label>
+              <Input
+                id="agent-password"
+                type="password"
+                value={newAgentPassword}
+                onChange={(e) => setNewAgentPassword(e.target.value)}
+                placeholder="パスワード（6文字以上）"
+                minLength={6}
+                required
+                data-testid="input-agent-password"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={createAgentMutation.isPending || !selectedOrgId}
+                data-testid="button-create-agent"
+              >
+                作成
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setNewAgentEmail("");
+                  setNewAgentPassword("");
+                  setSelectedOrgId("");
+                }}
+                data-testid="button-cancel-add-agent"
+              >
+                キャンセル
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {agentsLoading ? (
+          <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+        ) : agents.length > 0 ? (
+          <div className="space-y-2">
+            {agents.map((agent) => (
+              <div
+                key={agent.userId}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border rounded-md bg-background gap-3"
+                data-testid={`agent-item-${agent.userId}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{agent.email || "メールなし"}</div>
+                  <div className="text-sm text-muted-foreground">
+                    組織: {agent.organizationName}
+                  </div>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Badge variant="secondary">
+                    <Headset className="w-3 h-3 mr-1" />
+                    予約代行
+                  </Badge>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        data-testid={`button-delete-agent-${agent.userId}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>予約代行を削除</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {agent.email} を削除しますか？この操作は元に戻せません。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteAgentMutation.mutate(agent.userId)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          削除
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            予約代行アカウントがありません
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function OrganizationSettings() {
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -718,6 +943,8 @@ export default function OrganizationSettings() {
           </div>
         </CardContent>
       </Card>
+
+      <ReservationAgentSection organizations={organizations || []} />
     </div>
   );
 }
