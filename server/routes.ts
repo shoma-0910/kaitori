@@ -1067,16 +1067,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(req.userId!);
       
-      // Get organization details
-      const org = await db.select()
+      // Check if user is a reservation agent (no organization)
+      if (req.userRole === "reservation_agent" && !req.organizationId) {
+        return res.json({
+          userId: req.userId,
+          email: userData?.user?.email || null,
+          organizationId: null,
+          organizationName: null,
+          role: "reservation_agent",
+          isSuperAdmin: false,
+        });
+      }
+      
+      // Get organization details for regular users
+      const org = req.organizationId ? await db.select()
         .from(organizations)
-        .where(eq(organizations.id, req.organizationId!))
-        .limit(1);
+        .where(eq(organizations.id, req.organizationId))
+        .limit(1) : [];
       
       res.json({
         userId: req.userId,
         email: userData?.user?.email || null,
-        organizationId: req.organizationId,
+        organizationId: req.organizationId || null,
         organizationName: org[0]?.name || null,
         role: req.userRole,
         isSuperAdmin: req.isSuperAdmin,

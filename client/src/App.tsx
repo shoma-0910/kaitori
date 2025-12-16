@@ -44,8 +44,9 @@ function HamburgerButton() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({ component: Component, allowReservationAgent = false }: { component: React.ComponentType; allowReservationAgent?: boolean }) {
+  const { user, userInfo, loading } = useAuth();
+  const [location] = useLocation();
 
   if (loading) {
     return (
@@ -57,6 +58,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   if (!user) {
     return <Redirect to="/auth" />;
+  }
+
+  // Redirect reservation agents to their dedicated page
+  const isReservationAgent = userInfo?.role === "reservation_agent";
+  if (isReservationAgent && !allowReservationAgent && location !== "/reservation-requests") {
+    return <Redirect to="/reservation-requests" />;
   }
 
   return <Component />;
@@ -94,7 +101,7 @@ function Router() {
         <ProtectedRoute component={AIStoreRecommendation} />
       </Route>
       <Route path="/reservation-requests">
-        <ProtectedRoute component={ReservationRequests} />
+        <ProtectedRoute component={ReservationRequests} allowReservationAgent={true} />
       </Route>
       <Route component={NotFound} />
     </Switch>
