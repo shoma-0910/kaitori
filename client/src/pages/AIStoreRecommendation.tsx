@@ -96,7 +96,7 @@ export default function AIStoreRecommendation() {
   } | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [mapCenter, setMapCenter] = useState(defaultCenter);
-  const [searchRadius, setSearchRadius] = useState<number>(5000);
+  const searchRadius = 1000; // 検索半径を1000mに固定
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
@@ -420,17 +420,8 @@ export default function AIStoreRecommendation() {
 
               {activeTab === "manual" && (
                 <div className="space-y-2">
-                  <Label htmlFor="radius">検索半径 (m)</Label>
-                  <Input
-                    id="radius"
-                    type="number"
-                    value={searchRadius}
-                    onChange={(e) => setSearchRadius(Number(e.target.value))}
-                    min={1000}
-                    max={50000}
-                    step={1000}
-                    data-testid="input-radius"
-                  />
+                  <Label>検索半径</Label>
+                  <div className="text-sm text-muted-foreground">1,000m（固定）</div>
                 </div>
               )}
 
