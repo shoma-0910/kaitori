@@ -172,27 +172,25 @@ export default function RegisteredStores() {
   });
 
 
-  const createEventMutation = useMutation({
-    mutationFn: async (data: EventReservationData) => {
-      const res = await apiRequest("POST", "/api/events", {
+  const createReservationRequestMutation = useMutation({
+    mutationFn: async (data: EventReservationData & { storeAddress: string; storePhone?: string }) => {
+      const res = await apiRequest("POST", "/api/reservation-requests", {
         storeId: data.storeId,
+        storeName: data.storeName,
+        storeAddress: data.storeAddress,
+        storePhone: data.storePhone || null,
         manager: data.manager,
         startDate: data.startDate.toISOString(),
         endDate: data.endDate.toISOString(),
-        status: "予定",
-        estimatedCost: data.estimatedCost,
-        notes: data.notes,
-        addToGoogleCalendar: data.addToGoogleCalendar,
+        notes: data.notes || null,
       });
       return await res.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reservation-requests"] });
       toast({
-        title: "予約が完了しました",
-        description: data.googleCalendarEventId 
-          ? "催事の予約が確定し、Googleカレンダーに追加されました" 
-          : "催事の予約が確定しました",
+        title: "予約要請を送信しました",
+        description: "予約代行者に通知されます。承認後に催事が登録されます。",
       });
       setReservationModalOpen(false);
       setSelectedStore(null);
@@ -200,7 +198,7 @@ export default function RegisteredStores() {
     onError: () => {
       toast({
         title: "エラー",
-        description: "予約に失敗しました",
+        description: "予約要請の送信に失敗しました",
         variant: "destructive",
       });
     },
@@ -223,7 +221,12 @@ export default function RegisteredStores() {
   };
 
   const handleReservationSubmit = (data: EventReservationData) => {
-    createEventMutation.mutate(data);
+    if (!selectedStore) return;
+    createReservationRequestMutation.mutate({
+      ...data,
+      storeAddress: selectedStore.address,
+      storePhone: selectedStore.phoneNumber || undefined,
+    });
   };
 
   const createSaleMutation = useMutation({
@@ -614,7 +617,7 @@ export default function RegisteredStores() {
         onOpenChange={setReservationModalOpen}
         store={selectedStore}
         onSubmit={handleReservationSubmit}
-        isPending={createEventMutation.isPending}
+        isPending={createReservationRequestMutation.isPending}
       />
     </div>
   );

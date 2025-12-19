@@ -449,10 +449,10 @@ export function RegisteredStoreDetailModal({
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    予約中...
+                    送信中...
                   </>
                 ) : (
-                  "催事を予約"
+                  "予約要請を送信"
                 )}
               </Button>
             </div>
