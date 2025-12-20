@@ -304,3 +304,19 @@ export const reservationAgents = pgTable("reservation_agents", {
 export const insertReservationAgentSchema = createInsertSchema(reservationAgents).omit({ id: true, createdAt: true });
 export type InsertReservationAgent = z.infer<typeof insertReservationAgentSchema>;
 export type ReservationAgent = typeof reservationAgents.$inferSelect;
+
+// Notifications table - for in-app notifications
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // reservation_rejected, reservation_approved, etc.
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  relatedId: uuid("related_id"), // Reference to the related entity (e.g., reservation request id)
+  isRead: text("is_read").notNull().default("false"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
