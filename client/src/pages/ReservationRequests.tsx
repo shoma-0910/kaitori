@@ -57,12 +57,13 @@ export default function ReservationRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reservation-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setActionDialogOpen(false);
       setSelectedRequest(null);
       setActionNotes("");
       toast({
         title: "更新完了",
-        description: actionType === "approve" ? "予約を承認しました" : "予約を拒否しました",
+        description: actionType === "approve" ? "予約を承認しました。イベントが作成されました。" : "予約を拒否しました",
       });
     },
     onError: (error: any) => {
