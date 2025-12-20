@@ -2272,6 +2272,31 @@ JSONのみを返してください。`;
         return res.status(404).json({ error: "Reservation request not found" });
       }
 
+      // Create event when request is approved
+      if (validatedData.status === "approved") {
+        // Create an event from the approved reservation request
+        const newEvent = await storage.createEvent({
+          organizationId: request.organizationId,
+          storeId: request.storeId,
+          manager: request.manager,
+          startDate: new Date(request.startDate),
+          endDate: new Date(request.endDate),
+          status: "予定",
+          estimatedCost: 0,
+          notes: request.notes || undefined,
+        });
+        
+        // Create notification for approval
+        await storage.createNotification({
+          organizationId: request.organizationId,
+          type: "reservation_approved",
+          title: "予約要請が承認されました",
+          message: `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が承認されました。イベントとして登録されました。`,
+          relatedId: request.id,
+          isRead: "false",
+        });
+      }
+
       // Create notification when request is rejected
       if (validatedData.status === "rejected") {
         await storage.createNotification({
