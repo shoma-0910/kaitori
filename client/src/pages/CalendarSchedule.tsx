@@ -59,6 +59,21 @@ interface DaySale {
   itemsSold: string;
 }
 
+interface ReservationRequest {
+  id: string;
+  organizationId: string;
+  storeId: string;
+  storeName: string;
+  storeAddress: string;
+  storePhone?: string;
+  startDate: string;
+  endDate: string;
+  manager: string;
+  status: "pending" | "approved" | "rejected" | "completed";
+  notes?: string;
+  createdAt: string;
+}
+
 export default function CalendarSchedule() {
   const { toast } = useToast();
   const [eventDetailModalOpen, setEventDetailModalOpen] = useState(false);
@@ -85,6 +100,10 @@ export default function CalendarSchedule() {
 
   const { data: registeredStores = [], isLoading: registeredStoresLoading } = useQuery<RegisteredStore[]>({
     queryKey: ["/api/registered-stores"],
+  });
+
+  const { data: reservationRequests = [], isLoading: reservationRequestsLoading } = useQuery<ReservationRequest[]>({
+    queryKey: ["/api/reservation-requests"],
   });
 
   const updateProfitMutation = useMutation({
@@ -339,13 +358,30 @@ export default function CalendarSchedule() {
     return "不明な店舗";
   };
 
-  const calendarEvents: CalendarEvent[] = events.map((event) => ({
+  // Create calendar events from regular events
+  const eventCalendarItems: CalendarEvent[] = events.map((event) => ({
     id: event.id,
     title: getStoreName(event.storeId),
     start: new Date(event.startDate),
     end: new Date(event.endDate),
     status: event.status,
+    isReservationRequest: false,
   }));
+
+  // Create calendar events from pending reservation requests (gray, dashed border)
+  const pendingRequestCalendarItems: CalendarEvent[] = reservationRequests
+    .filter((req) => req.status === "pending")
+    .map((req) => ({
+      id: `request-${req.id}`,
+      title: `[要請中] ${req.storeName}`,
+      start: new Date(req.startDate),
+      end: new Date(req.endDate),
+      status: "要請中" as const,
+      isReservationRequest: true,
+    }));
+
+  // Combine both into one list
+  const calendarEvents: CalendarEvent[] = [...eventCalendarItems, ...pendingRequestCalendarItems];
 
   const schedules: ScheduleItem[] = events.map((event) => ({
     id: event.id,
@@ -359,7 +395,7 @@ export default function CalendarSchedule() {
     actualProfit: event.actualProfit,
   }));
 
-  if (eventsLoading || storesLoading || registeredStoresLoading) {
+  if (eventsLoading || storesLoading || registeredStoresLoading || reservationRequestsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

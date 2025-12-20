@@ -22,7 +22,8 @@ export interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  status: "予定" | "実施中" | "終了" | "キャンセル";
+  status: "予定" | "実施中" | "終了" | "キャンセル" | "要請中";
+  isReservationRequest?: boolean;
 }
 
 interface EventCalendarProps {
@@ -54,6 +55,8 @@ export function EventCalendar({
 
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = "hsl(var(--primary))";
+    let textColor = "white";
+    let borderStyle = "none";
     
     switch (event.status) {
       case "予定":
@@ -68,6 +71,11 @@ export function EventCalendar({
       case "キャンセル":
         backgroundColor = "hsl(var(--muted))";
         break;
+      case "要請中":
+        backgroundColor = "hsl(var(--muted))";
+        textColor = "hsl(var(--muted-foreground))";
+        borderStyle = "2px dashed hsl(var(--border))";
+        break;
     }
 
     return {
@@ -75,8 +83,8 @@ export function EventCalendar({
         backgroundColor,
         borderRadius: "4px",
         opacity: 0.9,
-        color: "white",
-        border: "none",
+        color: textColor,
+        border: borderStyle,
         display: "block",
       },
     };
