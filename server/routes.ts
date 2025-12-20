@@ -2237,8 +2237,15 @@ JSONのみを返してください。`;
   // Update reservation request status (approve/reject) - only reservation_agent or admin
   app.patch("/api/reservation-requests/:id", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+      
       // Role check - only admin, super admin, or reservation_agent can update
-      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin)) {
+      if (!canAccessReservationRequests(req.userRole, req.isSuperAdmin) && !isReservationAgent) {
         return res.status(403).json({ error: "Access denied. Insufficient permissions." });
       }
 
@@ -2250,13 +2257,14 @@ JSONのみを返してください。`;
 
       const validatedData = updateSchema.parse(req.body);
 
+      // For reservation agents, update without organizationId filter
       const request = await storage.updateReservationRequest(
         req.params.id,
-        req.organizationId!,
+        isReservationAgent ? null : req.organizationId!,
         {
           status: validatedData.status,
-          notes: validatedData.notes || undefined,
-          processedBy: req.userId,
+          notes: validatedData.notes ?? null,
+          processedBy: req.userId!,
           processedAt: new Date(),
         }
       );

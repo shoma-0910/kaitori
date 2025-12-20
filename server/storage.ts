@@ -68,7 +68,7 @@ export interface IStorage {
   // Reservation Requests
   getAllReservationRequests(organizationId: string): Promise<ReservationRequest[]>;
   createReservationRequest(request: InsertReservationRequest): Promise<ReservationRequest>;
-  updateReservationRequest(id: string, organizationId: string, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined>;
+  updateReservationRequest(id: string, organizationId: string | null, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -282,9 +282,14 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async updateReservationRequest(id: string, organizationId: string, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined> {
+  async updateReservationRequest(id: string, organizationId: string | null, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined> {
+    // If organizationId is null (reservation agent), update by id only
+    const whereCondition = organizationId 
+      ? and(eq(reservationRequests.id, id), eq(reservationRequests.organizationId, organizationId))
+      : eq(reservationRequests.id, id);
+    
     const result = await db.update(reservationRequests).set(data)
-      .where(and(eq(reservationRequests.id, id), eq(reservationRequests.organizationId, organizationId)))
+      .where(whereCondition)
       .returning();
     return result[0];
   }
