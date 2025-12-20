@@ -208,7 +208,8 @@ export default function CalendarSchedule() {
 
   const handleEventClick = (event: CalendarEvent) => {
     if (event.isReservationRequest) {
-      const reservationRequest = reservationRequests.find(r => r.id === event.id);
+      const requestId = event.id.replace('request-', '');
+      const reservationRequest = reservationRequests.find(r => r.id === requestId);
       if (reservationRequest) {
         setSelectedReservationRequest(reservationRequest);
         setReservationDetailOpen(true);
