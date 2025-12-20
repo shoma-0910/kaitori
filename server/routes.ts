@@ -2271,10 +2271,82 @@ JSONのみを返してください。`;
       if (!request) {
         return res.status(404).json({ error: "Reservation request not found" });
       }
+
+      // Create notification when request is rejected
+      if (validatedData.status === "rejected") {
+        await storage.createNotification({
+          organizationId: request.organizationId,
+          type: "reservation_rejected",
+          title: "予約要請が拒否されました",
+          message: `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が拒否されました。${validatedData.notes ? `理由: ${validatedData.notes}` : ""}`,
+          relatedId: request.id,
+          isRead: "false",
+        });
+      }
+
       res.json(request);
     } catch (error: any) {
       console.error("Error updating reservation request:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Get notifications for the current organization
+  app.get("/api/notifications", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.organizationId) {
+        return res.status(400).json({ error: "Organization ID required" });
+      }
+      const notificationList = await storage.getNotifications(req.organizationId);
+      res.json(notificationList);
+    } catch (error: any) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/notifications/unread-count", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.organizationId) {
+        return res.status(400).json({ error: "Organization ID required" });
+      }
+      const count = await storage.getUnreadNotificationCount(req.organizationId);
+      res.json({ count });
+    } catch (error: any) {
+      console.error("Error fetching unread notification count:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Mark a notification as read
+  app.patch("/api/notifications/:id/read", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.organizationId) {
+        return res.status(400).json({ error: "Organization ID required" });
+      }
+      const notification = await storage.markNotificationAsRead(req.params.id, req.organizationId);
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json(notification);
+    } catch (error: any) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch("/api/notifications/read-all", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      if (!req.organizationId) {
+        return res.status(400).json({ error: "Organization ID required" });
+      }
+      await storage.markAllNotificationsAsRead(req.organizationId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
