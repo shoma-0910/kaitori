@@ -13,6 +13,8 @@ import {
   type InsertStoreSale,
   type ReservationRequest,
   type InsertReservationRequest,
+  type Notification,
+  type InsertNotification,
   stores,
   events,
   costs,
@@ -20,6 +22,7 @@ import {
   apiUsageLogs,
   storeSales,
   reservationRequests,
+  notifications,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
@@ -69,6 +72,13 @@ export interface IStorage {
   getAllReservationRequests(organizationId: string): Promise<ReservationRequest[]>;
   createReservationRequest(request: InsertReservationRequest): Promise<ReservationRequest>;
   updateReservationRequest(id: string, organizationId: string | null, data: Partial<ReservationRequest>): Promise<ReservationRequest | undefined>;
+
+  // Notifications
+  getNotifications(organizationId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(organizationId: string): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string, organizationId: string): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(organizationId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -292,6 +302,36 @@ export class DbStorage implements IStorage {
       .where(whereCondition)
       .returning();
     return result[0];
+  }
+
+  // Notifications
+  async getNotifications(organizationId: string): Promise<Notification[]> {
+    return await db.select().from(notifications)
+      .where(eq(notifications.organizationId, organizationId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotificationCount(organizationId: string): Promise<number> {
+    const result = await db.select().from(notifications)
+      .where(and(eq(notifications.organizationId, organizationId), eq(notifications.isRead, "false")));
+    return result.length;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications).values(notification).returning();
+    return result[0];
+  }
+
+  async markNotificationAsRead(id: string, organizationId: string): Promise<Notification | undefined> {
+    const result = await db.update(notifications).set({ isRead: "true" })
+      .where(and(eq(notifications.id, id), eq(notifications.organizationId, organizationId)))
+      .returning();
+    return result[0];
+  }
+
+  async markAllNotificationsAsRead(organizationId: string): Promise<void> {
+    await db.update(notifications).set({ isRead: "true" })
+      .where(eq(notifications.organizationId, organizationId));
   }
 }
 
