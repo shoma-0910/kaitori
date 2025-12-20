@@ -89,6 +89,8 @@ export default function CalendarSchedule() {
   });
   const [daySales, setDaySales] = useState<DaySale[]>([]);
   const [saleInputMode, setSaleInputMode] = useState<'single' | 'multi'>('single');
+  const [reservationDetailOpen, setReservationDetailOpen] = useState(false);
+  const [selectedReservationRequest, setSelectedReservationRequest] = useState<ReservationRequest | null>(null);
 
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -205,7 +207,15 @@ export default function CalendarSchedule() {
   };
 
   const handleEventClick = (event: CalendarEvent) => {
-    handleStoreClick(event.id);
+    if (event.isReservationRequest) {
+      const reservationRequest = reservationRequests.find(r => r.id === event.id);
+      if (reservationRequest) {
+        setSelectedReservationRequest(reservationRequest);
+        setReservationDetailOpen(true);
+      }
+    } else {
+      handleStoreClick(event.id);
+    }
   };
 
   const handleAddToGoogleCalendar = () => {
@@ -617,6 +627,80 @@ export default function CalendarSchedule() {
               ) : (
                 "保存"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reservationDetailOpen} onOpenChange={setReservationDetailOpen}>
+        <DialogContent className="w-[95vw] sm:w-full max-w-md" data-testid="dialog-reservation-detail">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                要請中
+              </span>
+              予約リクエスト詳細
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedReservationRequest && (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-muted-foreground">店舗名</span>
+                  <span className="text-sm font-medium text-right max-w-[60%]">{selectedReservationRequest.storeName}</span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-muted-foreground">住所</span>
+                  <span className="text-sm text-right max-w-[60%]">{selectedReservationRequest.storeAddress}</span>
+                </div>
+                {selectedReservationRequest.storePhone && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-muted-foreground">電話番号</span>
+                    <span className="text-sm">{selectedReservationRequest.storePhone}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-muted-foreground">開催期間</span>
+                  <span className="text-sm font-medium">
+                    {format(new Date(selectedReservationRequest.startDate), "yyyy/MM/dd", { locale: ja })}
+                    {" ~ "}
+                    {format(new Date(selectedReservationRequest.endDate), "yyyy/MM/dd", { locale: ja })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-muted-foreground">担当者</span>
+                  <span className="text-sm">{selectedReservationRequest.manager}</span>
+                </div>
+                {selectedReservationRequest.notes && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-muted-foreground">備考</span>
+                    <span className="text-sm text-right max-w-[60%]">{selectedReservationRequest.notes}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-muted-foreground">リクエスト日時</span>
+                  <span className="text-sm">
+                    {format(new Date(selectedReservationRequest.createdAt), "yyyy/MM/dd HH:mm", { locale: ja })}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground text-center">
+                  このリクエストは現在承認待ちです。予約代行が承認すると正式なイベントとして登録されます。
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setReservationDetailOpen(false)}
+              data-testid="button-close-reservation-detail"
+            >
+              閉じる
             </Button>
           </DialogFooter>
         </DialogContent>
