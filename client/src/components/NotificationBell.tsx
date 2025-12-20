@@ -18,20 +18,18 @@ import type { Notification } from "@shared/schema";
 export function NotificationBell() {
   const { userInfo } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-
-  // Don't show for reservation agents
-  if (userInfo?.role === "reservation_agent") {
-    return null;
-  }
+  const isReservationAgent = userInfo?.role === "reservation_agent";
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
+    enabled: !isReservationAgent,
   });
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
     refetchInterval: 30000,
+    enabled: !isReservationAgent,
   });
 
   const markAsReadMutation = useMutation({
@@ -53,6 +51,11 @@ export function NotificationBell() {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
     },
   });
+
+  // Don't show for reservation agents (moved after hooks)
+  if (isReservationAgent) {
+    return null;
+  }
 
   const unreadCount = unreadData?.count || 0;
 
