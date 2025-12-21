@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, TrendingUp, Sparkles, BarChart3, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, TrendingUp, Sparkles, BarChart3, ClipboardList, HelpCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -82,6 +82,18 @@ const menuGroups: MenuGroup[] = [
         title: "AI店舗推薦",
         url: "/ai-recommendation",
         icon: BarChart3,
+        superAdminOnly: false,
+      },
+    ],
+  },
+  {
+    label: "ヘルプ",
+    icon: HelpCircle,
+    items: [
+      {
+        title: "使い方ガイド",
+        url: "/guide",
+        icon: HelpCircle,
         superAdminOnly: false,
       },
     ],

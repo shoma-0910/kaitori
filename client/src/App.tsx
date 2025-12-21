@@ -19,6 +19,7 @@ import OrganizationSettings from "@/pages/OrganizationSettings";
 import AIRegionAnalysis from "@/pages/AIRegionAnalysis";
 import AIStoreRecommendation from "@/pages/AIStoreRecommendation";
 import ReservationRequests from "@/pages/ReservationRequests";
+import UserGuide from "@/pages/UserGuide";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/not-found";
 
@@ -99,6 +100,9 @@ function Router() {
       </Route>
       <Route path="/reservation-requests">
         <ProtectedRoute component={ReservationRequests} allowReservationAgent={true} />
+      </Route>
+      <Route path="/guide">
+        <ProtectedRoute component={UserGuide} />
       </Route>
       <Route component={NotFound} />
     </Switch>
