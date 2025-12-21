@@ -43,7 +43,7 @@ const menuGroups: MenuGroup[] = [
     icon: Store,
     items: [
       {
-        title: "店舗選定・予約",
+        title: "店舗選定",
         url: "/stores",
         icon: Store,
         superAdminOnly: false,
