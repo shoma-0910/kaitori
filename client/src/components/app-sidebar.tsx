@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, Map, TrendingUp, Sparkles, BarChart3, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Store, BookmarkCheck, Calendar, Settings, TrendingUp, Sparkles, BarChart3, ClipboardList } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -52,12 +52,6 @@ const menuGroups: MenuGroup[] = [
         title: "登録店舗",
         url: "/registered-stores",
         icon: BookmarkCheck,
-        superAdminOnly: false,
-      },
-      {
-        title: "マップ",
-        url: "/map",
-        icon: Map,
         superAdminOnly: false,
       },
     ],

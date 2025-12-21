@@ -16,7 +16,6 @@ import RegisteredStores from "@/pages/RegisteredStores";
 import CalendarSchedule from "@/pages/CalendarSchedule";
 import SalesAnalytics from "@/pages/SalesAnalytics";
 import OrganizationSettings from "@/pages/OrganizationSettings";
-import Map from "@/pages/Map";
 import AIRegionAnalysis from "@/pages/AIRegionAnalysis";
 import AIStoreRecommendation from "@/pages/AIStoreRecommendation";
 import ReservationRequests from "@/pages/ReservationRequests";
@@ -89,9 +88,6 @@ function Router() {
       <Route path="/sales">
         <ProtectedRoute component={SalesAnalytics} />
       </Route>
-      <Route path="/map">
-        <ProtectedRoute component={Map} />
-      </Route>
       <Route path="/settings">
         <ProtectedRoute component={OrganizationSettings} />
       </Route>
@@ -111,8 +107,6 @@ function Router() {
 
 function AppContent() {
   const { user, userInfo, loading } = useAuth();
-  const [location] = useLocation();
-  const isMapPage = location === "/map";
   
   const style = {
     "--sidebar-width": "20rem",
@@ -145,7 +139,7 @@ function AppContent() {
               <UserMenu />
             </div>
           </header>
-          <main className={`flex-1 overflow-auto ${isMapPage ? '' : 'p-4 md:p-8'}`}>
+          <main className="flex-1 overflow-auto p-4 md:p-8">
             <Router />
           </main>
         </div>
