@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const result = await client.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: [
           {
             role: "user",
@@ -518,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationId: req.organizationId!,
         apiType: "gemini_vision",
         endpoint: "generateContent",
-        metadata: JSON.stringify({ model: "gemini-1.5-flash", storeId: id, imageCount: validImages.length })
+        metadata: JSON.stringify({ model: "gemini-2.0-flash", storeId: id, imageCount: validImages.length })
       });
 
       res.json({
