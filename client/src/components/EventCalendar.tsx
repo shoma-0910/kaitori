@@ -387,7 +387,7 @@ export function EventCalendar({
           onSelectSlot={onSelectSlot}
           selectable
           eventPropGetter={eventStyleGetter}
-          views={window.innerWidth < 768 ? ['month', 'agenda'] : ['month', 'week', 'day', 'agenda']}
+          views={window.innerWidth < 768 ? ['month'] : ['month', 'week', 'day']}
           formats={{
             monthHeaderFormat: (date) => format(date, 'yyyy/MM', { locale: ja }),
             dayHeaderFormat: (date) => format(date, 'eee dd', { locale: ja }),
