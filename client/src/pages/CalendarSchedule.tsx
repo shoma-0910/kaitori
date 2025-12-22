@@ -4,7 +4,7 @@ import { EventCalendar, CalendarEvent } from "@/components/EventCalendar";
 import { ScheduleTable, ScheduleItem } from "@/components/ScheduleTable";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, Calendar, List } from "lucide-react";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { ja } from "date-fns/locale";
 import { EventDetailModal } from "@/components/EventDetailModal";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
   id: string;
@@ -422,18 +423,33 @@ export default function CalendarSchedule() {
         </p>
       </div>
 
-      <EventCalendar
-        events={calendarEvents}
-        onEventClick={handleEventClick}
-        onSelectSlot={handleSelectSlot}
-      />
-
-      <ScheduleTable
-        schedules={schedules}
-        onUpdateProfit={handleUpdateProfit}
-        onEdit={handleEdit}
-        onStoreClick={handleStoreClick}
-      />
+      <Tabs defaultValue="calendar" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="calendar" className="flex items-center gap-2" data-testid="tab-calendar">
+            <Calendar className="h-4 w-4" />
+            カレンダー
+          </TabsTrigger>
+          <TabsTrigger value="list" className="flex items-center gap-2" data-testid="tab-list">
+            <List className="h-4 w-4" />
+            催事一覧
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="calendar" className="mt-4">
+          <EventCalendar
+            events={calendarEvents}
+            onEventClick={handleEventClick}
+            onSelectSlot={handleSelectSlot}
+          />
+        </TabsContent>
+        <TabsContent value="list" className="mt-4">
+          <ScheduleTable
+            schedules={schedules}
+            onUpdateProfit={handleUpdateProfit}
+            onEdit={handleEdit}
+            onStoreClick={handleStoreClick}
+          />
+        </TabsContent>
+      </Tabs>
 
       <EventDetailModal
         open={eventDetailModalOpen}
