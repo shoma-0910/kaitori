@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { EventCalendar, CalendarEvent } from "@/components/EventCalendar";
+import { ScheduleTable, ScheduleItem } from "@/components/ScheduleTable";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
@@ -106,6 +107,29 @@ export default function CalendarSchedule() {
     queryKey: ["/api/reservation-requests"],
   });
 
+  const updateProfitMutation = useMutation({
+    mutationFn: async ({ id, profit }: { id: string; profit: number }) => {
+      const res = await apiRequest("PATCH", `/api/events/${id}`, {
+        actualProfit: profit,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "成功",
+        description: "実績粗利を更新しました",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "エラー",
+        description: "更新に失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
   const addToCalendarMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const res = await apiRequest("POST", `/api/events/${eventId}/add-to-calendar`);
@@ -149,6 +173,14 @@ export default function CalendarSchedule() {
       });
     },
   });
+
+  const handleUpdateProfit = (id: string, profit: number) => {
+    updateProfitMutation.mutate({ id, profit });
+  };
+
+  const handleEdit = (schedule: ScheduleItem) => {
+    handleStoreClick(schedule.id);
+  };
 
   const handleStoreClick = (eventId: string) => {
     const eventData = events.find((e) => e.id === eventId);
@@ -361,6 +393,18 @@ export default function CalendarSchedule() {
   // Combine both into one list
   const calendarEvents: CalendarEvent[] = [...eventCalendarItems, ...pendingRequestCalendarItems];
 
+  const schedules: ScheduleItem[] = events.map((event) => ({
+    id: event.id,
+    storeId: event.storeId,
+    storeName: getStoreName(event.storeId),
+    manager: event.manager,
+    startDate: format(new Date(event.startDate), "yyyy-MM-dd"),
+    endDate: format(new Date(event.endDate), "yyyy-MM-dd"),
+    status: event.status,
+    estimatedCost: event.estimatedCost,
+    actualProfit: event.actualProfit,
+  }));
+
   if (eventsLoading || storesLoading || registeredStoresLoading || reservationRequestsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -382,6 +426,13 @@ export default function CalendarSchedule() {
         events={calendarEvents}
         onEventClick={handleEventClick}
         onSelectSlot={handleSelectSlot}
+      />
+
+      <ScheduleTable
+        schedules={schedules}
+        onUpdateProfit={handleUpdateProfit}
+        onEdit={handleEdit}
+        onStoreClick={handleStoreClick}
       />
 
       <EventDetailModal
