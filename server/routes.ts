@@ -2227,6 +2227,24 @@ JSONのみを返してください。`;
         status: "pending",
       };
       const request = await storage.createReservationRequest(data);
+      
+      // Get organization name for notification
+      const orgResult = await db.select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, req.organizationId!))
+        .limit(1);
+      const organizationName = orgResult[0]?.name || "組織";
+      
+      // Create notification for reservation agents
+      await storage.createAgentNotification({
+        type: "new_reservation_request",
+        title: "新しい予約要請",
+        message: `${organizationName}から「${validatedData.storeName}」の予約要請（${new Date(validatedData.startDate).toLocaleDateString('ja-JP')}〜${new Date(validatedData.endDate).toLocaleDateString('ja-JP')}）が届きました。`,
+        relatedId: request.id,
+        isRead: "false",
+        isForAgent: "true",
+      });
+      
       res.status(201).json(request);
     } catch (error: any) {
       console.error("Error creating reservation request:", error);
@@ -2316,9 +2334,21 @@ JSONのみを返してください。`;
     }
   });
 
-  // Get notifications for the current organization
+  // Get notifications for the current organization or agent
   app.get("/api/notifications", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+      
+      if (isReservationAgent) {
+        const notificationList = await storage.getAgentNotifications();
+        return res.json(notificationList);
+      }
+      
       if (!req.organizationId) {
         return res.status(400).json({ error: "Organization ID required" });
       }
@@ -2333,6 +2363,18 @@ JSONのみを返してください。`;
   // Get unread notification count
   app.get("/api/notifications/unread-count", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+      
+      if (isReservationAgent) {
+        const count = await storage.getAgentUnreadNotificationCount();
+        return res.json({ count });
+      }
+      
       if (!req.organizationId) {
         return res.status(400).json({ error: "Organization ID required" });
       }
@@ -2347,6 +2389,21 @@ JSONのみを返してください。`;
   // Mark a notification as read
   app.patch("/api/notifications/:id/read", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+      
+      if (isReservationAgent) {
+        const notification = await storage.markAgentNotificationAsRead(req.params.id);
+        if (!notification) {
+          return res.status(404).json({ error: "Notification not found" });
+        }
+        return res.json(notification);
+      }
+      
       if (!req.organizationId) {
         return res.status(400).json({ error: "Organization ID required" });
       }
@@ -2364,6 +2421,18 @@ JSONのみを返してください。`;
   // Mark all notifications as read
   app.patch("/api/notifications/read-all", requireAuth, async (req: AuthRequest, res) => {
     try {
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+      
+      if (isReservationAgent) {
+        await storage.markAllAgentNotificationsAsRead();
+        return res.json({ success: true });
+      }
+      
       if (!req.organizationId) {
         return res.status(400).json({ error: "Organization ID required" });
       }
