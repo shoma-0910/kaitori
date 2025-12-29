@@ -308,12 +308,13 @@ export type ReservationAgent = typeof reservationAgents.$inferSelect;
 // Notifications table - for in-app notifications
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  type: text("type").notNull(), // reservation_rejected, reservation_approved, etc.
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // reservation_rejected, reservation_approved, new_reservation_request, etc.
   title: text("title").notNull(),
   message: text("message").notNull(),
   relatedId: uuid("related_id"), // Reference to the related entity (e.g., reservation request id)
   isRead: text("is_read").notNull().default("false"),
+  isForAgent: text("is_for_agent").notNull().default("false"), // "true" for reservation agent notifications
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

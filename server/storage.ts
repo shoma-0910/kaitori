@@ -79,6 +79,13 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: string, organizationId: string): Promise<Notification | undefined>;
   markAllNotificationsAsRead(organizationId: string): Promise<void>;
+  
+  // Agent Notifications
+  getAgentNotifications(): Promise<Notification[]>;
+  getAgentUnreadNotificationCount(): Promise<number>;
+  createAgentNotification(notification: Omit<InsertNotification, 'organizationId'>): Promise<Notification>;
+  markAgentNotificationAsRead(id: string): Promise<Notification | undefined>;
+  markAllAgentNotificationsAsRead(): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -332,6 +339,40 @@ export class DbStorage implements IStorage {
   async markAllNotificationsAsRead(organizationId: string): Promise<void> {
     await db.update(notifications).set({ isRead: "true" })
       .where(eq(notifications.organizationId, organizationId));
+  }
+
+  // Agent Notifications
+  async getAgentNotifications(): Promise<Notification[]> {
+    return await db.select().from(notifications)
+      .where(eq(notifications.isForAgent, "true"))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getAgentUnreadNotificationCount(): Promise<number> {
+    const result = await db.select().from(notifications)
+      .where(and(eq(notifications.isForAgent, "true"), eq(notifications.isRead, "false")));
+    return result.length;
+  }
+
+  async createAgentNotification(notification: Omit<InsertNotification, 'organizationId'>): Promise<Notification> {
+    const result = await db.insert(notifications).values({
+      ...notification,
+      organizationId: null,
+      isForAgent: "true",
+    }).returning();
+    return result[0];
+  }
+
+  async markAgentNotificationAsRead(id: string): Promise<Notification | undefined> {
+    const result = await db.update(notifications).set({ isRead: "true" })
+      .where(and(eq(notifications.id, id), eq(notifications.isForAgent, "true")))
+      .returning();
+    return result[0];
+  }
+
+  async markAllAgentNotificationsAsRead(): Promise<void> {
+    await db.update(notifications).set({ isRead: "true" })
+      .where(eq(notifications.isForAgent, "true"));
   }
 }
 
