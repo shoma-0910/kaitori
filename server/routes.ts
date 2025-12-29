@@ -7,7 +7,7 @@ import { supabaseAdmin } from "../lib/supabase";
 import { z } from "zod";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { sendPushToAgents, sendPushToUser, getVapidPublicKey } from "./services/pushNotification";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2329,18 +2329,27 @@ JSONのみを返してください。`;
           isRead: "false",
         });
         
-        // Send push to organization admin users
-        const orgUsers = await db.select({ userId: userOrganizations.userId })
+        // Send push to active organization members (admin or member roles)
+        const orgUsers = await db.selectDistinct({ userId: userOrganizations.userId })
           .from(userOrganizations)
-          .where(eq(userOrganizations.organizationId, request.organizationId));
+          .where(
+            and(
+              eq(userOrganizations.organizationId, request.organizationId),
+              inArray(userOrganizations.role, ['admin', 'member'])
+            )
+          );
         
+        const sentUserIds = new Set<string>();
         for (const user of orgUsers) {
-          await sendPushToUser(user.userId, {
-            title: approvalTitle,
-            body: approvalMessage,
-            url: '/calendar',
-            id: request.id,
-          });
+          if (!sentUserIds.has(user.userId)) {
+            sentUserIds.add(user.userId);
+            await sendPushToUser(user.userId, {
+              title: approvalTitle,
+              body: approvalMessage,
+              url: '/calendar',
+              id: request.id,
+            });
+          }
         }
       }
 
@@ -2358,18 +2367,27 @@ JSONのみを返してください。`;
           isRead: "false",
         });
         
-        // Send push to organization admin users
-        const orgUsers = await db.select({ userId: userOrganizations.userId })
+        // Send push to active organization members (admin or member roles)
+        const orgUsers = await db.selectDistinct({ userId: userOrganizations.userId })
           .from(userOrganizations)
-          .where(eq(userOrganizations.organizationId, request.organizationId));
+          .where(
+            and(
+              eq(userOrganizations.organizationId, request.organizationId),
+              inArray(userOrganizations.role, ['admin', 'member'])
+            )
+          );
         
+        const sentUserIds = new Set<string>();
         for (const user of orgUsers) {
-          await sendPushToUser(user.userId, {
-            title: rejectionTitle,
-            body: rejectionMessage,
-            url: '/calendar',
-            id: request.id,
-          });
+          if (!sentUserIds.has(user.userId)) {
+            sentUserIds.add(user.userId);
+            await sendPushToUser(user.userId, {
+              title: rejectionTitle,
+              body: rejectionMessage,
+              url: '/calendar',
+              id: request.id,
+            });
+          }
         }
       }
 
