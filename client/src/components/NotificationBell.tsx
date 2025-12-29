@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,24 +12,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/contexts/AuthContext";
 import type { Notification } from "@shared/schema";
 
 export function NotificationBell() {
-  const { userInfo } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const isReservationAgent = userInfo?.role === "reservation_agent";
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     refetchInterval: 30000,
-    enabled: !isReservationAgent,
   });
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
     refetchInterval: 30000,
-    enabled: !isReservationAgent,
   });
 
   const markAsReadMutation = useMutation({
@@ -51,11 +46,6 @@ export function NotificationBell() {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
     },
   });
-
-  // Don't show for reservation agents (moved after hooks)
-  if (isReservationAgent) {
-    return null;
-  }
 
   const unreadCount = unreadData?.count || 0;
 
@@ -80,6 +70,8 @@ export function NotificationBell() {
         return "❌";
       case "reservation_approved":
         return "✅";
+      case "new_reservation_request":
+        return "📩";
       default:
         return "📢";
     }
