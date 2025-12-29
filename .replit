@@ -40,3 +40,9 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_gemini:1.0.0", "google-calendar:1.0.0", "javascript_mem_db:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BN4108rtyakkFMSQT596ZwnjNUgCCn00RF9rRP2WSWehELroac3h44QRwc619W20QxYNSY53_FxqHGw3pR5deuE"
+VAPID_PRIVATE_KEY = "PXk2rskjQ3VwTiquy2w-WeXEevxqJIzP5eNzuRInmXk"

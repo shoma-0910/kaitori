@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/Dashboard";
@@ -138,6 +139,7 @@ function AppContent() {
                   </span>
                 </div>
               )}
+              <PushNotificationToggle />
               <NotificationBell />
               <ThemeToggle />
               <UserMenu />

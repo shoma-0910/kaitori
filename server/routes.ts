@@ -8,6 +8,7 @@ import { z } from "zod";
 import { requireAuth, type AuthRequest } from "./middleware/auth";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { sendPushToAgents, sendPushToUser, getVapidPublicKey } from "./services/pushNotification";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Stores
@@ -2236,13 +2237,24 @@ JSONのみを返してください。`;
       const organizationName = orgResult[0]?.name || "組織";
       
       // Create notification for reservation agents
+      const notificationTitle = "新しい予約要請";
+      const notificationMessage = `${organizationName}から「${validatedData.storeName}」の予約要請（${new Date(validatedData.startDate).toLocaleDateString('ja-JP')}〜${new Date(validatedData.endDate).toLocaleDateString('ja-JP')}）が届きました。`;
+      
       await storage.createAgentNotification({
         type: "new_reservation_request",
-        title: "新しい予約要請",
-        message: `${organizationName}から「${validatedData.storeName}」の予約要請（${new Date(validatedData.startDate).toLocaleDateString('ja-JP')}〜${new Date(validatedData.endDate).toLocaleDateString('ja-JP')}）が届きました。`,
+        title: notificationTitle,
+        message: notificationMessage,
         relatedId: request.id,
         isRead: "false",
         isForAgent: "true",
+      });
+      
+      // Send push notification to agents
+      await sendPushToAgents({
+        title: notificationTitle,
+        body: notificationMessage,
+        url: '/reservation-requests',
+        id: request.id,
       });
       
       res.status(201).json(request);
@@ -2305,26 +2317,60 @@ JSONのみを返してください。`;
         });
         
         // Create notification for approval
+        const approvalTitle = "予約要請が承認されました";
+        const approvalMessage = `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が承認されました。イベントとして登録されました。`;
+        
         await storage.createNotification({
           organizationId: request.organizationId,
           type: "reservation_approved",
-          title: "予約要請が承認されました",
-          message: `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が承認されました。イベントとして登録されました。`,
+          title: approvalTitle,
+          message: approvalMessage,
           relatedId: request.id,
           isRead: "false",
         });
+        
+        // Send push to organization admin users
+        const orgUsers = await db.select({ userId: userOrganizations.userId })
+          .from(userOrganizations)
+          .where(eq(userOrganizations.organizationId, request.organizationId));
+        
+        for (const user of orgUsers) {
+          await sendPushToUser(user.userId, {
+            title: approvalTitle,
+            body: approvalMessage,
+            url: '/calendar',
+            id: request.id,
+          });
+        }
       }
 
       // Create notification when request is rejected
       if (validatedData.status === "rejected") {
+        const rejectionTitle = "予約要請が拒否されました";
+        const rejectionMessage = `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が拒否されました。${validatedData.notes ? `理由: ${validatedData.notes}` : ""}`;
+        
         await storage.createNotification({
           organizationId: request.organizationId,
           type: "reservation_rejected",
-          title: "予約要請が拒否されました",
-          message: `${request.storeName}（${new Date(request.startDate).toLocaleDateString('ja-JP')}〜${new Date(request.endDate).toLocaleDateString('ja-JP')}）の予約要請が拒否されました。${validatedData.notes ? `理由: ${validatedData.notes}` : ""}`,
+          title: rejectionTitle,
+          message: rejectionMessage,
           relatedId: request.id,
           isRead: "false",
         });
+        
+        // Send push to organization admin users
+        const orgUsers = await db.select({ userId: userOrganizations.userId })
+          .from(userOrganizations)
+          .where(eq(userOrganizations.organizationId, request.organizationId));
+        
+        for (const user of orgUsers) {
+          await sendPushToUser(user.userId, {
+            title: rejectionTitle,
+            body: rejectionMessage,
+            url: '/calendar',
+            id: request.id,
+          });
+        }
       }
 
       res.json(request);
@@ -2441,6 +2487,71 @@ JSONのみを返してください。`;
     } catch (error: any) {
       console.error("Error marking all notifications as read:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Push Notification endpoints
+  
+  // Get VAPID public key
+  app.get("/api/push/vapid-public-key", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const publicKey = getVapidPublicKey();
+      if (!publicKey) {
+        return res.status(500).json({ error: "VAPID public key not configured" });
+      }
+      res.json({ publicKey });
+    } catch (error: any) {
+      console.error("Error getting VAPID public key:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Subscribe to push notifications
+  app.post("/api/push/subscribe", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const subscriptionSchema = z.object({
+        endpoint: z.string(),
+        keys: z.object({
+          p256dh: z.string(),
+          auth: z.string(),
+        }),
+      });
+
+      const { endpoint, keys } = subscriptionSchema.parse(req.body);
+      
+      // Check if user is a reservation agent
+      const reservationAgentCheck = await db.select()
+        .from(reservationAgents)
+        .where(eq(reservationAgents.userId, req.userId!))
+        .limit(1);
+      const isReservationAgent = reservationAgentCheck.length > 0;
+
+      await storage.createPushSubscription({
+        userId: req.userId!,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+        userAgent: req.headers['user-agent'] || null,
+        isForAgent: isReservationAgent ? "true" : "false",
+      });
+
+      res.status(201).json({ success: true });
+    } catch (error: any) {
+      console.error("Error subscribing to push:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Unsubscribe from push notifications
+  app.post("/api/push/unsubscribe", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { endpoint } = z.object({ endpoint: z.string() }).parse(req.body);
+      
+      await storage.deletePushSubscription(endpoint, req.userId!);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error unsubscribing from push:", error);
+      res.status(400).json({ error: error.message });
     }
   });
 
