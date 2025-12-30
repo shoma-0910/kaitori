@@ -6,13 +6,24 @@ import { eq, and } from 'drizzle-orm';
 // Configure web-push with VAPID details
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+let pushConfigured = false;
 
 if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:admin@buyback-event.com',
-    vapidPublicKey,
-    vapidPrivateKey
-  );
+  try {
+    webpush.setVapidDetails(
+      'mailto:admin@buyback-event.com',
+      vapidPublicKey,
+      vapidPrivateKey
+    );
+    pushConfigured = true;
+  } catch (err: any) {
+    console.warn(
+      '[push] VAPID キーが不正なため Push を無効化します:',
+      err?.message || err
+    );
+  }
+} else {
+  console.warn('[push] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY が未設定のため Push を無効化します');
 }
 
 interface PushPayload {
@@ -23,6 +34,7 @@ interface PushPayload {
 }
 
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+  if (!pushConfigured) return;
   try {
     const subscriptions = await db.select().from(pushSubscriptions)
       .where(eq(pushSubscriptions.userId, userId));
@@ -63,6 +75,7 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
 }
 
 export async function sendPushToAgents(payload: PushPayload): Promise<void> {
+  if (!pushConfigured) return;
   try {
     const subscriptions = await db.select().from(pushSubscriptions)
       .where(eq(pushSubscriptions.isForAgent, "true"));
