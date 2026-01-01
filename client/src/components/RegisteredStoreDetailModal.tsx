@@ -190,7 +190,7 @@ export function RegisteredStoreDetailModal({
       setSearchingFacilities(false);
     }, 10000);
 
-    service.nearbySearch(request, (results, status) => {
+    service.nearbySearch(request, async (results, status) => {
       clearTimeout(timeoutId);
       setSearchingFacilities(false);
 
@@ -199,16 +199,37 @@ export function RegisteredStoreDetailModal({
         results &&
         results.length > 0
       ) {
-        const facilities: NearbyFacility[] = results
-          .slice(0, 20)
-          .map((result) => ({
-            name: result.name || "",
-            vicinity: result.vicinity || "",
-            types: result.types || [],
-            rating: result.rating,
-            userRatingsTotal: result.user_ratings_total,
-            openNow: result.opening_hours?.open_now,
-          }));
+        const topResults = results.slice(0, 20);
+
+        const facilities = await Promise.all(
+          topResults.map(
+            (result) =>
+              new Promise<NearbyFacility>((resolve) => {
+                service.getDetails(
+                  {
+                    placeId: result.place_id || "",
+                    fields: ["opening_hours"],
+                  },
+                  (detail, detailStatus) => {
+                    const openNow =
+                      detailStatus === google.maps.places.PlacesServiceStatus.OK
+                        ? detail?.opening_hours?.isOpen?.()
+                        : undefined;
+
+                    resolve({
+                      name: result.name || "",
+                      vicinity: result.vicinity || "",
+                      types: result.types || [],
+                      rating: result.rating,
+                      userRatingsTotal: result.user_ratings_total,
+                      openNow,
+                    });
+                  }
+                );
+              })
+          )
+        );
+
         setNearbyFacilities(facilities);
       }
     });

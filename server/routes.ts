@@ -663,7 +663,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         types: place.types,
         rating: place.rating,
         userRatingsTotal: place.user_ratings_total,
-        openNow: place.opening_hours?.open_now,
       }));
 
       res.json({ places });

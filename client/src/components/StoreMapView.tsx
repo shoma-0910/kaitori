@@ -500,29 +500,22 @@ export function StoreMapView({
       try {
         let registeredStore: RegisteredStore | null = null;
         
-        const checkRes = await fetch(`/api/registered-stores/place/${place.placeId}`);
-        if (checkRes.ok) {
+        try {
+          const checkRes = await apiRequest("GET", `/api/registered-stores/place/${place.placeId}`);
           registeredStore = await checkRes.json();
-        } else {
+        } catch (_err) {
           try {
-            const createRes = await fetch('/api/registered-stores', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                placeId: place.placeId,
-                name: detailedPlace.name,
-                address: detailedPlace.address,
-                phoneNumber: detailedPlace.phoneNumber || null,
-                latitude: place.position.lat,
-                longitude: place.position.lng,
-                website: detailedPlace.website || null,
-                openingHours: detailedPlace.openingHours || null,
-              }),
+            const createRes = await apiRequest("POST", "/api/registered-stores", {
+              placeId: place.placeId,
+              name: detailedPlace.name,
+              address: detailedPlace.address,
+              phoneNumber: detailedPlace.phoneNumber || null,
+              latitude: place.position.lat,
+              longitude: place.position.lng,
+              website: detailedPlace.website || null,
+              openingHours: detailedPlace.openingHours || null,
             });
-            
-            if (createRes.ok) {
-              registeredStore = await createRes.json();
-            }
+            registeredStore = await createRes.json();
           } catch (registerError) {
             console.warn("店舗登録エラー:", registerError);
           }
@@ -615,19 +608,43 @@ export function StoreMapView({
       });
     }, 10000);
 
-    service.nearbySearch(request, (results, status) => {
+    service.nearbySearch(request, async (results, status) => {
       clearTimeout(timeoutId);
       setSearchingFacilities(false);
       
       if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-        const facilities: NearbyFacility[] = results.slice(0, 20).map((result) => ({
-          name: result.name || "",
-          vicinity: result.vicinity || "",
-          types: result.types || [],
-          rating: result.rating,
-          userRatingsTotal: result.user_ratings_total,
-          openNow: result.opening_hours?.open_now,
-        }));
+        const topResults = results.slice(0, 20);
+
+        const facilities = await Promise.all(
+          topResults.map(
+            (result) =>
+              new Promise<NearbyFacility>((resolve) => {
+                // Place Details で isOpen() を取得する
+                service.getDetails(
+                  {
+                    placeId: result.place_id || "",
+                    fields: ["opening_hours"],
+                  },
+                  (detail, detailStatus) => {
+                    const openNow =
+                      detailStatus === google.maps.places.PlacesServiceStatus.OK
+                        ? detail?.opening_hours?.isOpen?.()
+                        : undefined;
+
+                    resolve({
+                      name: result.name || "",
+                      vicinity: result.vicinity || "",
+                      types: result.types || [],
+                      rating: result.rating,
+                      userRatingsTotal: result.user_ratings_total,
+                      openNow,
+                    });
+                  }
+                );
+              })
+          )
+        );
+
         setNearbyFacilities(facilities);
       } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
         toast({
