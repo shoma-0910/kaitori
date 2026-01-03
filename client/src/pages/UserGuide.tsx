@@ -46,6 +46,99 @@ export default function UserGuide() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* 全体フロー（画像プレースホルダ） */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutDashboard className="h-5 w-5" />
+                全体フロー（まずここを見る）
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                ログインから催事実施・分析までの流れを図解しています。実際のスクリーンショットや図を差し替えてご利用ください。
+              </p>
+              <div className="border rounded-lg overflow-hidden bg-muted/40">
+                <img
+                  src="/docs/images/flow-overview.png"
+                  alt="アプリ全体のフロー: ログイン→店舗選定→登録店舗→予約→カレンダー→売上分析→AI分析"
+                  className="w-full object-contain"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                <Badge variant="outline">1. ログイン</Badge>
+                <Badge variant="outline">2. 店舗選定で候補登録</Badge>
+                <Badge variant="outline">3. 登録店舗で予約/売上入力</Badge>
+                <Badge variant="outline">4. カレンダーで予定確認</Badge>
+                <Badge variant="outline">5. 売上分析で結果確認</Badge>
+                <Badge variant="outline">6. AI地域/おすすめで次の候補を探す</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 主要機能カード（画像プレースホルダ） */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LayoutDashboard className="h-5 w-5" />
+                主要機能のイメージ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                {[
+                  {
+                    title: "店舗選定",
+                    desc: "地域検索とマップで新規候補を探す",
+                    img: "/docs/images/card-store-search.png",
+                  },
+                  {
+                    title: "登録店舗",
+                    desc: "予約リクエスト・催事予約・売上登録の起点",
+                    img: "/docs/images/card-registered-stores.png",
+                  },
+                  {
+                    title: "カレンダー",
+                    desc: "催事スケジュールの確認・編集",
+                    img: "/docs/images/card-calendar.png",
+                  },
+                  {
+                    title: "売上分析",
+                    desc: "粗利・コストの確認と傾向把握",
+                    img: "/docs/images/card-sales.png",
+                  },
+                  {
+                    title: "AI地域分析",
+                    desc: "地域データのAI推定と可視化",
+                    img: "/docs/images/card-ai-area.png",
+                  },
+                  {
+                    title: "AIおすすめ店舗",
+                    desc: "AIによる店舗ランク付けと候補選定",
+                    img: "/docs/images/card-ai-recommend.png",
+                  },
+                ].map((item) => (
+                  <Card key={item.title} className="overflow-hidden">
+                    <div className="h-36 bg-muted/40 border-b">
+                      <img
+                        src={item.img}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <CardContent className="pt-4 space-y-1">
+                      <h3 className="font-semibold">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                ※ 画像はプレースホルダです。実際のスクリーンショットを <code>/docs/images/</code> 配下に配置して差し替えてください。
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
