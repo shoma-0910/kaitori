@@ -312,53 +312,6 @@ export default function StoreSelection() {
                 )}
               </div>
 
-              {/* Data Sources Section */}
-              <div className="p-3 sm:p-4 rounded-md bg-card border">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4" />
-                  データ出典
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    regionInfo.population?.source,
-                    regionInfo.averageAge?.source,
-                    regionInfo.ageDistribution?.source,
-                    regionInfo.genderRatio?.source,
-                    regionInfo.averageIncome?.source,
-                    regionInfo.foreignerRatio?.source,
-                  ]
-                    .filter((source, index, self) => 
-                      source && self.findIndex(s => s?.name === source.name) === index
-                    )
-                    .map((source, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm">
-                        <Badge 
-                          variant={source!.type === "official" ? "default" : "secondary"}
-                          className="w-fit"
-                        >
-                          {source!.type === "official" ? "公式" : "AI推定"}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium">{source!.name}</p>
-                          {source!.url && (
-                            <a
-                              href={source!.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline inline-flex items-center gap-1 break-all"
-                            >
-                              <span className="break-all">{source!.url}</span>
-                              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                            </a>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            取得日時: {new Date(source!.retrievedAt).toLocaleString('ja-JP')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
             </div>
           )}
         </CardContent>

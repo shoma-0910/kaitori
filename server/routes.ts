@@ -396,6 +396,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * 軽量版 駐車場スキャン
+   * 店舗カードに表示されている website と座標から、
+   * Webページのテキスト＋Street View画像を Gemini で解析して駐車場有無を返す。
+   */
+  app.post("/api/parking-scan", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const { website, name } = req.body as {
+        website?: string;
+        name?: string;
+      };
+
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const { GoogleGenAI } = await import("@google/genai");
+      const client = new GoogleGenAI({ apiKey: geminiApiKey });
+
+      // 1) Webページからテキストを抽出（最大 200KB → 8000文字程度までに圧縮）
+      let websiteText = "";
+      if (website && typeof website === "string") {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          const resp = await fetch(website, { signal: controller.signal });
+          clearTimeout(timeout);
+          const buf = await resp.arrayBuffer();
+          // 200KB 上限
+          const limited = Buffer.from(buf.slice(0, 200 * 1024)).toString("utf-8");
+          const noScript = limited
+            .replace(/<script[\s\S]*?<\/script>/gi, "")
+            .replace(/<style[\s\S]*?<\/style>/gi, "");
+          // 簡易タグ除去
+          const text = noScript.replace(/<[^>]+>/g, " ");
+          websiteText = text.replace(/\s+/g, " ").trim().slice(0, 8000);
+        } catch (error) {
+          console.warn("[/api/parking-scan] failed to fetch website:", error);
+        }
+      }
+
+      // ホームページから情報が取得できない場合
+      if (!websiteText) {
+        return res.json({
+          status: "unknown",
+          confidence: 0,
+          reason: "ホームページに駐車場情報の記載がある可能性があります。直接ご確認ください。",
+          source: "none",
+          analyzedAt: new Date().toISOString(),
+        });
+      }
+
+      const prompt = `以下のホームページのテキスト情報から駐車場の有無を判定してください。
+可能な限り短く、日本語で根拠を説明し、JSONで返してください。
+
+次のキーワード・文脈を重視して判定してください:
+- 「駐車場」「P」「パーキング」「台」「〇台」「台数」「無料」「有料」「駐車スペース」
+- 「駐車可」「駐車不可」「駐車できません」「駐車場なし」「駐車場あり」
+- 「コインパーキング」「提携駐車場」「専用駐車場」
+- 店舗前・併設・近隣の駐車場の記載、アクセス案内にある駐車に関する説明
+
+明確な記載がない場合は status を "unknown" とし、「ホームページに記載がある可能性があります」旨を reason に含めてください。
+
+返却フォーマット:
+{
+  "status": "available" | "unavailable" | "unknown",
+  "confidence": 0-100,
+  "reason": "日本語での判定根拠"
+}
+
+解析対象:
+- 店舗名: ${name ?? "不明"}
+`;
+
+      const parts: any = [
+        { text: prompt },
+        { text: `WEB_TEXT:\n${websiteText}` }
+      ];
+
+      const completion = await client.models.generateContent({
+        model: "gemini-2.0-flash-001",
+        contents: [{ role: "user", parts }],
+      });
+
+      const text = completion.response.text() || "";
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) {
+        return res.status(500).json({ error: "Failed to parse AI response" });
+      }
+
+      const result = JSON.parse(match[0]);
+      return res.json({
+        ...result,
+        source: "website",
+        analyzedAt: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      console.error("[POST /api/parking-scan] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to scan parking" });
+    }
+  });
+
   app.post("/api/registered-stores/:id/analyze-parking", requireAuth, async (req: AuthRequest, res) => {
     try {
       const { id } = req.params;

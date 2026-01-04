@@ -498,8 +498,27 @@ export function StoreMapView({
       setSelectedPlaceDetails(detailedPlace);
 
       try {
+        // 1) 未登録でも動く軽量解析（websiteスクレイピング）
+        try {
+          const scanRes = await apiRequest("POST", "/api/parking-scan", {
+            website: detailedPlace.website,
+            name: detailedPlace.name,
+          });
+          const scanJson = await scanRes.json();
+          detailedPlace = {
+            ...detailedPlace,
+            parkingStatus: scanJson.status || "unknown",
+            parkingConfidence: scanJson.confidence,
+            parkingReason: scanJson.reason,
+            parkingAnalyzedAt: scanJson.analyzedAt,
+          };
+          setSelectedPlaceDetails(detailedPlace);
+        } catch (scanError) {
+          console.warn("駐車場スクレイピング解析エラー:", scanError);
+        }
+
         let registeredStore: RegisteredStore | null = null;
-        
+
         try {
           const checkRes = await apiRequest("GET", `/api/registered-stores/place/${place.placeId}`);
           registeredStore = await checkRes.json();
